@@ -2,11 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
-import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, getUpcomingDeadlines } from "@/lib/api";
+import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, getUpcomingEvents, EventCategory, getCourses } from "@/lib/api";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getCourses } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CalendarClientProps {
   role: string;
@@ -14,24 +19,56 @@ interface CalendarClientProps {
   userId: string;
 }
 
+const EVENT_CATEGORIES: { value: EventCategory; label: string; color: string }[] = [
+  { value: "PERKULIAHAN", label: "Perkuliahan", color: "#1a365d" },
+  { value: "MATERI_BARU", label: "Materi Baru", color: "#2d6a4f" },
+  { value: "ASSIGNMENT", label: "Assignment", color: "#f4a261" },
+  { value: "QUIZ", label: "Quiz", color: "#e07a5f" },
+  { value: "UTS", label: "UTS", color: "#e07a5f" },
+  { value: "UAS", label: "UAS", color: "#c1121f" },
+  { value: "SEMINAR", label: "Seminar", color: "#457b9d" },
+  { value: "PROJECT", label: "Project", color: "#1d3557" },
+  { value: "MEETING", label: "Meeting", color: "#6c757d" },
+  { value: "DEADLINE", label: "Deadline", color: "#f4a261" },
+  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", color: "#1a365d" },
+];
+
 export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [upcomingDeadlines, setUpcomingDeadlines] = useState<CalendarEvent[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | "ALL">("ALL");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    startDate: "",
+    startTime: "",
+    endDate: "",
+    endTime: "",
+    location: "",
+    isOnline: false,
+    meetingLink: "",
+    category: "PENGUMUMAN_AKADEMIK" as EventCategory,
+    color: "#1a365d",
+    courseId: "",
+  });
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [eventsData, deadlinesData, coursesData] = await Promise.all([
-        getCalendarEvents(token),
-        getUpcomingDeadlines(token),
+      const filters = selectedCategory !== "ALL" ? { category: selectedCategory } : undefined;
+      const [eventsData, upcomingData, coursesData] = await Promise.all([
+        getCalendarEvents(token, filters),
+        getUpcomingEvents(token, 7),
         getCourses(token),
       ]);
       setEvents(eventsData.data || []);
-      setUpcomingDeadlines(deadlinesData.data || []);
+      setUpcomingEvents(upcomingData.data || []);
       setCourses(
         (coursesData.data || []).map((c: any) => ({
           id: c.id,
@@ -48,15 +85,9 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
   useEffect(() => {
     fetchEvents();
-  }, [token]);
+  }, [token, selectedCategory]);
 
-  const handleCreateEvent = async (data: {
-    title: string;
-    description?: string;
-    startDate: string;
-    type: "DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT";
-    courseId?: string;
-  }) => {
+  const handleCreateEvent = async (data: any) => {
     await createCalendarEvent(token, data);
     await fetchEvents();
   };
@@ -65,6 +96,49 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     await deleteCalendarEvent(token, eventId);
     await fetchEvents();
   };
+
+  const handleCreateNewEvent = async () => {
+    await createCalendarEvent(token, {
+      ...newEvent,
+      startDate: newEvent.startDate,
+      endDate: newEvent.endDate || undefined,
+      startTime: newEvent.startTime || undefined,
+      endTime: newEvent.endTime || undefined,
+      isPublished: true,
+    });
+    setIsCreateDialogOpen(false);
+    setNewEvent({
+      title: "",
+      description: "",
+      startDate: "",
+      startTime: "",
+      endDate: "",
+      endTime: "",
+      location: "",
+      isOnline: false,
+      meetingLink: "",
+      category: "PENGUMUMAN_AKADEMIK",
+      color: "#1a365d",
+      courseId: "",
+    });
+    await fetchEvents();
+  };
+
+  const getCategoryInfo = (category: EventCategory) => {
+    return EVENT_CATEGORIES.find(c => c.value === category) || EVENT_CATEGORIES[10];
+  };
+
+  const filteredEvents = events.filter(event => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        event.title.toLowerCase().includes(query) ||
+        (event.description && event.description.toLowerCase().includes(query)) ||
+        (event.course && (event.course.name.toLowerCase().includes(query) || event.course.code.toLowerCase().includes(query)))
+      );
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -93,58 +167,223 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
   return (
     <div className="space-y-6">
-      {/* Upcoming Deadlines */}
-      {upcomingDeadlines.length > 0 && (
-        <Card className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800">
+      {/* Header with Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <CalendarIcon className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">Kalender Akademik</h1>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cari event..."
+              className="pl-9 w-[200px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Semua Kategori</SelectItem>
+              {EVENT_CATEGORIES.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                    {cat.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Buat Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Buat Event Baru</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Judul Event</Label>
+                    <Input
+                      value={newEvent.title}
+                      onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                      placeholder="Masukkan judul event"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Kategori</Label>
+                    <Select value={newEvent.category} onValueChange={(value) => {
+                      const cat = EVENT_CATEGORIES.find(c => c.value === value);
+                      setNewEvent({ ...newEvent, category: value as EventCategory, color: cat?.color || "#1a365d" });
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EVENT_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                              {cat.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Deskripsi</Label>
+                  <Textarea
+                    value={newEvent.description}
+                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                    placeholder="Masukkan deskripsi event"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tanggal Mulai</Label>
+                    <Input
+                      type="date"
+                      value={newEvent.startDate}
+                      onChange={(e) => setNewEvent({ ...newEvent, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Waktu Mulai</Label>
+                    <Input
+                      type="time"
+                      value={newEvent.startTime}
+                      onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tanggal Selesai (Opsional)</Label>
+                    <Input
+                      type="date"
+                      value={newEvent.endDate}
+                      onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Waktu Selesai (Opsional)</Label>
+                    <Input
+                      type="time"
+                      value={newEvent.endTime}
+                      onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Lokasi</Label>
+                  <Input
+                    value={newEvent.location}
+                    onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                    placeholder="Masukkan lokasi event"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Course (Opsional)</Label>
+                  <Select value={newEvent.courseId} onValueChange={(value) => setNewEvent({ ...newEvent, courseId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.code} - {course.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Batal
+                  </Button>
+                  <Button onClick={handleCreateNewEvent}>
+                    Buat Event
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Upcoming Events */}
+      {upcomingEvents.length > 0 && (
+        <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-2 mb-4">
-            <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            <h3 className="font-semibold text-amber-900 dark:text-amber-100">
-              Deadline Mendekat (7 Hari ke Depan)
+            <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+              Event Mendatang (7 Hari ke Depan)
             </h3>
             <Badge variant="secondary" className="ml-auto">
-              {upcomingDeadlines.length} event
+              {upcomingEvents.length} event
             </Badge>
           </div>
           <div className="space-y-2">
-            {upcomingDeadlines.map((deadline) => (
-              <div
-                key={deadline.id}
-                className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-100 dark:border-amber-800"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: deadline.course?.thumbnailColor || "#e07a5f" }}
-                  />
-                  <div>
-                    <p className="font-medium text-sm">{deadline.title}</p>
-                    {deadline.course && (
-                      <p className="text-xs text-muted-foreground">
-                        {deadline.course.code} - {deadline.course.name}
-                      </p>
-                    )}
+            {upcomingEvents.map((event) => {
+              const catInfo = getCategoryInfo(event.category);
+              return (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: event.color || catInfo.color }}
+                    />
+                    <div>
+                      <p className="font-medium text-sm">{event.title}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs" style={{ borderColor: catInfo.color, color: catInfo.color }}>
+                          {catInfo.label}
+                        </Badge>
+                        {event.course && (
+                          <p className="text-xs text-muted-foreground">
+                            {event.course.code} - {event.course.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      {new Date(event.startDate).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {event.timeRemaining || new Date(event.startDate).toLocaleDateString("id-ID", { weekday: "short" })}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                    {new Date(deadline.date).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(deadline.date).toLocaleDateString("id-ID", { weekday: "short" })}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
 
       {/* Calendar */}
       <CalendarView
-        events={events}
+        events={filteredEvents}
         onEventCreate={handleCreateEvent}
         onEventDelete={handleDeleteEvent}
         canCreate={true}

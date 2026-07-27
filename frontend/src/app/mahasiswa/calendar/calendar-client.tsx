@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, getUpcomingEvents, EventCategory } from "@/lib/api";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { AlertCircle, Clock, Calendar as CalendarIcon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 // Heuristic #1: Visibility of System Status — loading states and error handling
 // Heuristic #6: Recognition Rather Than Recall — clear upcoming deadlines section
@@ -37,7 +38,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "ALL">("ALL");
-  const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchEvents = async () => {
     try {
@@ -60,6 +61,18 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   useEffect(() => {
     fetchEvents();
   }, [token, selectedCategory]);
+
+  const filteredEvents = events.filter(event => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        event.title.toLowerCase().includes(query) ||
+        (event.description && event.description.toLowerCase().includes(query)) ||
+        (event.course && (event.course.name.toLowerCase().includes(query) || event.course.code.toLowerCase().includes(query)))
+      );
+    }
+    return true;
+  });
 
   const handleCreateEvent = async (data: any) => {
     await createCalendarEvent(token, data);
@@ -103,12 +116,21 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   return (
     <div className="space-y-6">
       {/* Header with Filters */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <CalendarIcon className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Kalender Akademik</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cari event..."
+              className="pl-9 w-[200px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filter Kategori" />
@@ -187,14 +209,12 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
       {/* Calendar */}
       <CalendarView
-        events={events}
+        events={filteredEvents}
         onEventCreate={handleCreateEvent}
         onEventDelete={handleDeleteEvent}
         canCreate={false}
         userRole={role}
         courses={[]}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
       />
     </div>
   );
