@@ -11,6 +11,7 @@ import { ModulesModule } from './modules/modules.module';
 import { CourseCategoriesModule } from './course-categories/course-categories.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { ExamsModule } from './exams/exams.module';
+import { QuestionBanksModule } from './question-banks/question-banks.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { ForumModule } from './forum/forum.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -41,6 +42,7 @@ import { ActivitiesModule } from './activities/activities.module';
     CourseCategoriesModule,
     AssignmentsModule,
     ExamsModule,
+    QuestionBanksModule,
     CalendarModule,
     ForumModule,
     NotificationsModule,

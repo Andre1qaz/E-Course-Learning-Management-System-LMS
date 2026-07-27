@@ -146,8 +146,24 @@ export function ExamTakingClient({ examId, token }: ExamTakingClientProps) {
   };
 
   const autoSaveAnswer = async (questionId: string, answer: string) => {
-    // TODO: Implement auto-save API call
-    // This would save the answer to the server periodically
+    if (!attemptId) return;
+
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/attempts/${attemptId}/auto-save`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ questionId, answer }),
+        }
+      );
+    } catch (error) {
+      // Silent fail for auto-save, don't interrupt user
+      console.error("Auto-save failed:", error);
+    }
   };
 
   const handleSubmitExam = async () => {

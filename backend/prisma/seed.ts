@@ -217,7 +217,6 @@ async function main() {
         'Jelaskan perbedaan antara HTML, CSS, dan JavaScript beserta peran masing-masing.',
       points: 30,
       order: 2,
-      autoGrade: false,
     },
   });
 
@@ -229,7 +228,6 @@ async function main() {
         'Properti CSS apa yang digunakan untuk membuat layout flexbox?',
       points: 10,
       order: 3,
-      autoGrade: true,
     },
   });
 

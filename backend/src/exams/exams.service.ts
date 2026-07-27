@@ -358,7 +358,6 @@ export class ExamsService {
         attachmentUrl: dto.attachmentUrl,
         points: dto.points,
         order: nextOrder,
-        autoGrade: dto.type !== QuestionType.ESSAY,
       },
     });
 
@@ -478,12 +477,10 @@ export class ExamsService {
     }
 
     // Check if student already has an attempt
-    const existingAttempt = await this.prisma.examAttempt.findUnique({
+    const existingAttempt = await this.prisma.examAttempt.findFirst({
       where: {
-        examId_studentId: {
-          examId,
-          studentId: userId,
-        },
+        examId,
+        studentId: userId,
       },
     });
 
@@ -517,6 +514,78 @@ export class ExamsService {
       success: true,
       data: attempt,
       message: 'Exam attempt started successfully',
+    };
+  }
+
+  async autoSaveAnswer(attemptId: string, userId: string, dto: any) {
+    // Verify the attempt belongs to the user
+    const attempt = await this.prisma.examAttempt.findUnique({
+      where: { id: attemptId },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException('Exam attempt not found');
+    }
+
+    if (attempt.studentId !== userId) {
+      throw new ForbiddenException('You can only save your own answers');
+    }
+
+    if (attempt.status === ExamAttemptStatus.SUBMITTED) {
+      throw new ForbiddenException('Cannot save answers for submitted exam');
+    }
+
+    // Check if answer already exists
+    const existingAnswer = await this.prisma.answer.findUnique({
+      where: {
+        attemptId_questionId: {
+          attemptId,
+          questionId: dto.questionId,
+        },
+      },
+    });
+
+    let answer;
+    if (existingAnswer) {
+      // Update existing answer
+      answer = await this.prisma.answer.update({
+        where: { id: existingAnswer.id },
+        data: {
+          answerText: dto.answer || dto.essayAnswer || existingAnswer.answerText,
+          selectedOptionId: dto.answer || existingAnswer.selectedOptionId,
+        },
+      });
+    } else {
+      // Create new answer
+      answer = await this.prisma.answer.create({
+        data: {
+          attemptId,
+          questionId: dto.questionId,
+          answerText: dto.answer || dto.essayAnswer,
+          selectedOptionId: dto.answer,
+        },
+      });
+    }
+
+    // Update attempt's autoSavedData
+    await this.prisma.examAttempt.update({
+      where: { id: attemptId },
+      data: {
+        autoSavedData: {
+          ...attempt.autoSavedData as any,
+          [dto.questionId]: {
+            answer: dto.answer,
+            essayAnswer: dto.essayAnswer,
+            savedAt: new Date().toISOString(),
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      data: answer,
+      message: 'Answer auto-saved successfully',
     };
   }
 
@@ -582,11 +651,41 @@ export class ExamsService {
         }
       }
 
-      // Auto-grade short answer if enabled (requires correctAnswer to be stored)
-      // Note: Short answer auto-grading is not implemented due to lack of correctAnswer field
-      // All short answers require manual grading
-      if (question.type === QuestionType.SHORT_ANSWER) {
-        feedback = 'Pending manual grading';
+      // Auto-grade true/false
+      if (question.type === 'TRUE_FALSE' && answerDto.answer) {
+        const userAnswer = answerDto.answer.toLowerCase();
+        const correctOption = question.options.find((o: any) => o.isCorrect);
+        
+        if (correctOption) {
+          const correctAnswer = correctOption.optionText.toLowerCase();
+          if (userAnswer === correctAnswer) {
+            score = question.points;
+            feedback = 'Correct answer';
+          } else {
+            feedback = 'Incorrect answer';
+          }
+        } else {
+          feedback = 'Pending manual grading';
+        }
+      }
+
+      // Auto-grade short answer
+      if (question.type === QuestionType.SHORT_ANSWER && answerDto.answer) {
+        const userAnswer = answerDto.answer.trim();
+        const correctOption = question.options.find((o: any) => o.isCorrect);
+        
+        if (correctOption) {
+          const correctAnswer = correctOption.optionText.trim();
+          // Case-insensitive comparison for short answers
+          if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+            score = question.points;
+            feedback = 'Correct answer';
+          } else {
+            feedback = 'Incorrect answer';
+          }
+        } else {
+          feedback = 'Pending manual grading';
+        }
       }
 
       // Essay questions need manual grading

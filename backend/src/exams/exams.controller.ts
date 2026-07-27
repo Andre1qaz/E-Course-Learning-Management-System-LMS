@@ -100,6 +100,17 @@ export class ExamsController {
     return this.examsService.addQuestion(examId, userId, role, dto);
   }
 
+  @Post('attempts/:attemptId/auto-save')
+  @ApiOperation({ summary: 'Auto-save answer during exam (Student only)' })
+  @Roles(Role.ADMIN, Role.DOSEN, Role.MAHASISWA)
+  async autoSaveAnswer(
+    @Param('attemptId') attemptId: string,
+    @Body() dto: any,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.examsService.autoSaveAnswer(attemptId, userId, dto);
+  }
+
   @Get(':id/questions')
   @ApiOperation({ summary: 'Get all questions for an exam' })
   async getQuestions(
