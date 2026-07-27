@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType, Role } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
 // Heuristic #5: Error Prevention — validate event ownership before modification
@@ -8,7 +9,10 @@ import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityT
 
 @Injectable()
 export class CalendarService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Get all calendar events for a user based on role
@@ -231,6 +235,23 @@ export class CalendarService {
       },
     });
 
+    // Send notifications to enrolled students if published and course event
+    if (event.isPublished && event.courseId) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId: event.courseId },
+        select: { userId: true },
+      });
+
+      const studentIds = enrollments.map((e: any) => e.userId);
+      await this.notificationsService.createBulkNotifications({
+        userIds: studentIds,
+        type: 'EVENT_CREATED',
+        title: 'Event Baru Ditambahkan',
+        message: `Event "${event.title}" telah dijadwalkan pada ${event.startDate.toLocaleDateString('id-ID')}`,
+        link: `/calendar`,
+      });
+    }
+
     return {
       success: true,
       data: event,
@@ -302,6 +323,23 @@ export class CalendarService {
         },
       },
     });
+
+    // Send schedule change notification if date/time changed and event is published
+    if ((data.startDate || data.startTime || data.endTime) && updatedEvent.isPublished && updatedEvent.courseId) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId: updatedEvent.courseId },
+        select: { userId: true },
+      });
+
+      const studentIds = enrollments.map((e: any) => e.userId);
+      await this.notificationsService.createBulkNotifications({
+        userIds: studentIds,
+        type: 'SCHEDULE_CHANGED',
+        title: 'Perubahan Jadwal Event',
+        message: `Jadwal event "${updatedEvent.title}" telah diubah menjadi ${updatedEvent.startDate.toLocaleDateString('id-ID')}`,
+        link: `/calendar`,
+      });
+    }
 
     return {
       success: true,

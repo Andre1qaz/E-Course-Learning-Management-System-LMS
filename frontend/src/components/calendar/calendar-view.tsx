@@ -29,6 +29,8 @@ interface CalendarViewProps {
   }) => Promise<void>;
   onEventUpdate?: (eventId: string, data: any) => Promise<void>;
   onEventDelete?: (eventId: string) => Promise<void>;
+  onEventEdit?: (event: CalendarEvent) => void;
+  onEventTogglePublish?: (eventId: string) => Promise<void>;
   canCreate?: boolean;
   userRole?: string;
   courses?: { id: string; name: string; code: string }[];
@@ -39,6 +41,8 @@ export function CalendarView({
   onEventCreate,
   onEventUpdate,
   onEventDelete,
+  onEventEdit,
+  onEventTogglePublish,
   canCreate = true,
   userRole,
   courses = [],
@@ -49,6 +53,7 @@ export function CalendarView({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [eventType, setEventType] = useState<"DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT">("PERSONAL_NOTE");
+  const [viewMode, setViewMode] = useState<"monthly" | "weekly" | "daily">("monthly");
   const [eventCourseId, setEventCourseId] = useState<string>("");
 
   const getDaysInMonth = (date: Date) => {
@@ -74,11 +79,31 @@ export function CalendarView({
     return days;
   };
 
+  const getDaysInWeek = (date: Date) => {
+    const current = new Date(date);
+    const day = current.getDay();
+    const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    const monday = new Date(current.setDate(diff));
+    const days: Date[] = [];
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      days.push(day);
+    }
+
+    return days;
+  };
+
+  const getDaysInDay = (date: Date) => {
+    return [new Date(date)];
+  };
+
   const getEventsForDate = (date: Date) => {
     if (!date) return [];
     const dateStr = date.toISOString().split('T')[0];
     return events.filter((event) => {
-      const eventDate = new Date(event.date).toISOString().split('T')[0];
+      const eventDate = new Date(event.startDate).toISOString().split('T')[0];
       return eventDate === dateStr;
     });
   };
@@ -86,7 +111,13 @@ export function CalendarView({
   const navigateMonth = (direction: "prev" | "next") => {
     setCurrentDate((prev) => {
       const newDate = new Date(prev);
-      newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
+      if (viewMode === "monthly") {
+        newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
+      } else if (viewMode === "weekly") {
+        newDate.setDate(newDate.getDate() + (direction === "next" ? 7 : -7));
+      } else {
+        newDate.setDate(newDate.getDate() + (direction === "next" ? 1 : -1));
+      }
       return newDate;
     });
   };
@@ -145,7 +176,7 @@ export function CalendarView({
     }
   };
 
-  const days = getDaysInMonth(currentDate);
+  const days = viewMode === "monthly" ? getDaysInMonth(currentDate) : viewMode === "weekly" ? getDaysInWeek(currentDate) : getDaysInDay(currentDate);
   const today = new Date();
   const monthNames = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -185,7 +216,12 @@ export function CalendarView({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-display font-bold">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            {viewMode === "monthly"
+              ? `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+              : viewMode === "weekly"
+              ? `Minggu ke-${Math.ceil(currentDate.getDate() / 7)} ${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+              : `${currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+            }
           </h2>
           <Button variant="outline" size="sm" onClick={goToToday}>
             Hari Ini
@@ -198,6 +234,29 @@ export function CalendarView({
           <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <div className="flex items-center gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === "monthly" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("monthly")}
+            >
+              Bulanan
+            </Button>
+            <Button
+              variant={viewMode === "weekly" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("weekly")}
+            >
+              Mingguan
+            </Button>
+            <Button
+              variant={viewMode === "daily" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("daily")}
+            >
+              Harian
+            </Button>
+          </div>
           {canCreate && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -365,7 +424,7 @@ export function CalendarView({
               <div>
                 <Label>Tanggal</Label>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(selectedEvent.date).toLocaleDateString("id-ID", {
+                  {new Date(selectedEvent.startDate).toLocaleDateString("id-ID", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
@@ -390,6 +449,51 @@ export function CalendarView({
                   <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
                 </div>
               )}
+              {selectedEvent.location && (
+                <div>
+                  <Label>Lokasi</Label>
+                  <p className="text-sm text-muted-foreground">{selectedEvent.location}</p>
+                </div>
+              )}
+              {selectedEvent.isOnline && selectedEvent.meetingLink && (
+                <div>
+                  <Label>Tautan Meeting</Label>
+                  <a
+                    href={selectedEvent.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {selectedEvent.meetingLink}
+                  </a>
+                </div>
+              )}
+              {selectedEvent.startTime && (
+                <div>
+                  <Label>Waktu</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedEvent.startTime} {selectedEvent.endTime ? `- ${selectedEvent.endTime}` : ''}
+                  </p>
+                </div>
+              )}
+              {selectedEvent.attachments && Array.isArray(selectedEvent.attachments) && selectedEvent.attachments.length > 0 && (
+                <div>
+                  <Label>Lampiran</Label>
+                  <div className="space-y-2">
+                    {selectedEvent.attachments.map((attachment: any, index: number) => (
+                      <a
+                        key={index}
+                        href={attachment.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        📎 {attachment.fileName}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
               {selectedEvent.course && (
                 <div>
                   <Label>Course</Label>
@@ -404,10 +508,48 @@ export function CalendarView({
                   </div>
                 </div>
               )}
+              {selectedEvent.relatedActivityId && selectedEvent.relatedActivityType && (
+                <div>
+                  <Label>Link ke Aktivitas</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      let link = '';
+                      if (selectedEvent.relatedActivityType === 'ASSIGNMENT') {
+                        link = `/mahasiswa/courses/${selectedEvent.courseId}/assignments/${selectedEvent.relatedActivityId}`;
+                      } else if (selectedEvent.relatedActivityType === 'EXAM') {
+                        link = `/mahasiswa/courses/${selectedEvent.courseId}/exams/${selectedEvent.relatedActivityId}`;
+                      } else if (selectedEvent.relatedActivityType === 'MODULE') {
+                        link = `/mahasiswa/courses/${selectedEvent.courseId}/modules/${selectedEvent.relatedActivityId}`;
+                      }
+                      if (link) window.location.href = link;
+                    }}
+                  >
+                    Buka {selectedEvent.relatedActivityType === 'ASSIGNMENT' ? 'Tugas' : selectedEvent.relatedActivityType === 'EXAM' ? 'Ujian' : 'Materi'}
+                  </Button>
+                </div>
+              )}
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
                   Tutup
                 </Button>
+                {onEventTogglePublish && (userRole === "ADMIN" || (userRole === "DOSEN" && selectedEvent.courseId)) && (
+                  <Button variant={selectedEvent.isPublished ? "outline" : "default"} onClick={async () => {
+                    await onEventTogglePublish(selectedEvent.id);
+                    setIsViewDialogOpen(false);
+                  }}>
+                    {selectedEvent.isPublished ? "Unpublish" : "Publish"}
+                  </Button>
+                )}
+                {onEventEdit && (selectedEvent.userId || (userRole === "DOSEN" && selectedEvent.courseId) || userRole === "ADMIN") && (
+                  <Button variant="default" onClick={() => {
+                    setIsViewDialogOpen(false);
+                    onEventEdit(selectedEvent);
+                  }}>
+                    Edit
+                  </Button>
+                )}
                 {(selectedEvent.userId || (userRole === "DOSEN" && selectedEvent.courseId) || userRole === "ADMIN") && (
                   <Button variant="destructive" onClick={handleDeleteEvent}>
                     Hapus
