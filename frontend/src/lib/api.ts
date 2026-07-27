@@ -51,12 +51,42 @@ export async function apiFetch<T>(
 }
 
 // Calendar API functions
+export type EventCategory = 
+  | "PERKULIAHAN"
+  | "MATERI_BARU"
+  | "ASSIGNMENT"
+  | "QUIZ"
+  | "UTS"
+  | "UAS"
+  | "SEMINAR"
+  | "PROJECT"
+  | "MEETING"
+  | "DEADLINE"
+  | "PENGUMUMAN_AKADEMIK";
+
+export type EventTargetAudience = "ALL_STUDENTS" | "COURSE_STUDENTS";
+
+export type RelatedActivityType = "ASSIGNMENT" | "EXAM" | "MODULE" | "ACTIVITY" | "NONE";
+
 export interface CalendarEvent {
   id: string;
   title: string;
   description: string | null;
-  date: string;
+  startDate: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  isOnline: boolean;
+  meetingLink: string | null;
+  category: EventCategory;
+  color: string;
   type: "DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT";
+  targetAudience: EventTargetAudience;
+  relatedActivityType: RelatedActivityType;
+  relatedActivityId: string | null;
+  isPublished: boolean;
+  attachments: any;
   userId: string | null;
   courseId: string | null;
   course?: {
@@ -66,19 +96,39 @@ export interface CalendarEvent {
     thumbnailColor: string;
   };
   createdAt: string;
+  updatedAt: string;
+  timeRemaining?: string; // Added by backend for upcoming events
 }
 
-export async function getCalendarEvents(token: string, courseId?: string) {
-  const params = courseId ? `?courseId=${courseId}` : "";
-  return apiFetch<CalendarEvent[]>(`/calendar${params}`, {}, token);
+export async function getCalendarEvents(
+  token: string,
+  filters?: {
+    courseId?: string;
+    category?: EventCategory;
+    startDate?: string;
+    endDate?: string;
+  }
+) {
+  const params = new URLSearchParams();
+  if (filters?.courseId) params.append("courseId", filters.courseId);
+  if (filters?.category) params.append("category", filters.category);
+  if (filters?.startDate) params.append("startDate", filters.startDate);
+  if (filters?.endDate) params.append("endDate", filters.endDate);
+  
+  const queryString = params.toString();
+  return apiFetch<CalendarEvent[]>(`/calendar${queryString ? `?${queryString}` : ""}`, {}, token);
 }
 
 export async function getCalendarEventsByMonth(token: string, year: number, month: number) {
   return apiFetch<CalendarEvent[]>(`/calendar/month?year=${year}&month=${month}`, {}, token);
 }
 
-export async function getUpcomingDeadlines(token: string) {
-  return apiFetch<CalendarEvent[]>("/calendar/upcoming", {}, token);
+export async function getUpcomingEvents(token: string, days: number = 7) {
+  return apiFetch<CalendarEvent[]>(`/calendar/upcoming?days=${days}`, {}, token);
+}
+
+export async function getEventById(token: string, eventId: string) {
+  return apiFetch<CalendarEvent>(`/calendar/${eventId}`, {}, token);
 }
 
 export async function createCalendarEvent(
@@ -87,7 +137,20 @@ export async function createCalendarEvent(
     title: string;
     description?: string;
     startDate: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+    isOnline?: boolean;
+    meetingLink?: string;
+    category?: EventCategory;
+    color?: string;
     type?: "DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT";
+    targetAudience?: EventTargetAudience;
+    relatedActivityType?: RelatedActivityType;
+    relatedActivityId?: string;
+    isPublished?: boolean;
+    attachments?: any;
     courseId?: string;
   },
 ) {
@@ -103,8 +166,21 @@ export async function updateCalendarEvent(
   data: {
     title?: string;
     description?: string;
-    date?: string;
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+    isOnline?: boolean;
+    meetingLink?: string;
+    category?: EventCategory;
+    color?: string;
     type?: "DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT";
+    targetAudience?: EventTargetAudience;
+    relatedActivityType?: RelatedActivityType;
+    relatedActivityId?: string;
+    isPublished?: boolean;
+    attachments?: any;
   },
 ) {
   return apiFetch<CalendarEvent>(`/calendar/${eventId}`, {
@@ -117,6 +193,17 @@ export async function deleteCalendarEvent(token: string, eventId: string) {
   return apiFetch<null>(`/calendar/${eventId}`, {
     method: "DELETE",
   }, token);
+}
+
+export async function toggleEventPublish(token: string, eventId: string) {
+  return apiFetch<CalendarEvent>(`/calendar/${eventId}/publish`, {
+    method: "PUT",
+  }, token);
+}
+
+// Legacy function for backward compatibility
+export async function getUpcomingDeadlines(token: string) {
+  return getUpcomingEvents(token, 7);
 }
 
 // Forum API functions

@@ -5,6 +5,8 @@ import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
 import { Role, QuestionType, ExamAttemptStatus } from '@prisma/client';
+import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -13,7 +15,11 @@ import { Role, QuestionType, ExamAttemptStatus } from '@prisma/client';
 
 @Injectable()
 export class ExamsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Create a new exam (Admin or course instructor only)
@@ -61,6 +67,26 @@ export class ExamsService {
         },
       },
     });
+
+    // Automatically create calendar event
+    await this.calendarService.createEventFromExam(exam.id);
+
+    // Send notifications to enrolled students if published
+    if (exam.isPublished) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId },
+        select: { userId: true },
+      });
+
+      const studentIds = enrollments.map((e: any) => e.userId);
+      await this.notificationsService.createBulkNotifications({
+        userIds: studentIds,
+        type: 'EXAM_CREATED',
+        title: 'Ujian Baru Dijadwalkan',
+        message: `Ujian "${exam.title}" telah dijadwalkan di course "${course.name}". Mulai: ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
+        link: `/mahasiswa/courses/${courseId}/exams/${exam.id}`,
+      });
+    }
 
     return {
       success: true,

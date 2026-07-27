@@ -1,14 +1,14 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, MaxLength, IsEnum, IsBoolean, IsArray, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsDateString, MaxLength, IsEnum, IsBoolean, IsObject } from 'class-validator';
 import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType } from '@prisma/client';
 
-// Heuristic #5: Error Prevention — validate event data before creation
+// Heuristic #5: Error Prevention — validate event data before update
 // Heuristic #6: Recognition Rather Than Recall — clear event types
 
-export class CreateEventDto {
+export class UpdateEventDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(200)
-  title: string;
+  title?: string;
 
   @IsString()
   @IsOptional()
@@ -16,8 +16,8 @@ export class CreateEventDto {
   description?: string;
 
   @IsDateString()
-  @IsNotEmpty()
-  startDate: string;
+  @IsOptional()
+  startDate?: string;
 
   @IsDateString()
   @IsOptional()
@@ -79,8 +79,4 @@ export class CreateEventDto {
   @IsObject()
   @IsOptional()
   attachments?: any;
-
-  @IsString()
-  @IsOptional()
-  courseId?: string;
 }

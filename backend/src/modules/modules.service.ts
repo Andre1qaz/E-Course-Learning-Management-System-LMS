@@ -5,6 +5,8 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { CreateModuleFileDto } from './dto/create-module.dto';
 import { Role, ModuleFileType } from '@prisma/client';
+import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -16,6 +18,8 @@ export class ModulesService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -58,6 +62,24 @@ export class ModulesService {
       include: {
         files: true,
       },
+    });
+
+    // Automatically create calendar event
+    await this.calendarService.createEventFromModule(module.id);
+
+    // Send notifications to enrolled students
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId },
+      select: { userId: true },
+    });
+
+    const studentIds = enrollments.map((e: any) => e.userId);
+    await this.notificationsService.createBulkNotifications({
+      userIds: studentIds,
+      type: 'MATERIAL_PUBLISHED',
+      title: 'Materi Baru Tersedia',
+      message: `Materi "${module.title}" telah ditambahkan di course "${course.name}"`,
+      link: `/mahasiswa/courses/${courseId}/modules/${module.id}`,
     });
 
     return {

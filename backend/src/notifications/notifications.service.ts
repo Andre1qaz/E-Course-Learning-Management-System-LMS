@@ -215,4 +215,95 @@ export class NotificationsService {
       link: '/mahasiswa/forum',
     });
   }
+
+  /**
+   * Create course created notification
+   */
+  async createCourseCreatedNotification(userId: string, courseName: string, courseCode: string) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.COURSE_CREATED,
+      title: 'Course Baru Dibuat',
+      message: `Course "${courseName}" (${courseCode}) telah dibuat`,
+      link: '/admin/courses',
+    });
+  }
+
+  /**
+   * Create material published notification
+   */
+  async createMaterialPublishedNotification(userId: string, materialTitle: string, courseName: string) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.MATERIAL_PUBLISHED,
+      title: 'Materi Baru Tersedia',
+      message: `Materi "${materialTitle}" telah ditambahkan di course "${courseName}"`,
+      link: '/mahasiswa/courses',
+    });
+  }
+
+  /**
+   * Create assignment created notification
+   */
+  async createAssignmentCreatedNotification(userId: string, assignmentTitle: string, courseName: string, deadline: Date) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.ASSIGNMENT_CREATED,
+      title: 'Tugas Baru Ditambahkan',
+      message: `Tugas "${assignmentTitle}" di course "${courseName}". Deadline: ${deadline.toLocaleDateString('id-ID')}`,
+      link: '/mahasiswa/courses',
+    });
+  }
+
+  /**
+   * Create quiz created notification
+   */
+  async createQuizCreatedNotification(userId: string, quizTitle: string, courseName: string, startTime: Date) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.QUIZ_CREATED,
+      title: 'Quiz Baru Dijadwalkan',
+      message: `Quiz "${quizTitle}" di course "${courseName}" akan dimulai pada ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
+      link: '/mahasiswa/courses',
+    });
+  }
+
+  /**
+   * Create exam created notification
+   */
+  async createExamCreatedNotification(userId: string, examTitle: string, courseName: string, startTime: Date) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.EXAM_CREATED,
+      title: 'Ujian Baru Dijadwalkan',
+      message: `Ujian "${examTitle}" di course "${courseName}" akan dimulai pada ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
+      link: '/mahasiswa/courses',
+    });
+  }
+
+  /**
+   * Create event created notification
+   */
+  async createEventCreatedNotification(userId: string, eventTitle: string, eventDate: Date) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.EVENT_CREATED,
+      title: 'Event Baru Ditambahkan',
+      message: `Event "${eventTitle}" telah dijadwalkan pada ${eventDate.toLocaleDateString('id-ID')}`,
+      link: '/calendar',
+    });
+  }
+
+  /**
+   * Create schedule changed notification
+   */
+  async createScheduleChangedNotification(userId: string, itemType: string, itemName: string, newDate: Date) {
+    return this.createNotification({
+      userId,
+      type: NotificationType.SCHEDULE_CHANGED,
+      title: 'Perubahan Jadwal',
+      message: `Jadwal ${itemType} "${itemName}" telah diubah menjadi ${newDate.toLocaleDateString('id-ID')}`,
+      link: '/calendar',
+    });
+  }
 }

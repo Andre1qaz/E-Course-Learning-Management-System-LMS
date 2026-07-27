@@ -198,4 +198,3 @@ Setiap implementasi UI/UX mencantumkan comment `Heuristic #N` di kode untuk trac
 ## License
 
 Private — All rights reserved.
-Andre Saragih

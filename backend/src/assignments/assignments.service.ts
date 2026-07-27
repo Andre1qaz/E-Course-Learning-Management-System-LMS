@@ -4,6 +4,8 @@ import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { GradeAssignmentDto } from './dto/grade-assignment.dto';
 import { Role, AssignmentSubmissionStatus } from '@prisma/client';
+import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -12,7 +14,11 @@ import { Role, AssignmentSubmissionStatus } from '@prisma/client';
 
 @Injectable()
 export class AssignmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Create a new assignment (Admin or course instructor only)
@@ -49,6 +55,24 @@ export class AssignmentsService {
           },
         },
       },
+    });
+
+    // Automatically create calendar event
+    await this.calendarService.createEventFromAssignment(assignment.id);
+
+    // Send notifications to enrolled students
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId },
+      select: { userId: true },
+    });
+
+    const studentIds = enrollments.map((e: any) => e.userId);
+    await this.notificationsService.createBulkNotifications({
+      userIds: studentIds,
+      type: 'ASSIGNMENT_CREATED',
+      title: 'Tugas Baru Ditambahkan',
+      message: `Tugas "${assignment.title}" telah ditambahkan di course "${course.name}". Deadline: ${new Date(dto.deadline).toLocaleDateString('id-ID')}`,
+      link: `/mahasiswa/courses/${courseId}/assignments/${assignment.id}`,
     });
 
     return {

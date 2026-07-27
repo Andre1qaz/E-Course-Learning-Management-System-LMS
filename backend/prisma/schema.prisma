@@ -63,12 +63,46 @@ enum CalendarEventType {
   ANNOUNCEMENT
 }
 
+enum EventCategory {
+  PERKULIAHAN
+  MATERI_BARU
+  ASSIGNMENT
+  QUIZ
+  UTS
+  UAS
+  SEMINAR
+  PROJECT
+  MEETING
+  DEADLINE
+  PENGUMUMAN_AKADEMIK
+}
+
+enum EventTargetAudience {
+  ALL_STUDENTS
+  COURSE_STUDENTS
+}
+
+enum RelatedActivityType {
+  ASSIGNMENT
+  EXAM
+  MODULE
+  ACTIVITY
+  NONE
+}
+
 enum NotificationType {
   DEADLINE_REMINDER
   EXAM_REMINDER
   GRADE_RELEASED
   FORUM_REPLY
   SYSTEM
+  COURSE_CREATED
+  MATERIAL_PUBLISHED
+  ASSIGNMENT_CREATED
+  QUIZ_CREATED
+  EXAM_CREATED
+  EVENT_CREATED
+  SCHEDULE_CHANGED
 }
 
 enum ModuleFileType {
@@ -421,14 +455,28 @@ model Answer {
 }
 
 model CalendarEvent {
-  id          String            @id @default(cuid())
-  title       String
-  description String?
-  date        DateTime
-  type        CalendarEventType
-  userId      String?
-  courseId    String?
-  createdAt   DateTime          @default(now())
+  id                  String               @id @default(cuid())
+  title               String
+  description         String?
+  startDate           DateTime
+  endDate             DateTime?
+  startTime           String?
+  endTime             String?
+  location            String?
+  isOnline            Boolean              @default(false)
+  meetingLink         String?
+  category            EventCategory        @default(PENGUMUMAN_AKADEMIK)
+  color               String               @default("#1a365d")
+  type                CalendarEventType    @default(ANNOUNCEMENT)
+  targetAudience      EventTargetAudience  @default(COURSE_STUDENTS)
+  relatedActivityType RelatedActivityType  @default(NONE)
+  relatedActivityId   String?
+  isPublished         Boolean              @default(true)
+  attachments         Json?
+  userId              String?
+  courseId            String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
