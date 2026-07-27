@@ -18,6 +18,21 @@ interface Week {
   endDate: string;
   order: number;
   activities: Activity[];
+  exams?: Exam[];
+}
+
+interface Exam {
+  id: string;
+  title: string;
+  description: string | null;
+  startTime: string;
+  deadline: string;
+  duration: number;
+  isPublished: boolean;
+  _count: {
+    questions: number;
+    attempts: number;
+  };
 }
 
 interface Activity {

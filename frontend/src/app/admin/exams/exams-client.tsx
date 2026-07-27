@@ -2,11 +2,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Filter, BookOpen } from "lucide-react";
+import { Plus, Search, Filter, BookOpen, Edit, Trash2, Eye, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface Course {
@@ -41,6 +44,18 @@ export function ExamsClient({ token }: ExamsClientProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [formData, setFormData] = useState({
+    courseId: "",
+    title: "",
+    description: "",
+    startTime: "",
+    deadline: "",
+    duration: 60,
+    isPublished: false,
+  });
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
@@ -154,6 +169,95 @@ export function ExamsClient({ token }: ExamsClientProps) {
     }
   };
 
+  const handleCreateExam = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/course/${formData.courseId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Ujian berhasil dibuat");
+        setShowCreateDialog(false);
+        setFormData({
+          courseId: "",
+          title: "",
+          description: "",
+          startTime: "",
+          deadline: "",
+          duration: 60,
+          isPublished: false,
+        });
+        fetchAllExams();
+      } else {
+        toast.error(result.message || "Gagal membuat ujian");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat membuat ujian");
+    }
+  };
+
+  const handleDeleteExam = async (examId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus ujian ini?")) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Ujian berhasil dihapus");
+        fetchAllExams();
+      } else {
+        toast.error(result.message || "Gagal menghapus ujian");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menghapus ujian");
+    }
+  };
+
+  const handlePublishExam = async (examId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examId}/publish`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Ujian berhasil dipublikasikan");
+        fetchAllExams();
+      } else {
+        toast.error(result.message || "Gagal mempublikasikan ujian");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mempublikasikan ujian");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-8 py-6">
@@ -163,6 +267,10 @@ export function ExamsClient({ token }: ExamsClientProps) {
             <h1 className="font-display text-2xl font-bold">Semua Ujian</h1>
             <p className="text-muted-foreground">Kelola semua ujian di platform</p>
           </div>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Buat Ujian
+          </Button>
         </div>
 
         {/* Search and Filter */}
@@ -262,6 +370,22 @@ export function ExamsClient({ token }: ExamsClientProps) {
                     <Button variant="outline" size="sm" asChild>
                       <a href={`/admin/courses/${exam.course?.id ?? ""}`}>Lihat Course</a>
                     </Button>
+                    {!exam.isPublished && (
+                      <Button variant="outline" size="sm" onClick={() => handlePublishExam(exam.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Publikasikan
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/admin/exams/${exam.id}/questions`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Kelola Soal
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hapus
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -269,6 +393,93 @@ export function ExamsClient({ token }: ExamsClientProps) {
           </div>
         )}
       </div>
+
+      {/* Create Exam Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Buat Ujian Baru</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="course">Course</Label>
+              <select
+                id="course"
+                value={formData.courseId}
+                onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              >
+                <option value="">Pilih Course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} - {course.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Judul Ujian</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Masukkan judul ujian"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Deskripsi</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Deskripsi ujian (opsional)"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Waktu Mulai</Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Waktu Selesai</Label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">Durasi (menit)</Label>
+              <Input
+                id="duration"
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                min="1"
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Batal
+            </Button>
+            <Button onClick={handleCreateExam}>Buat Ujian</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

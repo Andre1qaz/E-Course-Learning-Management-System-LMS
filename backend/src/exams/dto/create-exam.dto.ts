@@ -26,19 +26,7 @@ export class CreateExamDto {
   @IsNotEmpty()
   duration: number; // in minutes
 
-  @IsNumber()
-  @IsNotEmpty()
-  maxScore: number;
-
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  allowRetake?: boolean;
-
-  @IsNumber()
-  @IsOptional()
-  maxAttempts?: number;
 }

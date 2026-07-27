@@ -27,7 +27,27 @@ enum AssignmentSubmissionStatus {
 enum QuestionType {
   MULTIPLE_CHOICE
   ESSAY
+  TRUE_FALSE
   SHORT_ANSWER
+}
+
+enum ExamCategory {
+  QUIZ
+  UTS
+  UAS
+  GENERAL
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum GradingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum ExamAttemptStatus {
@@ -135,6 +155,7 @@ model Course {
   calendarEvents CalendarEvent[]
   forumThreads ForumThread[]
   weeks        Week[]
+  questionBanks QuestionBank[]
 
   @@map("courses")
 }
@@ -166,6 +187,7 @@ model Week {
 
   course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   activities Activity[]
+  exams      Exam[]
 
   @@unique([courseId, weekNumber])
   @@map("weeks")
@@ -255,18 +277,31 @@ model AssignmentSubmission {
 }
 
 model Exam {
-  id          String   @id @default(cuid())
-  courseId    String
-  title       String
-  description String?
-  startTime   DateTime
-  duration    Int      // minutes
-  deadline    DateTime
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String       @id @default(cuid())
+  courseId        String
+  weekId          String?
+  title           String
+  description     String?
+  category        ExamCategory @default(GENERAL)
+  startTime       DateTime
+  deadline        DateTime
+  duration        Int          // minutes
+  maxScore        Float        @default(100)
+  maxAttempts     Int          @default(1)
+  passingGrade    Float        @default(60)
+  isPublished     Boolean      @default(false)
+  showResults     Boolean      @default(true)
+  showExplanation Boolean      @default(false)
+  shuffleQuestions Boolean     @default(false)
+  shuffleOptions  Boolean      @default(false)
+  allowReview     Boolean      @default(false)
+  allowBack       Boolean      @default(true)
+  autoSubmit      Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  week      Week?         @relation(fields: [weekId], references: [id], onDelete: SetNull)
   questions Question[]
   attempts  ExamAttempt[]
 
@@ -274,18 +309,30 @@ model Exam {
 }
 
 model Question {
-  id            String       @id @default(cuid())
-  examId        String
-  type          QuestionType
-  questionText  String
-  attachmentUrl String?
-  points        Float        @default(1)
-  order         Int          @default(0)
-  autoGrade     Boolean      @default(true) // for SHORT_ANSWER
+  id               String          @id @default(cuid())
+  examId           String?
+  questionBankId   String?
+  type             QuestionType
+  questionText     String
+  attachmentUrl    String?
+  points           Float           @default(1)
+  order            Int             @default(0)
+  difficulty       DifficultyLevel @default(MEDIUM)
+  explanation      String?         // Explanation shown after exam
+  rubric           String?         // For essay grading guide
+  maxChars         Int?            // For short answer/essay character limit
+  caseSensitive    Boolean         @default(false) // For short answer
+  tolerance        Float?          // For short answer tolerance
+  allowMultiple    Boolean         @default(false) // For MCQ multiple answers
+  isFromBank       Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  exam    Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
-  options QuestionOption[]
-  answers Answer[]
+  exam         Exam?           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionBank QuestionBank?   @relation(fields: [questionBankId], references: [id], onDelete: SetNull)
+  options      QuestionOption[]
+  answers      Answer[]
+  tags         QuestionTag[]
 
   @@map("questions")
 }
@@ -303,21 +350,56 @@ model QuestionOption {
   @@map("question_options")
 }
 
+model QuestionBank {
+  id          String   @id @default(cuid())
+  courseId    String?
+  title       String
+  description String?
+  topic       String?
+  difficulty  DifficultyLevel @default(MEDIUM)
+  questionType QuestionType
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course    Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@map("question_banks")
+}
+
+model QuestionTag {
+  id         String   @id @default(cuid())
+  questionId String
+  tag        String
+  createdAt  DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, tag])
+  @@map("question_tags")
+}
+
 model ExamAttempt {
-  id           String            @id @default(cuid())
-  examId       String
-  studentId    String
-  startedAt    DateTime?
-  submittedAt  DateTime?
-  totalScore   Float?
-  status       ExamAttemptStatus @default(NOT_STARTED)
-  examCheatLog Json              @default("[]") // anti-cheat tab switch log
+  id              String            @id @default(cuid())
+  examId          String
+  studentId       String
+  attemptNumber   Int               @default(1)
+  startedAt       DateTime?
+  submittedAt     DateTime?
+  totalScore      Float?
+  passed          Boolean?
+  gradingStatus   GradingStatus     @default(PENDING)
+  status          ExamAttemptStatus @default(NOT_STARTED)
+  examCheatLog    Json              @default("[]") // anti-cheat tab switch log
+  autoSavedData   Json?             // auto-save answers
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   student User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   answers Answer[]
 
-  @@unique([examId, studentId])
+  @@unique([examId, studentId, attemptNumber])
   @@map("exam_attempts")
 }
 

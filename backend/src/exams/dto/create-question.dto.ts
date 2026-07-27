@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsEnum, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsEnum, IsArray, IsBoolean, Min, Max } from 'class-validator';
 import { QuestionType } from '@prisma/client';
 
 // Heuristic #5: Error Prevention — validate question data before creation
@@ -7,7 +7,7 @@ import { QuestionType } from '@prisma/client';
 export class CreateQuestionDto {
   @IsString()
   @IsNotEmpty()
-  @MaxLength(500)
+  @MaxLength(5000)
   questionText: string;
 
   @IsEnum(QuestionType)
@@ -16,23 +16,51 @@ export class CreateQuestionDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(2000)
-  explanation?: string;
+  attachmentUrl?: string;
 
   @IsNumber()
   @IsNotEmpty()
+  @Min(0)
   points: number;
 
   @IsString()
   @IsOptional()
-  correctAnswer?: string; // For MC and Short Answer
-
-  @IsArray()
-  @IsOptional()
-  options?: string[]; // For MC questions
+  @MaxLength(5000)
+  explanation?: string;
 
   @IsString()
   @IsOptional()
   @MaxLength(5000)
   rubric?: string; // For Essay questions
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  maxChars?: number; // For short answer/essay
+
+  @IsBoolean()
+  @IsOptional()
+  caseSensitive?: boolean; // For short answer
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  tolerance?: number; // For short answer tolerance
+
+  @IsBoolean()
+  @IsOptional()
+  allowMultiple?: boolean; // For MCQ multiple answers
+
+  @IsArray()
+  @IsOptional()
+  options?: Array<{ text: string; isCorrect: boolean }>; // For MCQ questions
+
+  @IsString()
+  @IsOptional()
+  correctAnswer?: string; // For True/False and Short Answer
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  tags?: string[]; // Question tags
 }

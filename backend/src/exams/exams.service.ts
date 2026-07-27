@@ -355,6 +355,7 @@ export class ExamsService {
         examId,
         type: dto.type,
         questionText: dto.questionText,
+        attachmentUrl: dto.attachmentUrl,
         points: dto.points,
         order: nextOrder,
         autoGrade: dto.type !== QuestionType.ESSAY,
@@ -367,8 +368,8 @@ export class ExamsService {
         await this.prisma.questionOption.create({
           data: {
             questionId: question.id,
-            optionText: dto.options[i],
-            isCorrect: dto.correctAnswer === dto.options[i],
+            optionText: dto.options[i].text,
+            isCorrect: dto.options[i].isCorrect,
             order: i,
           },
         });
