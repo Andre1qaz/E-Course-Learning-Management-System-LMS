@@ -191,6 +191,22 @@ export class ExamsService {
       },
     });
 
+    await this.calendarService.createEventFromExam(updatedExam.id);
+
+    if (dto.startTime || dto.deadline) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId: exam.courseId },
+        select: { userId: true },
+      });
+      await this.notificationsService.createBulkNotifications({
+        userIds: enrollments.map((e) => e.userId),
+        type: 'SCHEDULE_CHANGED',
+        title: 'Perubahan Jadwal Ujian',
+        message: `Jadwal ujian "${updatedExam.title}" telah diubah`,
+        link: `/mahasiswa/courses/${exam.courseId}/exams/${id}`,
+      });
+    }
+
     return {
       success: true,
       data: updatedExam,

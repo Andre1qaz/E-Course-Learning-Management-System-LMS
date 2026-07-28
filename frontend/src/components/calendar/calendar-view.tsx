@@ -338,75 +338,209 @@ export function CalendarView({
 
       {/* Calendar Grid */}
       <Card className="p-6">
-        <div className="grid grid-cols-7 gap-2 mb-4">
-          {dayNames.map((day) => (
-            <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
-              {day}
+        {viewMode === "monthly" ? (
+          <>
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {dayNames.map((day) => (
+                <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                  {day}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((date, index) => {
-            if (!date) {
-              return <div key={index} className="h-32 rounded-lg bg-muted/20" />;
-            }
+            <div className="grid grid-cols-7 gap-2">
+              {days.map((date, index) => {
+                if (!date) {
+                  return <div key={index} className="h-32 rounded-lg bg-muted/20" />;
+                }
 
-            const dayEvents = getEventsForDate(date);
-            const isToday = date.toDateString() === today.toDateString();
-            const isSelected = selectedDate?.toDateString() === date.toDateString();
+                const dayEvents = getEventsForDate(date);
+                const isToday = date.toDateString() === today.toDateString();
+                const isSelected = selectedDate?.toDateString() === date.toDateString();
 
-            return (
-              <div
-                key={index}
-                onClick={() => handleDateClick(date)}
-                className={cn(
-                  "h-32 rounded-lg border p-2 cursor-pointer transition-all hover:border-accent/50",
-                  isToday && "bg-accent/5 border-accent/30",
-                  isSelected && "ring-2 ring-accent",
-                )}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className={cn(
-                    "text-sm font-medium",
-                    isToday && "text-accent font-bold"
-                  )}>
-                    {date.getDate()}
-                  </span>
-                  {isToday && (
-                    <Badge variant="secondary" className="text-xs">
-                      Hari Ini
-                    </Badge>
-                  )}
-                </div>
-                <div className="space-y-1 overflow-y-auto max-h-24">
-                  {dayEvents.slice(0, 3).map((event) => (
-                    <div
-                      key={event.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEventClick(event);
-                      }}
-                      className={cn(
-                        "text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80",
-                        getEventTypeColor(event.type)
+                return (
+                  <div
+                    key={index}
+                    onClick={() => handleDateClick(date)}
+                    className={cn(
+                      "h-32 rounded-lg border p-2 cursor-pointer transition-all hover:border-accent/50",
+                      isToday && "bg-accent/5 border-accent/30",
+                      isSelected && "ring-2 ring-accent",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        isToday && "text-accent font-bold"
+                      )}>
+                        {date.getDate()}
+                      </span>
+                      {isToday && (
+                        <Badge variant="secondary" className="text-xs">
+                          Hari Ini
+                        </Badge>
                       )}
-                    >
-                      <div className="flex items-center gap-1">
-                        {getEventTypeIcon(event.type)}
-                        <span className="truncate">{event.title}</span>
-                      </div>
                     </div>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      +{dayEvents.length - 3} lagi
+                    <div className="space-y-1 overflow-y-auto max-h-24">
+                      {dayEvents.slice(0, 3).map((event) => (
+                        <div
+                          key={event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEventClick(event);
+                          }}
+                          className={cn(
+                            "text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80",
+                            getEventTypeColor(event.type)
+                          )}
+                        >
+                          <div className="flex items-center gap-1">
+                            {getEventTypeIcon(event.type)}
+                            <span className="truncate">{event.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <div className="text-xs text-muted-foreground text-center">
+                          +{dayEvents.length - 3} lagi
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : viewMode === "weekly" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {dayNames.map((day) => (
+                <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                  {day}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {days.map((date, index) => {
+                const dayEvents = getEventsForDate(date);
+                const isToday = date.toDateString() === today.toDateString();
+                const isSelected = selectedDate?.toDateString() === date.toDateString();
+
+                return (
+                  <div
+                    key={index}
+                    onClick={() => handleDateClick(date)}
+                    className={cn(
+                      "min-h-64 rounded-lg border p-3 cursor-pointer transition-all hover:border-accent/50",
+                      isToday && "bg-accent/5 border-accent/30",
+                      isSelected && "ring-2 ring-accent",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        isToday && "text-accent font-bold"
+                      )}>
+                        {date.getDate()}
+                      </span>
+                      {isToday && (
+                        <Badge variant="secondary" className="text-xs">
+                          Hari Ini
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-2 overflow-y-auto max-h-48">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEventClick(event);
+                          }}
+                          className={cn(
+                            "text-xs p-2 rounded border cursor-pointer hover:opacity-80",
+                            getEventTypeColor(event.type)
+                          )}
+                        >
+                          <div className="flex items-center gap-1 mb-1">
+                            {getEventTypeIcon(event.type)}
+                            <span className="font-medium truncate">{event.title}</span>
+                          </div>
+                          {event.startTime && (
+                            <div className="text-xs text-muted-foreground">
+                              {event.startTime}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                {currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </h3>
+              {currentDate.toDateString() === today.toDateString() && (
+                <Badge variant="secondary">Hari Ini</Badge>
+              )}
+            </div>
+            <div className="space-y-3">
+              {days.map((date, index) => {
+                const dayEvents = getEventsForDate(date);
+
+                return (
+                  <div key={index}>
+                    {dayEvents.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        Tidak ada event pada hari ini
+                      </div>
+                    ) : (
+                      dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          onClick={() => handleEventClick(event)}
+                          className={cn(
+                            "p-4 rounded-lg border cursor-pointer transition-all hover:border-accent/50 mb-3",
+                            getEventTypeColor(event.type)
+                          )}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {getEventTypeIcon(event.type)}
+                              <span className="font-medium">{event.title}</span>
+                            </div>
+                            {event.startTime && (
+                              <Badge variant="outline" className="text-xs">
+                                {event.startTime} {event.endTime ? `- ${event.endTime}` : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
+                          )}
+                          {event.location && (
+                            <div className="text-xs text-muted-foreground mb-1">
+                              📍 {event.location}
+                            </div>
+                          )}
+                          {event.isOnline && event.meetingLink && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+                              🔗 {event.meetingLink}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Event View Dialog */}

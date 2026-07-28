@@ -1,6 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType, Role } from '@prisma/client';
+import {
+  ActivityStatus,
+  ActivityType,
+  CalendarEventType,
+  EventCategory,
+  EventTargetAudience,
+  RelatedActivityType,
+  Role,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
@@ -14,10 +22,44 @@ export class CalendarService {
     private notificationsService: NotificationsService,
   ) {}
 
+  private async buildAccessWhere(userId: string, userRole: Role) {
+    if (userRole === Role.MAHASISWA) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { userId },
+        select: { courseId: true },
+      });
+      const courseIds = enrollments.map((e) => e.courseId);
+      return {
+        isPublished: true,
+        OR: [
+          { courseId: { in: courseIds } },
+          { targetAudience: EventTargetAudience.ALL_STUDENTS },
+          { userId },
+        ],
+      };
+    }
+
+    if (userRole === Role.DOSEN) {
+      const coursesTaught = await this.prisma.course.findMany({
+        where: { instructorId: userId },
+        select: { id: true },
+      });
+      const courseIds = coursesTaught.map((c) => c.id);
+      return {
+        OR: [
+          { courseId: { in: courseIds } },
+          { userId },
+        ],
+      };
+    }
+
+    return {};
+  }
+
   /**
    * Get all calendar events for a user based on role
-   * Admin: sees all events
-   * Lecturer: sees events from their courses
+   * Admin: sees all events including unpublished
+   * Lecturer: sees events from their courses including unpublished
    * Student: sees only published events from enrolled courses
    */
   async getUserEvents(userId: string, userRole: Role, filters?: {
@@ -26,41 +68,8 @@ export class CalendarService {
     startDate?: Date;
     endDate?: Date;
   }) {
-    const where: any = {
-      isPublished: true,
-    };
+    const where: any = await this.buildAccessWhere(userId, userRole);
 
-    // Admin sees all published events
-    if (userRole === Role.ADMIN) {
-      // No additional filtering needed for admin
-    } 
-    // Lecturer sees events from their courses
-    else if (userRole === Role.DOSEN) {
-      const coursesTaught = await this.prisma.course.findMany({
-        where: { instructorId: userId },
-        select: { id: true },
-      });
-      const courseIds = coursesTaught.map((c: any) => c.id);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { userId: userId }, // Personal notes
-      ];
-    } 
-    // Student sees events from enrolled courses only
-    else {
-      const enrollments = await this.prisma.enrollment.findMany({
-        where: { userId },
-        select: { courseId: true },
-      });
-      const courseIds = enrollments.map((e: any) => e.courseId);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { targetAudience: EventTargetAudience.ALL_STUDENTS },
-        { userId: userId }, // Personal notes
-      ];
-    }
-
-    // Apply filters
     if (filters?.courseId) {
       where.courseId = filters.courseId;
     }
@@ -104,39 +113,14 @@ export class CalendarService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
+    const accessWhere = await this.buildAccessWhere(userId, userRole);
     const where: any = {
+      ...accessWhere,
       startDate: {
         gte: startDate,
         lte: endDate,
       },
-      isPublished: true,
     };
-
-    // Apply role-based filtering
-    if (userRole === Role.ADMIN) {
-      // Admin sees all
-    } else if (userRole === Role.DOSEN) {
-      const coursesTaught = await this.prisma.course.findMany({
-        where: { instructorId: userId },
-        select: { id: true },
-      });
-      const courseIds = coursesTaught.map((c: any) => c.id);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { userId: userId },
-      ];
-    } else {
-      const enrollments = await this.prisma.enrollment.findMany({
-        where: { userId },
-        select: { courseId: true },
-      });
-      const courseIds = enrollments.map((e: any) => e.courseId);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { targetAudience: EventTargetAudience.ALL_STUDENTS },
-        { userId: userId },
-      ];
-    }
 
     const events = await this.prisma.calendarEvent.findMany({
       where,
@@ -399,39 +383,14 @@ export class CalendarService {
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + days);
 
+    const accessWhere = await this.buildAccessWhere(userId, userRole);
     const where: any = {
+      ...accessWhere,
       startDate: {
         gte: today,
         lte: futureDate,
       },
-      isPublished: true,
     };
-
-    // Apply role-based filtering
-    if (userRole === Role.ADMIN) {
-      // Admin sees all
-    } else if (userRole === Role.DOSEN) {
-      const coursesTaught = await this.prisma.course.findMany({
-        where: { instructorId: userId },
-        select: { id: true },
-      });
-      const courseIds = coursesTaught.map((c: any) => c.id);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { userId: userId },
-      ];
-    } else {
-      const enrollments = await this.prisma.enrollment.findMany({
-        where: { userId },
-        select: { courseId: true },
-      });
-      const courseIds = enrollments.map((e: any) => e.courseId);
-      where.OR = [
-        { courseId: { in: courseIds } },
-        { targetAudience: EventTargetAudience.ALL_STUDENTS },
-        { userId: userId },
-      ];
-    }
 
     const events = await this.prisma.calendarEvent.findMany({
       where,
@@ -708,6 +667,110 @@ export class CalendarService {
     });
 
     return event;
+  }
+
+  /**
+   * Automatically create or update calendar event from week activity
+   */
+  async createEventFromActivity(activityId: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+      include: { week: { include: { course: true } } },
+    });
+
+    if (!activity) {
+      throw new NotFoundException('Activity not found');
+    }
+
+    const metadata = activity.metadata as Record<string, unknown> | null;
+    const courseId = activity.week.courseId;
+
+    const categoryMap: Partial<Record<ActivityType, EventCategory>> = {
+      MATERIAL: EventCategory.MATERI_BARU,
+      ASSIGNMENT: EventCategory.ASSIGNMENT,
+      QUIZ: EventCategory.QUIZ,
+      FORUM: EventCategory.PENGUMUMAN_AKADEMIK,
+      VIDEO: EventCategory.MATERI_BARU,
+      EXTERNAL_LINK: EventCategory.MATERI_BARU,
+    };
+
+    const colorMap: Partial<Record<ActivityType, string>> = {
+      MATERIAL: '#2d6a4f',
+      ASSIGNMENT: '#f4a261',
+      QUIZ: '#e07a5f',
+      FORUM: '#1a365d',
+      VIDEO: '#2d6a4f',
+      EXTERNAL_LINK: '#457b9d',
+    };
+
+    let startDate: Date;
+    if (metadata?.deadline) {
+      startDate = new Date(metadata.deadline as string);
+    } else if (metadata?.startTime) {
+      startDate = new Date(metadata.startTime as string);
+    } else if (activity.publishedAt) {
+      startDate = activity.publishedAt;
+    } else {
+      startDate = activity.createdAt;
+    }
+
+    let title = activity.title;
+    if (activity.type === ActivityType.ASSIGNMENT) {
+      title = `Assignment Due: ${activity.title}`;
+    } else if (activity.type === ActivityType.QUIZ) {
+      title = `Quiz: ${activity.title}`;
+    } else if (activity.type === ActivityType.MATERIAL) {
+      title = `Materi Baru: ${activity.title}`;
+    }
+
+    const category = categoryMap[activity.type] || EventCategory.PENGUMUMAN_AKADEMIK;
+    const color = colorMap[activity.type] || '#1a365d';
+    const type =
+      activity.type === ActivityType.ASSIGNMENT
+        ? CalendarEventType.DEADLINE
+        : CalendarEventType.ANNOUNCEMENT;
+
+    const existingEvent = await this.prisma.calendarEvent.findFirst({
+      where: {
+        relatedActivityType: RelatedActivityType.ACTIVITY,
+        relatedActivityId: activityId,
+      },
+    });
+
+    const eventData = {
+      title,
+      description: activity.description,
+      startDate,
+      category,
+      color,
+      type,
+      targetAudience: EventTargetAudience.COURSE_STUDENTS,
+      relatedActivityType: RelatedActivityType.ACTIVITY,
+      relatedActivityId: activityId,
+      isPublished: activity.status === ActivityStatus.PUBLISHED,
+      courseId,
+    };
+
+    if (existingEvent) {
+      return this.prisma.calendarEvent.update({
+        where: { id: existingEvent.id },
+        data: eventData,
+      });
+    }
+
+    return this.prisma.calendarEvent.create({ data: eventData });
+  }
+
+  /**
+   * Remove calendar event linked to a week activity
+   */
+  async deleteEventFromActivity(activityId: string) {
+    await this.prisma.calendarEvent.deleteMany({
+      where: {
+        relatedActivityType: RelatedActivityType.ACTIVITY,
+        relatedActivityId: activityId,
+      },
+    });
   }
 
   /**

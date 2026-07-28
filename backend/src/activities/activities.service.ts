@@ -2,11 +2,17 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
-import { Role, ActivityStatus } from '@prisma/client';
+import { Role, ActivityStatus, ActivityType } from '@prisma/client';
+import { CalendarService } from '../calendar/calendar.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private calendarService: CalendarService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async findByWeek(weekId: string, userId: string, userRole: Role) {
     // Check if user has access to the week's course
@@ -71,13 +77,21 @@ export class ActivitiesService {
 
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
-    return this.prisma.activity.create({
+    const activity = await this.prisma.activity.create({
       data: {
         weekId,
         ...dto,
         publishedAt: dto.status === 'PUBLISHED' ? new Date() : null,
       },
     });
+
+    await this.calendarService.createEventFromActivity(activity.id);
+
+    if (dto.status === 'PUBLISHED') {
+      await this.notifyActivityPublished(activity.id);
+    }
+
+    return activity;
   }
 
   async update(id: string, dto: UpdateActivityDto, userId: string, userRole: Role) {
@@ -94,10 +108,18 @@ export class ActivitiesService {
       updateData.publishedAt = new Date().toISOString();
     }
 
-    return this.prisma.activity.update({
+    const updatedActivity = await this.prisma.activity.update({
       where: { id },
       data: updateData,
     });
+
+    await this.calendarService.createEventFromActivity(updatedActivity.id);
+
+    if (dto.status === 'PUBLISHED' && activity.status !== ActivityStatus.PUBLISHED) {
+      await this.notifyActivityPublished(updatedActivity.id);
+    }
+
+    return updatedActivity;
   }
 
   async remove(id: string, userId: string, userRole: Role) {
@@ -106,7 +128,8 @@ export class ActivitiesService {
       throw new ForbiddenException('Only Admin and Dosen can delete activities');
     }
 
-    const activity = await this.findOne(id, userId, userRole);
+    await this.findOne(id, userId, userRole);
+    await this.calendarService.deleteEventFromActivity(id);
 
     return this.prisma.activity.delete({
       where: { id },
@@ -229,5 +252,52 @@ export class ActivitiesService {
     }
 
     throw new ForbiddenException('You do not have access to this course');
+  }
+
+  private async notifyActivityPublished(activityId: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+      include: { week: { include: { course: true } } },
+    });
+
+    if (!activity) return;
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId: activity.week.courseId },
+      select: { userId: true },
+    });
+
+    const studentIds = enrollments.map((e) => e.userId);
+    if (studentIds.length === 0) return;
+
+    const typeLabels: Partial<Record<ActivityType, string>> = {
+      ASSIGNMENT: 'Tugas',
+      QUIZ: 'Quiz',
+      MATERIAL: 'Materi',
+      FORUM: 'Forum',
+      VIDEO: 'Video',
+      EXTERNAL_LINK: 'Link Eksternal',
+    };
+
+    const notificationTypeMap: Partial<Record<ActivityType, 'ASSIGNMENT_CREATED' | 'QUIZ_CREATED' | 'MATERIAL_PUBLISHED'>> = {
+      ASSIGNMENT: 'ASSIGNMENT_CREATED',
+      QUIZ: 'QUIZ_CREATED',
+      MATERIAL: 'MATERIAL_PUBLISHED',
+      VIDEO: 'MATERIAL_PUBLISHED',
+      EXTERNAL_LINK: 'MATERIAL_PUBLISHED',
+    };
+
+    const metadata = activity.metadata as Record<string, unknown> | null;
+    const dateInfo = metadata?.deadline
+      ? ` Deadline: ${new Date(metadata.deadline as string).toLocaleDateString('id-ID')}`
+      : '';
+
+    await this.notificationsService.createBulkNotifications({
+      userIds: studentIds,
+      type: notificationTypeMap[activity.type] || 'MATERIAL_PUBLISHED',
+      title: `${typeLabels[activity.type] || 'Aktivitas'} Baru Dipublikasikan`,
+      message: `"${activity.title}" di course "${activity.week.course.name}" telah dipublikasikan.${dateInfo}`,
+      link: `/mahasiswa/courses/${activity.week.courseId}`,
+    });
   }
 }

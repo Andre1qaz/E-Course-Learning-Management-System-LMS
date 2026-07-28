@@ -315,6 +315,23 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label>Warna Event</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      value={newEvent.color}
+                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={newEvent.color}
+                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
+                      placeholder="#1a365d"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label>Deskripsi</Label>
                   <Textarea
                     value={newEvent.description}
@@ -475,6 +492,23 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Warna Event</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      value={newEvent.color}
+                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={newEvent.color}
+                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
+                      placeholder="#1a365d"
+                      className="flex-1"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">

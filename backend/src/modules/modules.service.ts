@@ -162,6 +162,8 @@ export class ModulesService {
       },
     });
 
+    await this.calendarService.createEventFromModule(updatedModule.id);
+
     return {
       success: true,
       data: updatedModule,

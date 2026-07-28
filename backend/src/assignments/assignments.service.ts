@@ -163,6 +163,22 @@ export class AssignmentsService {
       },
     });
 
+    await this.calendarService.createEventFromAssignment(updatedAssignment.id);
+
+    if (dto.deadline) {
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { courseId: assignment.courseId },
+        select: { userId: true },
+      });
+      await this.notificationsService.createBulkNotifications({
+        userIds: enrollments.map((e) => e.userId),
+        type: 'SCHEDULE_CHANGED',
+        title: 'Perubahan Deadline Tugas',
+        message: `Deadline tugas "${updatedAssignment.title}" diubah menjadi ${new Date(dto.deadline).toLocaleDateString('id-ID')}`,
+        link: `/mahasiswa/courses/${assignment.courseId}/assignments/${id}`,
+      });
+    }
+
     return {
       success: true,
       data: updatedAssignment,
