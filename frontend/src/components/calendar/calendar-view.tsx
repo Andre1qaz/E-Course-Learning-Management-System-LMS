@@ -649,13 +649,14 @@ export function CalendarView({
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      const basePath = userRole === 'ADMIN' ? '/admin' : userRole === 'DOSEN' ? '/dosen' : '/mahasiswa';
                       let link = '';
                       if (selectedEvent.relatedActivityType === 'ASSIGNMENT') {
-                        link = `/mahasiswa/courses/${selectedEvent.courseId}/assignments/${selectedEvent.relatedActivityId}`;
+                        link = `${basePath}/courses/${selectedEvent.courseId}/assignments/${selectedEvent.relatedActivityId}`;
                       } else if (selectedEvent.relatedActivityType === 'EXAM') {
-                        link = `/mahasiswa/courses/${selectedEvent.courseId}/exams/${selectedEvent.relatedActivityId}`;
+                        link = `${basePath}/courses/${selectedEvent.courseId}/exams/${selectedEvent.relatedActivityId}`;
                       } else if (selectedEvent.relatedActivityType === 'MODULE') {
-                        link = `/mahasiswa/courses/${selectedEvent.courseId}/modules/${selectedEvent.relatedActivityId}`;
+                        link = `${basePath}/courses/${selectedEvent.courseId}/modules/${selectedEvent.relatedActivityId}`;
                       }
                       if (link) window.location.href = link;
                     }}

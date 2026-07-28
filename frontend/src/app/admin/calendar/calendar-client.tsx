@@ -140,7 +140,14 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       startTime: newEvent.startTime || undefined,
       endTime: newEvent.endTime || undefined,
       isPublished: true,
-      attachments: newEvent.attachments ? JSON.parse(newEvent.attachments) : undefined,
+      attachments: newEvent.attachments ? (() => {
+        try {
+          return JSON.parse(newEvent.attachments);
+        } catch (e) {
+          console.error('Invalid JSON for attachments:', e);
+          return undefined;
+        }
+      })() : undefined,
     });
     setIsCreateDialogOpen(false);
     setNewEvent({
@@ -170,7 +177,14 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       endDate: newEvent.endDate || undefined,
       startTime: newEvent.startTime || undefined,
       endTime: newEvent.endTime || undefined,
-      attachments: newEvent.attachments ? JSON.parse(newEvent.attachments) : undefined,
+      attachments: newEvent.attachments ? (() => {
+        try {
+          return JSON.parse(newEvent.attachments);
+        } catch (e) {
+          console.error('Invalid JSON for attachments:', e);
+          return undefined;
+        }
+      })() : undefined,
     });
     setIsEditDialogOpen(false);
     setEditingEvent(null);
