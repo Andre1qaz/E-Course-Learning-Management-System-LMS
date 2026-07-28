@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Role } from '@prisma/client';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, ForgotPasswordDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
@@ -58,5 +58,21 @@ export class AuthController {
   @ApiOperation({ summary: 'Daftar log aktivitas (Admin)' })
   listActivityLogs() {
     return this.authService.listActivityLogs();
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update profil user (foto profil)' })
+  updateProfile(@CurrentUser('sub') userId: string, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(userId, dto);
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Ganti password user' })
+  changePassword(@CurrentUser('sub') userId: string, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(userId, dto);
   }
 }

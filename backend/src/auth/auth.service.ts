@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
-import { LoginDto, RegisterDto, ForgotPasswordDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
 
 const SALT_ROUNDS = 12;
@@ -198,6 +198,92 @@ export class AuthService {
       success: true,
       data: logs,
       message: 'Log aktivitas berhasil diambil.',
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<ApiResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User tidak ditemukan.');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: dto.avatarUrl },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+      },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId: userId,
+        action: 'UPDATE_PROFILE',
+        entity: 'User',
+        entityId: userId,
+      },
+    });
+
+    return {
+      success: true,
+      data: updatedUser,
+      message: 'Foto profil berhasil diperbarui.',
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<ApiResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User tidak ditemukan.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(dto.oldPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Password lama tidak sesuai.');
+    }
+
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new UnauthorizedException('Password baru dan konfirmasi tidak sama.');
+    }
+
+    // Password validation: minimal 8 karakter dan kombinasi huruf dan angka
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(dto.newPassword)) {
+      throw new UnauthorizedException(
+        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId: userId,
+        action: 'CHANGE_PASSWORD',
+        entity: 'User',
+        entityId: userId,
+      },
+    });
+
+    return {
+      success: true,
+      data: null,
+      message: 'Password berhasil diperbarui.',
     };
   }
 }

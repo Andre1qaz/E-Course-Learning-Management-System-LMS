@@ -197,9 +197,32 @@ Setiap implementasi UI/UX mencantumkan comment `Heuristic #N` di kode untuk trac
 
 ## License
 
+# Install backend dependencies
+cd backend
+npm install exceljs pdfkit
+
+# Run database migration
+npm run prisma:migrate
+
+# Generate Prisma client
+npm run prisma:generate
+
 Private — All rights reserved.
-Buat fitur Profile yang dapat diakses oleh Administrator, Lecturer, dan Student sebagai halaman untuk mengelola informasi akun masing-masing. Halaman profil menampilkan informasi dasar seperti foto profil, nama lengkap, email, role, serta informasi akademik sesuai peran pengguna, seperti NIM untuk mahasiswa dan NIDN/NIP untuk dosen.
 
-Pengguna dapat mengubah foto profil dengan mengunggah gambar dari perangkat. Sistem harus mendukung format JPG, JPEG, dan PNG, serta menampilkan pratinjau sebelum foto disimpan. Setelah berhasil diperbarui, foto profil akan otomatis diperbarui pada seluruh bagian aplikasi.
 
-Pengguna juga dapat mengubah password dengan memasukkan password lama, password baru, dan konfirmasi password baru. Sistem harus memvalidasi bahwa password lama benar dan memastikan password baru memenuhi standar keamanan, seperti minimal delapan karakter serta kombinasi huruf dan angka. Apabila perubahan berhasil, sistem akan menampilkan notifikasi bahwa password telah berhasil diperbarui.
+Discussion Forum
+
+Buat fitur Discussion Forum pada setiap course sebagai media komunikasi antara Lecturer dan Student. Setiap course memiliki forum diskusi yang dapat digunakan untuk membahas materi, tugas, maupun topik pembelajaran lainnya. Mahasiswa dapat membuat topik diskusi baru, mengajukan pertanyaan, membalas komentar pengguna lain, mengunggah gambar atau dokumen pendukung, serta melakukan mention kepada dosen menggunakan simbol @ agar dosen menerima notifikasi. Lecturer dan Administrator dapat membalas diskusi, memberikan jawaban, menghapus komentar yang tidak sesuai, mengunci atau menutup diskusi apabila topik telah selesai dibahas, serta menandai jawaban terbaik sebagai solusi. Seluruh aktivitas forum harus mendukung notifikasi otomatis sehingga setiap balasan, mention, maupun diskusi baru dapat diketahui oleh pengguna yang terkait.
+
+
+Announcement
+
+Buat fitur Announcement yang memungkinkan Administrator dan Lecturer membuat pengumuman resmi untuk setiap course maupun pengumuman yang berlaku secara umum. Pengumuman dapat berisi judul, isi pengumuman, lampiran apabila diperlukan, tanggal publikasi, serta periode berlakunya pengumuman. Setelah dipublikasikan, pengumuman akan otomatis muncul pada Dashboard, Notification Center, serta halaman course yang bersangkutan sehingga mahasiswa dapat langsung mengetahui informasi terbaru tanpa harus mencarinya secara manual. Sistem juga harus memberikan penanda apabila terdapat pengumuman baru yang belum dibaca oleh mahasiswa. Administrator memiliki hak untuk membuat pengumuman global yang ditujukan kepada seluruh pengguna, sedangkan Lecturer hanya dapat membuat pengumuman pada course yang menjadi tanggung jawabnya.
+
+Dashboard Statistics
+
+Buat halaman Dashboard yang menampilkan ringkasan informasi dan statistik sesuai dengan role pengguna. Dashboard Administrator menampilkan total course, total mahasiswa, total dosen, total assignment, total quiz, total course aktif, jumlah pengguna aktif, serta aktivitas terbaru yang terjadi pada sistem. Dashboard Lecturer menampilkan jumlah course yang diajar, jumlah mahasiswa pada seluruh course, assignment yang masih aktif, assignment yang belum dinilai, quiz yang sedang berlangsung, serta aktivitas terbaru pada course yang diajarkan. Dashboard Student menampilkan jumlah course yang diikuti, assignment yang belum diselesaikan, upcoming event, pengumuman terbaru, rata-rata nilai, progress pembelajaran, serta notifikasi aktivitas terbaru. Dashboard harus diperbarui secara otomatis berdasarkan data yang tersimpan sehingga setiap pengguna memperoleh informasi terkini mengenai aktivitas pembelajaran.
+
+Course Progress
+
+Buat fitur Course Progress yang menampilkan perkembangan pembelajaran mahasiswa pada setiap course. Progress dihitung secara otomatis berdasarkan aktivitas yang telah diselesaikan, seperti materi yang telah dipelajari, assignment yang telah dikumpulkan, quiz yang telah dikerjakan, ujian yang telah diselesaikan, serta aktivitas pembelajaran lainnya. Progress ditampilkan dalam bentuk progress bar dan persentase sehingga mahasiswa dapat mengetahui sejauh mana pembelajaran telah diselesaikan. Lecturer dan Administrator juga dapat melihat progress seluruh mahasiswa pada setiap course untuk memantau perkembangan belajar masing-masing peserta. Progress akan diperbarui secara otomatis setiap kali mahasiswa menyelesaikan suatu aktivitas dan menjadi salah satu indikator utama pada Dashboard serta halaman Course Detail. Fitur ini bertujuan membantu mahasiswa memonitor pencapaian belajarnya sekaligus membantu dosen mengidentifikasi mahasiswa yang masih tertinggal dalam proses pembelajaran.

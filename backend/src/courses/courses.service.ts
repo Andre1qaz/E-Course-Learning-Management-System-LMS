@@ -3,7 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { EnrollCourseDto } from './dto/enroll-course.dto';
-import { Role } from '@prisma/client';
+import { DirectEnrollDto } from './dto/direct-enroll.dto';
+import { UpdateEnrollmentKeyDto } from './dto/update-enrollment-key.dto';
+import { Role, EnrollmentRole } from '@prisma/client';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -241,6 +243,11 @@ export class CoursesService {
       throw new NotFoundException('Invalid enrollment code');
     }
 
+    // Check if enrollment is enabled
+    if (!course.enrollmentEnabled) {
+      throw new ForbiddenException('Enrollment is disabled for this course');
+    }
+
     // Check if already enrolled
     const existingEnrollment = course.enrollments.find((e: any) => e.userId === userId);
     if (existingEnrollment) {
@@ -361,5 +368,205 @@ export class CoursesService {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  }
+
+  /**
+   * Direct enrollment by Admin or Lecturer
+   * Heuristic #5: Error Prevention — validate permissions and prevent duplicates
+   */
+  async directEnroll(courseId: string, userId: string, userRole: Role, dto: DirectEnrollDto) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can enroll students directly');
+    }
+
+    // Validate target user exists
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if target user is a student
+    if (targetUser.role !== Role.MAHASISWA) {
+      throw new ForbiddenException('Only students can be enrolled in courses');
+    }
+
+    // Check if already enrolled
+    const existingEnrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId: dto.userId, courseId },
+      },
+    });
+
+    if (existingEnrollment) {
+      throw new ConflictException('User is already enrolled in this course');
+    }
+
+    await this.prisma.enrollment.create({
+      data: {
+        userId: dto.userId,
+        courseId,
+        role: dto.role,
+      },
+    });
+
+    return {
+      success: true,
+      data: { courseId, userId: dto.userId, userName: targetUser.name },
+      message: 'Student enrolled successfully',
+    };
+  }
+
+  /**
+   * Update enrollment key (code or enable/disable)
+   * Heuristic #5: Error Prevention — validate permissions and ensure uniqueness
+   */
+  async updateEnrollmentKey(courseId: string, userId: string, userRole: Role, dto: UpdateEnrollmentKeyDto) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can update enrollment key');
+    }
+
+    const updateData: any = {};
+
+    if (dto.enrollmentCode !== undefined) {
+      // Check if new code conflicts with existing course
+      const existingCourse = await this.prisma.course.findUnique({
+        where: { enrollmentCode: dto.enrollmentCode },
+      });
+
+      if (existingCourse && existingCourse.id !== courseId) {
+        throw new ConflictException('Enrollment code already exists');
+      }
+
+      updateData.enrollmentCode = dto.enrollmentCode;
+    }
+
+    if (dto.enrollmentEnabled !== undefined) {
+      updateData.enrollmentEnabled = dto.enrollmentEnabled;
+    }
+
+    const updatedCourse = await this.prisma.course.update({
+      where: { id: courseId },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      data: {
+        enrollmentCode: updatedCourse.enrollmentCode,
+        enrollmentEnabled: updatedCourse.enrollmentEnabled,
+      },
+      message: 'Enrollment key updated successfully',
+    };
+  }
+
+  /**
+   * Get all participants of a course
+   * Heuristic #6: Recognition Rather Than Recall — provide full participant details
+   */
+  async getParticipants(courseId: string, userId: string, userRole: Role) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can view participants');
+    }
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { courseId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+
+    const participants = enrollments.map((enrollment) => ({
+      id: enrollment.id,
+      userId: enrollment.userId,
+      userName: enrollment.user.name,
+      userEmail: enrollment.user.email,
+      role: enrollment.role,
+      joinedAt: enrollment.joinedAt,
+    }));
+
+    return {
+      success: true,
+      data: {
+        courseId,
+        courseName: course.name,
+        totalParticipants: participants.length,
+        participants,
+      },
+      message: 'Participants retrieved successfully',
+    };
+  }
+
+  /**
+   * Remove a participant from course
+   * Heuristic #3: User Control and Freedom — allow removal with proper checks
+   */
+  async removeParticipant(courseId: string, participantId: string, userId: string, userRole: Role) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can remove participants');
+    }
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: participantId },
+    });
+
+    if (!enrollment || enrollment.courseId !== courseId) {
+      throw new NotFoundException('Enrollment not found');
+    }
+
+    await this.prisma.enrollment.delete({
+      where: { id: participantId },
+    });
+
+    return {
+      success: true,
+      data: null,
+      message: 'Participant removed successfully',
+    };
   }
 }

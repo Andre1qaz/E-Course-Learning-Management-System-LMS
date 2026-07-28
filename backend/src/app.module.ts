@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PrivateFilesModule } from './private-files/private-files.module';
 import { WeeksModule } from './weeks/weeks.module';
 import { ActivitiesModule } from './activities/activities.module';
+import { GradebookModule } from './gradebook/gradebook.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ActivitiesModule } from './activities/activities.module';
     PrivateFilesModule,
     WeeksModule,
     ActivitiesModule,
+    GradebookModule,
   ],
   providers: [
     {

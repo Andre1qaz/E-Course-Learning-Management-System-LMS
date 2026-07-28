@@ -9,7 +9,23 @@ const roleRoutes: Record<string, string[]> = {
   MAHASISWA: ["/mahasiswa"],
 };
 
-export default auth((req) => {
+// Heuristic #5: Error Prevention — prevent unauthorized access to course content
+// Students must be enrolled to access course content
+async function checkStudentEnrollment(token: string, courseId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const result = await response.json();
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/api/auth")) {
@@ -18,6 +34,7 @@ export default auth((req) => {
 
   const isLoggedIn = !!req.auth;
   const role = req.auth?.user?.role;
+  const token = req.auth?.accessToken;
 
   const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
@@ -53,6 +70,21 @@ export default auth((req) => {
       pathname !== "/"
     ) {
       return NextResponse.redirect(new URL("/403", req.url));
+    }
+
+    // Check enrollment for students accessing course content
+    if (role === "MAHASISWA" && pathname.startsWith("/mahasiswa/courses/")) {
+      const courseMatch = pathname.match(/^\/mahasiswa\/courses\/([^\/]+)/);
+      if (courseMatch && courseMatch[1] && token) {
+        const courseId = courseMatch[1];
+        // Skip enrollment check for join page
+        if (!pathname.includes("/join")) {
+          const isEnrolled = await checkStudentEnrollment(token, courseId);
+          if (!isEnrolled) {
+            return NextResponse.redirect(new URL("/mahasiswa/courses/join", req.url));
+          }
+        }
+      }
     }
   }
 

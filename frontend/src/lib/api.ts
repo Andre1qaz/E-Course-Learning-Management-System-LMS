@@ -436,9 +436,112 @@ export async function movePrivateFile(token: string, fileId: string, newFolderPa
   }, token);
 }
 
-// Courses API function (needed for forum)
+// Courses API functions
+export interface Course {
+  id: string;
+  name: string;
+  code: string;
+  enrollmentCode: string;
+  enrollmentEnabled: boolean;
+  description: string | null;
+  learningObjectives: string | null;
+  thumbnailColor: string;
+  isLinear: boolean;
+  isActive: boolean;
+  instructorId: string;
+  categoryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category?: {
+    id: string;
+    name: string;
+    academicYear: string;
+    isActive: boolean;
+  } | null;
+  instructor?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  _count?: {
+    enrollments: number;
+    modules: number;
+    assignments: number;
+    exams: number;
+  };
+}
+
 export async function getCourses(token: string) {
-  return apiFetch<any[]>("/courses/dashboard", {}, token);
+  return apiFetch<Course[]>("/courses/dashboard", {}, token);
+}
+
+export async function getCourse(token: string, courseId: string) {
+  return apiFetch<Course>(`/courses/${courseId}`, {}, token);
+}
+
+export async function enrollCourse(token: string, enrollmentCode: string) {
+  return apiFetch<{ courseId: string; courseName: string }>("/courses/enroll", {
+    method: "POST",
+    body: JSON.stringify({ enrollmentCode }),
+  }, token);
+}
+
+export async function unenrollCourse(token: string, courseId: string) {
+  return apiFetch<null>(`/courses/${courseId}/unenroll`, {
+    method: "POST",
+  }, token);
+}
+
+export async function directEnrollCourse(
+  token: string,
+  courseId: string,
+  userId: string,
+  role: "STUDENT" | "ASSISTANT"
+) {
+  return apiFetch<{ courseId: string; userId: string; userName: string }>(`/courses/${courseId}/direct-enroll`, {
+    method: "POST",
+    body: JSON.stringify({ userId, role }),
+  }, token);
+}
+
+export async function updateEnrollmentKey(
+  token: string,
+  courseId: string,
+  data: {
+    enrollmentCode?: string;
+    enrollmentEnabled?: boolean;
+  }
+) {
+  return apiFetch<{ enrollmentCode: string; enrollmentEnabled: boolean }>(`/courses/${courseId}/enrollment-key`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }, token);
+}
+
+export interface Participant {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  role: "STUDENT" | "ASSISTANT";
+  joinedAt: string;
+}
+
+export interface ParticipantsResponse {
+  courseId: string;
+  courseName: string;
+  totalParticipants: number;
+  participants: Participant[];
+}
+
+export async function getCourseParticipants(token: string, courseId: string) {
+  return apiFetch<ParticipantsResponse>(`/courses/${courseId}/participants`, {}, token);
+}
+
+export async function removeCourseParticipant(token: string, courseId: string, participantId: string) {
+  return apiFetch<null>(`/courses/${courseId}/participants/${participantId}`, {
+    method: "DELETE",
+  }, token);
 }
 
 // Users API functions (Admin only)

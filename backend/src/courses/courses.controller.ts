@@ -6,7 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CoursesService } from './courses.service';
-import { CreateCourseDto, UpdateCourseDto, EnrollCourseDto } from './dto';
+import { CreateCourseDto, UpdateCourseDto, EnrollCourseDto, DirectEnrollDto, UpdateEnrollmentKeyDto } from './dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses
 // Heuristic #5: Error Prevention — role-based access control
@@ -107,5 +107,52 @@ export class CoursesController {
     @CurrentUser('sub') userId: string,
   ) {
     return this.coursesService.unenroll(userId, courseId);
+  }
+
+  @Post(':courseId/direct-enroll')
+  @ApiOperation({ summary: 'Direct enrollment by Admin/Lecturer' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async directEnroll(
+    @Param('courseId') courseId: string,
+    @Body() dto: DirectEnrollDto,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.coursesService.directEnroll(courseId, userId, role, dto);
+  }
+
+  @Put(':courseId/enrollment-key')
+  @ApiOperation({ summary: 'Update enrollment key (Admin/instructor only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async updateEnrollmentKey(
+    @Param('courseId') courseId: string,
+    @Body() dto: UpdateEnrollmentKeyDto,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.coursesService.updateEnrollmentKey(courseId, userId, role, dto);
+  }
+
+  @Get(':courseId/participants')
+  @ApiOperation({ summary: 'Get course participants (Admin/instructor only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async getParticipants(
+    @Param('courseId') courseId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.coursesService.getParticipants(courseId, userId, role);
+  }
+
+  @Delete(':courseId/participants/:participantId')
+  @ApiOperation({ summary: 'Remove participant from course (Admin/instructor only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async removeParticipant(
+    @Param('courseId') courseId: string,
+    @Param('participantId') participantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.coursesService.removeParticipant(courseId, participantId, userId, role);
   }
 }

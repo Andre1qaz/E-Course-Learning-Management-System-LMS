@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -170,6 +171,7 @@ model Course {
   name               String
   code               String   @unique
   enrollmentCode     String   @unique @default(cuid())
+  enrollmentEnabled  Boolean  @default(true) // Allow enrollment via key
   description        String?
   learningObjectives String?
   thumbnailColor     String   @default("#1a365d")
@@ -190,6 +192,8 @@ model Course {
   forumThreads ForumThread[]
   weeks        Week[]
   questionBanks QuestionBank[]
+  settings     CourseSettings?
+  grades       Grade[]
 
   @@map("courses")
 }
@@ -558,4 +562,60 @@ model ActivityLog {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("activity_logs")
+}
+
+model CourseSettings {
+  id            String   @id @default(cuid())
+  courseId      String   @unique
+  passingGrade  Float    @default(60)
+  assignmentWeight Float @default(0.3)
+  quizWeight    Float    @default(0.2)
+  utsWeight     Float    @default(0.2)
+  uasWeight     Float    @default(0.3)
+  otherWeight   Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_settings")
+}
+
+model Grade {
+  id              String   @id @default(cuid())
+  courseId        String
+  studentId       String
+  assignmentScore Float?   @default(0)
+  quizScore       Float?   @default(0)
+  utsScore        Float?   @default(0)
+  uasScore        Float?   @default(0)
+  otherScore      Float?   @default(0)
+  finalScore      Float?   @default(0)
+  passed          Boolean?
+  completionPercentage Float @default(0)
+  calculatedAt    DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course   Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student  User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  histories GradeHistory[]
+
+  @@unique([courseId, studentId])
+  @@map("grades")
+}
+
+model GradeHistory {
+  id          String   @id @default(cuid())
+  gradeId     String
+  changedBy   String
+  fieldName   String
+  oldValue    Float?
+  newValue    Float?
+  changeReason String?
+  changedAt   DateTime @default(now())
+
+  grade  Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  changer User @relation(fields: [changedBy], references: [id], onDelete: Cascade)
+
+  @@map("grade_histories")
 }

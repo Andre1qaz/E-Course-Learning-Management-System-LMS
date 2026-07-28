@@ -14,6 +14,7 @@ import {
   ClipboardList,
   ChevronLeft,
   GraduationCap,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "File Pribadi", href: "/admin/storage", icon: HardDrive },
     { label: "Log Aktivitas", href: "/admin/logs", icon: FileText },
     { label: "Pengaturan", href: "/admin/settings", icon: Settings },
+    { label: "Profil", href: "/admin/profile", icon: User },
   ],
   DOSEN: [
     { label: "Dashboard", href: "/dosen/dashboard", icon: LayoutDashboard },
@@ -42,6 +44,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Kalender", href: "/dosen/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/dosen/storage", icon: HardDrive },
     { label: "Forum", href: "/dosen/forum", icon: MessageSquare },
+    { label: "Profil", href: "/dosen/profile", icon: User },
   ],
   MAHASISWA: [
     { label: "Dashboard", href: "/mahasiswa/dashboard", icon: LayoutDashboard },
@@ -50,6 +53,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Kalender", href: "/mahasiswa/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/mahasiswa/storage", icon: HardDrive },
     { label: "Forum", href: "/mahasiswa/forum", icon: MessageSquare },
+    { label: "Profil", href: "/mahasiswa/profile", icon: User },
   ],
 };
 
