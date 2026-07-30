@@ -8,6 +8,8 @@ import {
   EventTargetAudience,
   RelatedActivityType,
   Role,
+  ExamCategory,
+  NotificationType,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -229,7 +231,7 @@ export class CalendarService {
       const studentIds = enrollments.map((e: any) => e.userId);
       await this.notificationsService.createBulkNotifications({
         userIds: studentIds,
-        type: 'EVENT_CREATED',
+        type: NotificationType.EVENT_CREATED,
         title: 'Event Baru Ditambahkan',
         message: `Event "${event.title}" telah dijadwalkan pada ${event.startDate.toLocaleDateString('id-ID')}`,
         link: `/calendar`,
@@ -318,7 +320,7 @@ export class CalendarService {
       const studentIds = enrollments.map((e: any) => e.userId);
       await this.notificationsService.createBulkNotifications({
         userIds: studentIds,
-        type: 'SCHEDULE_CHANGED',
+        type: NotificationType.SCHEDULE_CHANGED,
         title: 'Perubahan Jadwal Event',
         message: `Jadwal event "${updatedEvent.title}" telah diubah menjadi ${updatedEvent.startDate.toLocaleDateString('id-ID')}`,
         link: `/calendar`,
@@ -473,7 +475,7 @@ export class CalendarService {
     if (event.courseId) {
       const hasAccess =
         userRole === Role.ADMIN ||
-        event.course?.instructorId === userId ||
+        event.course?.instructor?.id === userId ||
         (await this.prisma.enrollment.findFirst({
           where: { userId, courseId: event.courseId },
         }));
@@ -561,8 +563,8 @@ export class CalendarService {
 
     // Determine category based on exam category
     let category = EventCategory.QUIZ;
-    if (exam.category === 'UTS') category = EventCategory.UTS;
-    if (exam.category === 'UAS') category = EventCategory.UAS;
+    if (exam.category === ExamCategory.UTS) category = EventCategory.UTS;
+    if (exam.category === ExamCategory.UAS) category = EventCategory.UAS;
 
     // Check if event already exists
     const existingEvent = await this.prisma.calendarEvent.findFirst({

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@prisma/client';
+import { Role, NotificationType } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
 
 // Heuristic #1: Visibility of System Status — clear error messages for forum operations
 // Heuristic #5: Error Prevention — validate thread ownership before modification
@@ -8,7 +9,10 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class ForumService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storageService: StorageService,
+  ) {}
 
   private async verifyCourseForumAccess(
     courseId: string,
@@ -35,6 +39,133 @@ export class ForumService {
 
     if (!enrollment && course.instructorId !== userId) {
       throw new ForbiddenException('You do not have access to this course forum');
+    }
+  }
+
+  /**
+   * Parse mentions from content (@username format)
+   */
+  private parseMentions(content: string): string[] {
+    // Updated regex to support dots, hyphens, and special characters in usernames
+    const mentionRegex = /@([\w.-]+)/g;
+    const mentions: string[] = [];
+    let match;
+
+    while ((match = mentionRegex.exec(content)) !== null) {
+      mentions.push(match[1]);
+    }
+
+    return mentions;
+  }
+
+  /**
+   * Find user IDs by usernames for mentions
+   */
+  private async findUserIdsByUsernames(usernames: string[], courseId: string): Promise<string[]> {
+    // Get enrolled users in the course to match usernames against their email local parts
+    const enrolledUsers = await this.prisma.enrollment.findMany({
+      where: { courseId },
+      include: {
+        user: {
+          select: { id: true, email: true },
+        },
+      },
+    });
+
+    // Also include the course instructor
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { instructorId: true },
+    });
+
+    const instructor = course ? await this.prisma.user.findUnique({
+      where: { id: course.instructorId },
+      select: { id: true, email: true },
+    }) : null;
+
+    // Combine enrolled users and instructor
+    const allUsers = [...enrolledUsers.map(e => e.user), ...(instructor ? [instructor] : [])];
+
+    // Extract local part from email (before @) and match against mentioned usernames
+    const matchedUserIds = allUsers
+      .filter(user => {
+        const emailLocalPart = user.email.split('@')[0];
+        return usernames.includes(emailLocalPart);
+      })
+      .map(user => user.id);
+
+    return matchedUserIds;
+  }
+
+  /**
+   * Create notification for forum activity
+   */
+  private async createNotification(
+    userId: string,
+    type: NotificationType,
+    title: string,
+    message: string,
+    link?: string,
+  ) {
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        type,
+        title,
+        message,
+        link,
+      },
+    });
+  }
+
+  /**
+   * Process mentions and create notifications
+   */
+  private async processMentions(
+    content: string,
+    courseId: string,
+    authorId: string,
+    threadId?: string,
+    replyId?: string,
+  ) {
+    const usernames = this.parseMentions(content);
+    if (usernames.length === 0) return;
+
+    const mentionedUserIds = await this.findUserIdsByUsernames(usernames, courseId);
+
+    for (const mentionedUserId of mentionedUserIds) {
+      // Create mention record
+      if (threadId) {
+        await this.prisma.forumMention.create({
+          data: {
+            threadId,
+            mentionedUserId,
+            mentionedBy: authorId,
+          },
+        });
+      } else if (replyId) {
+        await this.prisma.forumMention.create({
+          data: {
+            replyId,
+            mentionedUserId,
+            mentionedBy: authorId,
+          },
+        });
+      }
+
+      // Create notification
+      const author = await this.prisma.user.findUnique({
+        where: { id: authorId },
+        select: { name: true },
+      });
+
+      await this.createNotification(
+        mentionedUserId,
+        NotificationType.FORUM_REPLY,
+        'You were mentioned in a forum discussion',
+        `${author?.name} mentioned you in a discussion`,
+        threadId ? `/forum/thread/${threadId}` : `/forum/thread/${threadId}#reply-${replyId}`,
+      );
     }
   }
 
@@ -67,6 +198,18 @@ export class ForumService {
           },
           orderBy: { createdAt: 'asc' },
         },
+        attachments: true,
+        bestReply: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             replies: true,
@@ -75,6 +218,7 @@ export class ForumService {
       },
       orderBy: [
         { isPinned: 'desc' },
+        { isLocked: 'asc' },
         { createdAt: 'desc' },
       ],
     });
@@ -88,10 +232,15 @@ export class ForumService {
       
       let unreadCount = 0;
       if (lastUserReply) {
+        // Count replies after user's last reply
         unreadCount = thread.replies.filter((r: any) => new Date(r.createdAt) > new Date(lastUserReply.createdAt) && r.authorId !== userId
         ).length;
       } else {
-        unreadCount = thread.replies.filter((r: any) => r.authorId !== userId).length;
+        // If user hasn't replied, count replies created after thread creation as unread
+        // This assumes the user saw the thread when it was created (reasonable heuristic)
+        // A proper solution would require a thread read tracking table
+        unreadCount = thread.replies.filter((r: any) => new Date(r.createdAt) > new Date(thread.createdAt) && r.authorId !== userId
+        ).length;
       }
 
       return { ...thread, unreadCount };
@@ -136,8 +285,27 @@ export class ForumService {
                 avatarUrl: true,
               },
             },
+            attachments: true,
           },
           orderBy: { createdAt: 'asc' },
+        },
+        attachments: true,
+        bestReply: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        locker: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
     });
@@ -161,8 +329,18 @@ export class ForumService {
   async createThread(userId: string, courseId: string, data: {
     title: string;
     content: string;
+    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   }) {
-    // Verify user is enrolled in the course
+    // First check if course exists
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    // Verify user is enrolled in the course or is the instructor
     const enrollment = await this.prisma.enrollment.findUnique({
       where: {
         userId_courseId: {
@@ -172,12 +350,7 @@ export class ForumService {
       },
     });
 
-    // Also check if user is the instructor
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
-    });
-
-    if (!enrollment && (!course || course.instructorId !== userId)) {
+    if (!enrollment && course.instructorId !== userId) {
       throw new ForbiddenException('You must be enrolled in this course to create a thread');
     }
 
@@ -187,6 +360,16 @@ export class ForumService {
         authorId: userId,
         title: data.title,
         content: data.content,
+        attachments: data.attachments
+          ? {
+              create: data.attachments.map((att) => ({
+                fileName: att.fileName,
+                fileUrl: att.fileUrl,
+                fileSize: BigInt(att.fileSize),
+                mimeType: att.mimeType,
+              })),
+            }
+          : undefined,
       },
       include: {
         author: {
@@ -204,8 +387,28 @@ export class ForumService {
             code: true,
           },
         },
+        attachments: true,
       },
     });
+
+    // Process mentions
+    await this.processMentions(data.content, courseId, userId, thread.id);
+
+    // Notify enrolled students about new thread
+    const enrolledStudents = await this.prisma.enrollment.findMany({
+      where: { courseId, userId: { not: userId } },
+      select: { userId: true },
+    });
+
+    for (const student of enrolledStudents) {
+      await this.createNotification(
+        student.userId,
+        NotificationType.FORUM_REPLY,
+        'New forum discussion',
+        `${data.title} - ${data.content.substring(0, 100)}...`,
+        `/forum/thread/${thread.id}`,
+      );
+    }
 
     return {
       success: true,
@@ -279,7 +482,7 @@ export class ForumService {
 
     // Check permission
     if (thread.authorId !== userId && thread.course.instructorId !== userId && userRole !== 'ADMIN') {
-      throw new ForbiddenException('You can only delete your own threads');
+      throw new ForbiddenException('You can only delete your own threads or course instructor/admin can delete any thread');
     }
 
     await this.prisma.forumThread.delete({
@@ -336,58 +539,6 @@ export class ForumService {
       success: true,
       data: updatedThread,
       message: `Thread ${updatedThread.isPinned ? 'pinned' : 'unpinned'} successfully`,
-    };
-  }
-
-  /**
-   * Add a reply to a thread
-   */
-  async createReply(userId: string, threadId: string, content: string) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { id: threadId },
-      include: { course: true },
-    });
-
-    if (!thread) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    // Verify user is enrolled in the course or is the instructor
-    const enrollment = await this.prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId,
-          courseId: thread.courseId,
-        },
-      },
-    });
-
-    if (!enrollment && thread.course.instructorId !== userId) {
-      throw new ForbiddenException('You must be enrolled in this course to reply');
-    }
-
-    const reply = await this.prisma.forumReply.create({
-      data: {
-        threadId,
-        authorId: userId,
-        content,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-      },
-    });
-
-    return {
-      success: true,
-      data: reply,
-      message: 'Reply created successfully',
     };
   }
 
@@ -461,6 +612,298 @@ export class ForumService {
       success: true,
       data: null,
       message: 'Reply deleted successfully',
+    };
+  }
+
+  /**
+   * Lock/unlock a thread (instructor/admin only)
+   */
+  async toggleLockThread(userId: string, userRole: string, threadId: string) {
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { id: threadId },
+      include: { course: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found');
+    }
+
+    if (thread.course.instructorId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenException('Only course instructor or admin can lock threads');
+    }
+
+    const updatedThread = await this.prisma.forumThread.update({
+      where: { id: threadId },
+      data: {
+        isLocked: !thread.isLocked,
+        lockedAt: thread.isLocked ? null : new Date(),
+        lockedBy: thread.isLocked ? null : userId,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        locker: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      data: updatedThread,
+      message: `Thread ${updatedThread.isLocked ? 'locked' : 'unlocked'} successfully`,
+    };
+  }
+
+  /**
+   * Mark a reply as the best answer (instructor/admin only)
+   */
+  async markBestAnswer(userId: string, userRole: string, threadId: string, replyId: string) {
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { id: threadId },
+      include: { course: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found');
+    }
+
+    if (thread.course.instructorId !== userId && userRole !== 'ADMIN' && thread.authorId !== userId) {
+      throw new ForbiddenException('Only course instructor, admin, or thread author can mark best answers');
+    }
+
+    const reply = await this.prisma.forumReply.findUnique({
+      where: { id: replyId },
+    });
+
+    if (!reply) {
+      throw new NotFoundException('Reply not found');
+    }
+
+    if (reply.threadId !== threadId) {
+      throw new BadRequestException('Reply does not belong to this thread');
+    }
+
+    const updatedThread = await this.prisma.forumThread.update({
+      where: { id: threadId },
+      data: { bestReplyId: replyId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        bestReply: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Notify the reply author
+    await this.createNotification(
+      reply.authorId,
+      NotificationType.FORUM_REPLY,
+      'Your answer was marked as best',
+      'Your reply was marked as the best answer in a forum discussion',
+      `/forum/thread/${threadId}`,
+    );
+
+    return {
+      success: true,
+      data: updatedThread,
+      message: 'Best answer marked successfully',
+    };
+  }
+
+  /**
+   * Remove best answer (instructor/admin only)
+   */
+  async removeBestAnswer(userId: string, userRole: string, threadId: string) {
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { id: threadId },
+      include: { course: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found');
+    }
+
+    if (thread.course.instructorId !== userId && userRole !== 'ADMIN' && thread.authorId !== userId) {
+      throw new ForbiddenException('Only course instructor, admin, or thread author can remove best answers');
+    }
+
+    const updatedThread = await this.prisma.forumThread.update({
+      where: { id: threadId },
+      data: { bestReplyId: null },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      data: updatedThread,
+      message: 'Best answer removed successfully',
+    };
+  }
+
+  /**
+   * Generate upload URL for forum attachment
+   */
+  async generateAttachmentUploadUrl(
+    userId: string,
+    fileName: string,
+    fileType: string,
+    fileSize: number,
+  ) {
+    const { uploadUrl, fileUrl } = await this.storageService.generateUploadUrl(
+      fileName,
+      fileType,
+      fileSize,
+      false, // public bucket
+    );
+
+    return {
+      success: true,
+      data: { uploadUrl, fileUrl },
+      message: 'Upload URL generated successfully',
+    };
+  }
+
+  /**
+   * Add a reply to a thread with attachments
+   */
+  async createReply(
+    userId: string,
+    threadId: string,
+    data: {
+      content: string;
+      attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
+    },
+  ) {
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { id: threadId },
+      include: { course: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found');
+    }
+
+    // Check if thread is locked
+    if (thread.isLocked) {
+      throw new ForbiddenException('This thread is locked and no longer accepts new replies');
+    }
+
+    // Verify user is enrolled in the course or is the instructor
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId: thread.courseId,
+        },
+      },
+    });
+
+    if (!enrollment && thread.course.instructorId !== userId) {
+      throw new ForbiddenException('You must be enrolled in this course to reply');
+    }
+
+    const reply = await this.prisma.forumReply.create({
+      data: {
+        threadId,
+        authorId: userId,
+        content: data.content,
+        attachments: data.attachments
+          ? {
+              create: data.attachments.map((att) => ({
+                fileName: att.fileName,
+                fileUrl: att.fileUrl,
+                fileSize: BigInt(att.fileSize),
+                mimeType: att.mimeType,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        attachments: true,
+      },
+    });
+
+    // Process mentions
+    await this.processMentions(data.content, thread.courseId, userId, undefined, reply.id);
+
+    // Notify thread author about new reply
+    if (thread.authorId !== userId) {
+      await this.createNotification(
+        thread.authorId,
+        NotificationType.FORUM_REPLY,
+        'New reply to your discussion',
+        `${data.content.substring(0, 100)}...`,
+        `/forum/thread/${threadId}`,
+      );
+    }
+
+    return {
+      success: true,
+      data: reply,
+      message: 'Reply created successfully',
     };
   }
 }

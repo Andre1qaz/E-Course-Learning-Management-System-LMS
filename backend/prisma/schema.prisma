@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -104,6 +103,7 @@ enum NotificationType {
   EXAM_CREATED
   EVENT_CREATED
   SCHEDULE_CHANGED
+  ANNOUNCEMENT_CREATED
 }
 
 enum ModuleFileType {
@@ -150,6 +150,13 @@ model User {
   forumReplies        ForumReply[]
   notifications       Notification[]
   activityLogs        ActivityLog[]
+  mentionedInForum    ForumMention[]        @relation("MentionedUser")
+  forumMentions       ForumMention[]        @relation("Mentioner")
+  lockedThreads       ForumThread[]         @relation("ThreadLocker")
+  grades              Grade[]
+  gradeChanges        GradeHistory[]
+  announcements       Announcement[]        @relation("AnnouncementAuthor")
+  announcementReads   AnnouncementRead[]
 
   @@map("users")
 }
@@ -194,6 +201,7 @@ model Course {
   questionBanks QuestionBank[]
   settings     CourseSettings?
   grades       Grade[]
+  announcements Announcement[]
 
   @@map("courses")
 }
@@ -504,18 +512,26 @@ model PrivateFile {
 }
 
 model ForumThread {
-  id        String   @id @default(cuid())
-  courseId  String
-  authorId  String
-  title     String
-  content   String
-  isPinned  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  courseId     String
+  authorId     String
+  title        String
+  content      String
+  isPinned     Boolean  @default(false)
+  isLocked     Boolean  @default(false)
+  lockedAt     DateTime?
+  lockedBy     String?
+  bestReplyId  String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  course  Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  author  User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  replies ForumReply[]
+  course     Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies    ForumReply[]
+  attachments ForumAttachment[]
+  mentions   ForumMention[]
+  bestReply  ForumReply?     @relation("BestReply", fields: [bestReplyId], references: [id], onDelete: SetNull)
+  locker     User?           @relation("ThreadLocker", fields: [lockedBy], references: [id], onDelete: SetNull)
 
   @@map("forum_threads")
 }
@@ -528,10 +544,45 @@ model ForumReply {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  thread      ForumThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  attachments ForumAttachment[]
+  mentions    ForumMention[]
+  bestThread  ForumThread?      @relation("BestReply")
 
   @@map("forum_replies")
+}
+
+model ForumAttachment {
+  id          String   @id @default(cuid())
+  threadId    String?
+  replyId     String?
+  fileName    String
+  fileUrl     String
+  fileSize    BigInt
+  mimeType    String
+  uploadedAt  DateTime @default(now())
+
+  thread ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply  ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@map("forum_attachments")
+}
+
+model ForumMention {
+  id        String   @id @default(cuid())
+  threadId  String?
+  replyId   String?
+  mentionedUserId String
+  mentionedBy   String
+  createdAt DateTime @default(now())
+
+  thread         ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply          ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  mentionedUser  User         @relation("MentionedUser", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  mentioner      User         @relation("Mentioner", fields: [mentionedBy], references: [id], onDelete: Cascade)
+
+  @@map("forum_mentions")
 }
 
 model Notification {
@@ -618,4 +669,39 @@ model GradeHistory {
   changer User @relation(fields: [changedBy], references: [id], onDelete: Cascade)
 
   @@map("grade_histories")
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  attachments Json?
+  publishedAt DateTime @default(now())
+  validFrom   DateTime @default(now())
+  validUntil  DateTime?
+  isPublished Boolean  @default(true)
+  priority    String   @default("normal")
+  courseId    String?
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User              @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  course      Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  readStatus  AnnouncementRead[]
+
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String   @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AnnouncementsList } from "@/components/announcements/announcements-list";
 import { apiFetch, CalendarEvent, getUpcomingEvents } from "@/lib/api";
 import { EventCategory } from "@/lib/api";
 
@@ -130,6 +131,9 @@ export function DashboardContent({
           </Button>
         )}
       </div>
+
+      {/* Announcements Panel */}
+      <AnnouncementsList basePath={basePath} limit={3} />
 
       {/* Upcoming Events Panel */}
       {upcomingEvents.length > 0 && (

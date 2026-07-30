@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ForumThread } from "@/lib/api";
-import { MessageSquare, Pin, MessageCircle, Clock, User } from "lucide-react";
+import { MessageSquare, Pin, MessageCircle, Clock, User, Lock, CheckCircle, Paperclip } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ interface ForumThreadListProps {
   currentUserId?: string;
   userRole?: string;
   onPinThread?: (threadId: string) => Promise<void>;
+  onLockThread?: (threadId: string) => Promise<void>;
   onDeleteThread?: (threadId: string) => Promise<void>;
 }
 
@@ -30,6 +31,7 @@ export function ForumThreadList({
   currentUserId,
   userRole,
   onPinThread,
+  onLockThread,
   onDeleteThread,
 }: ForumThreadListProps) {
   const formatDate = (dateString: string) => {
@@ -77,22 +79,41 @@ export function ForumThreadList({
               key={thread.id}
               className={cn(
                 "p-4 cursor-pointer transition-all hover:border-accent/50 hover:shadow-md",
-                thread.isPinned && "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
+                thread.isPinned && "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20",
+                thread.isLocked && "opacity-75"
               )}
               onClick={() => onThreadClick(thread.id)}
             >
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {thread.isPinned && (
                       <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                         <Pin className="h-3 w-3 mr-1" />
                         Disematkan
                       </Badge>
                     )}
+                    {thread.isLocked && (
+                      <Badge variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Dikunci
+                      </Badge>
+                    )}
+                    {thread.bestReply && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Solusi
+                      </Badge>
+                    )}
                     {(thread.unreadCount || 0) > 0 && (
                       <Badge variant="default" className="bg-accent">
                         {thread.unreadCount} baru
+                      </Badge>
+                    )}
+                    {thread.attachments && thread.attachments.length > 0 && (
+                      <Badge variant="outline">
+                        <Paperclip className="h-3 w-3 mr-1" />
+                        {thread.attachments.length}
                       </Badge>
                     )}
                   </div>
@@ -118,14 +139,24 @@ export function ForumThreadList({
                 {(userRole === "DOSEN" || userRole === "ADMIN" || thread.authorId === currentUserId) && (
                   <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                     {userRole === "DOSEN" || userRole === "ADMIN" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onPinThread?.(thread.id)}
-                        title={thread.isPinned ? "Lepas semat" : "Sematkan"}
-                      >
-                        <Pin className={cn("h-4 w-4", thread.isPinned && "fill-current")} />
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onPinThread?.(thread.id)}
+                          title={thread.isPinned ? "Lepas semat" : "Sematkan"}
+                        >
+                          <Pin className={cn("h-4 w-4", thread.isPinned && "fill-current")} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onLockThread?.(thread.id)}
+                          title={thread.isLocked ? "Buka kunci" : "Kunci"}
+                        >
+                          <Lock className={cn("h-4 w-4", thread.isLocked && "fill-current")} />
+                        </Button>
+                      </>
                     ) : null}
                     <Button
                       variant="ghost"

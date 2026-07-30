@@ -402,7 +402,7 @@ export class GradebookService {
     const passingGrade = settings?.passingGrade || 60;
 
     const totalStudents = grades.length;
-    const passedStudents = grades.filter((g) => g.finalScore >= passingGrade).length;
+    const passedStudents = grades.filter((g) => g.finalScore !== null && g.finalScore >= passingGrade).length;
     const failedStudents = totalStudents - passedStudents;
 
     const averageScores = {
@@ -790,7 +790,7 @@ export class GradebookService {
       'Completion %',
     ];
 
-    const rows = data.students.map((student) => {
+    const rows = data.students.map((student: any) => {
       const grade = student.grade;
       return [
         student.name,
@@ -823,6 +823,10 @@ export class GradebookService {
       success: true,
       data: {
         message: 'PDF export requires additional setup. Use Excel export for now.',
+      },
+    };
+  }
+}
       },
     };
   }

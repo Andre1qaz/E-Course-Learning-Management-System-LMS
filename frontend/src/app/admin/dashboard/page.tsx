@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 
 export default async function AdminDashboardPage() {
   const session = await auth();
@@ -14,12 +14,7 @@ export default async function AdminDashboardPage() {
         user={session.user}
         breadcrumbs={[{ label: "Dashboard" }]}
       >
-        <DashboardContent
-          role="ADMIN"
-          basePath="/admin"
-          title="Semua Course"
-          subtitle="Kelola seluruh course di sistem"
-        />
+        <AdminDashboard />
       </DashboardLayout>
     </AuthSessionProvider>
   );

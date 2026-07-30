@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -15,9 +16,13 @@ import {
   ChevronLeft,
   GraduationCap,
   User,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/api";
+import { useEffect, useState } from "react";
 
 interface NavItem {
   label: string;
@@ -31,6 +36,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Course", href: "/admin/courses", icon: BookOpen },
     { label: "Ujian", href: "/admin/exams", icon: ClipboardList },
     { label: "Pengguna", href: "/admin/users", icon: Users },
+    { label: "Pengumuman", href: "/admin/announcements", icon: Bell },
     { label: "Kalender", href: "/admin/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/admin/storage", icon: HardDrive },
     { label: "Log Aktivitas", href: "/admin/logs", icon: FileText },
@@ -41,6 +47,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/dosen/dashboard", icon: LayoutDashboard },
     { label: "Course", href: "/dosen/courses", icon: BookOpen },
     { label: "Ujian", href: "/dosen/exams", icon: ClipboardList },
+    { label: "Pengumuman", href: "/dosen/announcements", icon: Bell },
     { label: "Kalender", href: "/dosen/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/dosen/storage", icon: HardDrive },
     { label: "Forum", href: "/dosen/forum", icon: MessageSquare },
@@ -50,6 +57,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/mahasiswa/dashboard", icon: LayoutDashboard },
     { label: "Course", href: "/mahasiswa/courses", icon: BookOpen },
     { label: "Ujian", href: "/mahasiswa/exams", icon: ClipboardList },
+    { label: "Pengumuman", href: "/mahasiswa/announcements", icon: Bell },
     { label: "Kalender", href: "/mahasiswa/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/mahasiswa/storage", icon: HardDrive },
     { label: "Forum", href: "/mahasiswa/forum", icon: MessageSquare },
@@ -66,7 +74,24 @@ interface SidebarProps {
 // Heuristic #6: Recognition Rather Than Recall — explicit navigation
 export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
   const items = navByRole[role] ?? [];
+
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      if (!session?.accessToken || role !== "MAHASISWA") return;
+
+      try {
+        const response = await apiFetch("/announcements/unread-count", {}, session.accessToken);
+        setUnreadCount((response.data as any)?.unreadCount ?? 0);
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    }
+
+    fetchUnreadCount();
+  }, [session?.accessToken, role]);
 
   return (
     <aside
@@ -92,6 +117,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
+          const showBadge = item.label === "Pengumuman" && unreadCount > 0;
 
           return (
             <Link
@@ -106,7 +132,14 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
                 collapsed && "justify-center px-2",
               )}
             >
-              <Icon className="size-5 shrink-0" />
+              <div className="relative">
+                <Icon className="size-5 shrink-0" />
+                {showBadge && !collapsed && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </div>
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );

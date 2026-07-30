@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { GradebookClient } from "../dosen/gradebook/gradebook-client";
+import { GradebookClient } from "@/app/dosen/gradebook/gradebook-client";
 
 export default async function AdminGradebookPage() {
   const session = await auth();

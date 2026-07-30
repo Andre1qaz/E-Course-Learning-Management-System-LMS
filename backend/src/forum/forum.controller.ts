@@ -38,11 +38,12 @@ export class ForumController {
   @ApiOperation({ summary: 'Create a new forum thread' })
   async createThread(
     @CurrentUser('sub') userId: string,
-    @Body() data: { courseId: string; title: string; content: string },
+    @Body() data: { courseId: string; title: string; content: string; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }> },
   ) {
     return this.forumService.createThread(userId, data.courseId, {
       title: data.title,
       content: data.content,
+      attachments: data.attachments,
     });
   }
 
@@ -79,15 +80,50 @@ export class ForumController {
     return this.forumService.togglePinThread(userId, role, threadId);
   }
 
+  @Put('thread/:threadId/lock')
+  @ApiOperation({ summary: 'Lock/unlock a thread (instructor/admin only)' })
+  @ApiParam({ name: 'threadId', description: 'Thread ID' })
+  async toggleLockThread(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+    @Param('threadId') threadId: string,
+  ) {
+    return this.forumService.toggleLockThread(userId, role, threadId);
+  }
+
+  @Put('thread/:threadId/best-answer/:replyId')
+  @ApiOperation({ summary: 'Mark a reply as best answer (instructor/admin only)' })
+  @ApiParam({ name: 'threadId', description: 'Thread ID' })
+  @ApiParam({ name: 'replyId', description: 'Reply ID' })
+  async markBestAnswer(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+    @Param('threadId') threadId: string,
+    @Param('replyId') replyId: string,
+  ) {
+    return this.forumService.markBestAnswer(userId, role, threadId, replyId);
+  }
+
+  @Delete('thread/:threadId/best-answer')
+  @ApiOperation({ summary: 'Remove best answer (instructor/admin only)' })
+  @ApiParam({ name: 'threadId', description: 'Thread ID' })
+  async removeBestAnswer(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+    @Param('threadId') threadId: string,
+  ) {
+    return this.forumService.removeBestAnswer(userId, role, threadId);
+  }
+
   @Post('thread/:threadId/reply')
   @ApiOperation({ summary: 'Add a reply to a thread' })
   @ApiParam({ name: 'threadId', description: 'Thread ID' })
   async createReply(
     @CurrentUser('sub') userId: string,
     @Param('threadId') threadId: string,
-    @Body() data: { content: string },
+    @Body() data: { content: string; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }> },
   ) {
-    return this.forumService.createReply(userId, threadId, data.content);
+    return this.forumService.createReply(userId, threadId, data);
   }
 
   @Put('reply/:replyId')
@@ -110,5 +146,14 @@ export class ForumController {
     @Param('replyId') replyId: string,
   ) {
     return this.forumService.deleteReply(userId, role, replyId);
+  }
+
+  @Post('attachment/upload-url')
+  @ApiOperation({ summary: 'Generate upload URL for forum attachment' })
+  async generateAttachmentUploadUrl(
+    @CurrentUser('sub') userId: string,
+    @Body() data: { fileName: string; fileType: string; fileSize: number },
+  ) {
+    return this.forumService.generateAttachmentUploadUrl(userId, data.fileName, data.fileType, data.fileSize);
   }
 }

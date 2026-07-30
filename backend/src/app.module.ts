@@ -19,6 +19,9 @@ import { PrivateFilesModule } from './private-files/private-files.module';
 import { WeeksModule } from './weeks/weeks.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { GradebookModule } from './gradebook/gradebook.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CourseProgressModule } from './course-progress/course-progress.module';
 
 @Module({
   imports: [
@@ -51,6 +54,9 @@ import { GradebookModule } from './gradebook/gradebook.module';
     WeeksModule,
     ActivitiesModule,
     GradebookModule,
+    AnnouncementsModule,
+    DashboardModule,
+    CourseProgressModule,
   ],
   providers: [
     {

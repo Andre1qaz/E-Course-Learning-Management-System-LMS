@@ -235,7 +235,7 @@ async function main() {
     data: {
       title: 'Deadline Tugas 1',
       description: assignment1.description,
-      date: assignment1.deadline,
+      startDate: assignment1.deadline,
       type: 'DEADLINE',
       courseId: course1.id,
     },

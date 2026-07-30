@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { StudentDashboard } from "@/components/dashboard/student-dashboard";
 
 export default async function MahasiswaDashboardPage() {
   const session = await auth();
@@ -14,12 +14,7 @@ export default async function MahasiswaDashboardPage() {
         user={session.user}
         breadcrumbs={[{ label: "Dashboard" }]}
       >
-        <DashboardContent
-          role="MAHASISWA"
-          basePath="/mahasiswa"
-          title="Course Saya"
-          subtitle="Daftar course yang sedang Anda ikuti"
-        />
+        <StudentDashboard />
       </DashboardLayout>
     </AuthSessionProvider>
   );

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { WeekAccordion } from "./week-accordion";
 import { AddActivityDialog } from "./add-activity-dialog";
+import { AnnouncementsList } from "@/components/announcements/announcements-list";
 
 interface Week {
   id: string;
@@ -154,20 +155,26 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
   }
 
   return (
-    <div className="space-y-4">
-      {weeks.map((week) => (
-        <WeekAccordion
-          key={week.id}
-          week={week}
-          isExpanded={expandedWeeks.has(week.weekNumber)}
-          onToggle={() => toggleWeek(week.weekNumber)}
-          canEdit={canEdit}
-          onAddActivity={() => handleAddActivity(week.id)}
-          onActivityChange={fetchWeeks}
-          token={token}
-          userRole={userRole}
-        />
-      ))}
+    <div className="space-y-6">
+      {/* Course Announcements */}
+      <AnnouncementsList courseId={courseId} basePath="" limit={5} />
+
+      {/* Course Content */}
+      <div className="space-y-4">
+        {weeks.map((week) => (
+          <WeekAccordion
+            key={week.id}
+            week={week}
+            isExpanded={expandedWeeks.has(week.weekNumber)}
+            onToggle={() => toggleWeek(week.weekNumber)}
+            canEdit={canEdit}
+            onAddActivity={() => handleAddActivity(week.id)}
+            onActivityChange={fetchWeeks}
+            token={token}
+            userRole={userRole}
+          />
+        ))}
+      </div>
 
       {showAddActivity && selectedWeekId && (
         <AddActivityDialog
