@@ -189,8 +189,34 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
 
     setQuestions(updatedQuestions);
 
-    // TODO: Call API to update order
-    toast.success("Urutan soal diperbarui");
+    // Call API to update order
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examId}/questions/reorder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            questionOrders: updatedQuestions.map((q) => ({ id: q.id, order: q.order })),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Urutan soal diperbarui");
+      } else {
+        toast.error(result.message || "Gagal memperbarui urutan soal");
+        fetchQuestions(); // Revert to server state on error
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat memperbarui urutan soal");
+      fetchQuestions(); // Revert to server state on error
+    }
   };
 
   const resetFormData = () => {

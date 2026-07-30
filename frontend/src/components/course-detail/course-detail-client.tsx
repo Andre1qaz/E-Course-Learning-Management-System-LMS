@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { WeekAccordion } from "./week-accordion";
 import { AddActivityDialog } from "./add-activity-dialog";
+import { CreateWeekDialog } from "./create-week-dialog";
 import { AnnouncementsList } from "@/components/announcements/announcements-list";
 
 interface Week {
@@ -59,6 +60,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddActivity, setShowAddActivity] = useState(false);
+  const [showCreateWeek, setShowCreateWeek] = useState(false);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
 
@@ -145,7 +147,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
           {canEdit ? "Mulai dengan membuat week pertama" : "Belum ada materi pembelajaran"}
         </p>
         {canEdit && (
-          <Button onClick={() => {/* TODO: Create week dialog */}}>
+          <Button onClick={() => setShowCreateWeek(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Buat Week
           </Button>
@@ -183,6 +185,16 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
           weekId={selectedWeekId}
           token={token}
           onSuccess={handleActivityCreated}
+        />
+      )}
+
+      {showCreateWeek && (
+        <CreateWeekDialog
+          open={showCreateWeek}
+          onOpenChange={setShowCreateWeek}
+          courseId={courseId}
+          token={token}
+          onSuccess={fetchWeeks}
         />
       )}
     </div>

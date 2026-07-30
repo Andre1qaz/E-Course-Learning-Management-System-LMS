@@ -212,6 +212,52 @@ export class ActivitiesService {
     );
   }
 
+  async publish(id: string, userId: string, userRole: Role) {
+    // Only ADMIN and DOSEN can publish activities
+    if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
+      throw new ForbiddenException('Only Admin and Dosen can publish activities');
+    }
+
+    const activity = await this.findOne(id, userId, userRole);
+
+    if (activity.status === ActivityStatus.PUBLISHED) {
+      throw new ForbiddenException('Activity is already published');
+    }
+
+    const updatedActivity = await this.prisma.activity.update({
+      where: { id },
+      data: {
+        status: ActivityStatus.PUBLISHED,
+        publishedAt: new Date(),
+      },
+    });
+
+    await this.notifyActivityPublished(updatedActivity.id);
+
+    return updatedActivity;
+  }
+
+  async unpublish(id: string, userId: string, userRole: Role) {
+    // Only ADMIN and DOSEN can unpublish activities
+    if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
+      throw new ForbiddenException('Only Admin and Dosen can unpublish activities');
+    }
+
+    const activity = await this.findOne(id, userId, userRole);
+
+    if (activity.status === ActivityStatus.DRAFT) {
+      throw new ForbiddenException('Activity is already a draft');
+    }
+
+    return this.prisma.activity.update({
+      where: { id },
+      data: {
+        status: ActivityStatus.DRAFT,
+        publishedAt: null,
+      },
+    });
+  }
+
   private async checkCourseAccess(courseId: string, userId: string, userRole: Role) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },

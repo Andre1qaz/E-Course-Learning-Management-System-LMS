@@ -174,4 +174,16 @@ export class ExamsController {
   ) {
     return this.examsService.gradeAttempt(attemptId, userId, role, dto);
   }
+
+  @Post(':id/questions/reorder')
+  @ApiOperation({ summary: 'Reorder questions in an exam (Admin/instructor only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async reorderQuestions(
+    @Param('id') examId: string,
+    @Body() dto: { questionOrders: { id: string; order: number }[] },
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.examsService.reorderQuestions(examId, userId, role, dto.questionOrders);
+  }
 }

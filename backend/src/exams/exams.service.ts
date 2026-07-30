@@ -928,4 +928,46 @@ export class ExamsService {
       message: 'Exam attempt graded successfully',
     };
   }
+
+  /**
+   * Reorder questions in an exam (Admin or course instructor only)
+   */
+  async reorderQuestions(
+    examId: string,
+    userId: string,
+    userRole: Role,
+    questionOrders: { id: string; order: number }[],
+  ) {
+    const exam = await this.prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        course: true,
+      },
+    });
+
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can reorder questions');
+    }
+
+    // Update orders in a transaction
+    await this.prisma.$transaction(
+      questionOrders.map(({ id, order }) =>
+        this.prisma.question.update({
+          where: { id },
+          data: { order },
+        }),
+      ),
+    );
+
+    return {
+      success: true,
+      data: null,
+      message: 'Questions reordered successfully',
+    };
+  }
 }

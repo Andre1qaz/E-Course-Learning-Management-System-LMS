@@ -118,4 +118,30 @@ export class ActivitiesController {
   ) {
     return this.activitiesService.reorder(weekId, body.activityOrders, userId, role);
   }
+
+  @Post(':id/publish')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  @ApiOperation({ summary: 'Publish an activity (Admin/Dosen only)' })
+  @ApiParam({ name: 'weekId', description: 'Week ID' })
+  @ApiParam({ name: 'id', description: 'Activity ID' })
+  publish(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.activitiesService.publish(id, userId, role);
+  }
+
+  @Post(':id/unpublish')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  @ApiOperation({ summary: 'Unpublish an activity (Admin/Dosen only)' })
+  @ApiParam({ name: 'weekId', description: 'Week ID' })
+  @ApiParam({ name: 'id', description: 'Activity ID' })
+  unpublish(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.activitiesService.unpublish(id, userId, role);
+  }
 }

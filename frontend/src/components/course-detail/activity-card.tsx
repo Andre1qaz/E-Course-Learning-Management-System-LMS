@@ -161,6 +161,52 @@ export function ActivityCard({
     }
   };
 
+  const handlePublish = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}/publish`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Activity published successfully");
+        onChange();
+      } else {
+        toast.error("Failed to publish activity");
+      }
+    } catch (error) {
+      toast.error("Error publishing activity");
+    }
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}/unpublish`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Activity unpublished successfully");
+        onChange();
+      } else {
+        toast.error("Failed to unpublish activity");
+      }
+    } catch (error) {
+      toast.error("Error unpublishing activity");
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -238,14 +284,14 @@ export function ActivityCard({
                 </DropdownMenuItem>
                 {isDraft ? (
                   <DropdownMenuItem
-                    onClick={() => {/* TODO: Publish activity */}}
+                    onClick={handlePublish}
                   >
                     <Eye className="mr-2 h-4 w-4" />
                     Publish
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem
-                    onClick={() => {/* TODO: Unpublish activity */}}
+                    onClick={handleUnpublish}
                   >
                     <EyeOff className="mr-2 h-4 w-4" />
                     Unpublish
