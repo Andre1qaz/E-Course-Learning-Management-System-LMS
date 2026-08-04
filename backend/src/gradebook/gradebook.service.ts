@@ -140,6 +140,10 @@ export class GradebookService {
       include: { settings: true },
     });
 
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
     const assignments = await this.prisma.assignment.findMany({
       where: { courseId },
       include: {
@@ -212,7 +216,7 @@ export class GradebookService {
     return {
       success: true,
       data: {
-        enrollments: enrollments.map((enrollment) => ({
+        enrollments: enrollments.map((enrollment: any) => ({
           course: enrollment.course,
           grade: grades.find((g) => g.courseId === enrollment.courseId) || null,
         })),
@@ -748,7 +752,7 @@ export class GradebookService {
     ];
 
     // Data rows
-    data.students.forEach((student) => {
+    data.students.forEach((student: any) => {
       const grade = student.grade;
       worksheet.addRow({
         name: student.name,
@@ -769,7 +773,7 @@ export class GradebookService {
     return {
       success: true,
       data: {
-        buffer: buffer.toString('base64'),
+        buffer: (buffer as unknown as Buffer).toString('base64'),
         filename: `gradebook_${data.course.code}_${new Date().toISOString().split('T')[0]}.xlsx`,
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       },
@@ -823,10 +827,6 @@ export class GradebookService {
       success: true,
       data: {
         message: 'PDF export requires additional setup. Use Excel export for now.',
-      },
-    };
-  }
-}
       },
     };
   }

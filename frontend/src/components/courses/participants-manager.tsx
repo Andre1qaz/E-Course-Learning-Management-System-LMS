@@ -39,8 +39,10 @@ export function ParticipantsManager({ token, courseId, courseName }: Participant
     try {
       setLoading(true);
       const response = await getCourseParticipants(token, courseId);
-      setParticipants(response.data.participants);
-      setTotalParticipants(response.data.totalParticipants);
+      if (response.data) {
+        setParticipants(response.data.participants);
+        setTotalParticipants(response.data.totalParticipants);
+      }
     } catch (error) {
       toast.error("Gagal memuat daftar peserta");
     } finally {
@@ -51,12 +53,14 @@ export function ParticipantsManager({ token, courseId, courseName }: Participant
   const loadAvailableUsers = async () => {
     try {
       const response = await getUsers(token);
-      // Filter out users who are already enrolled and are students
-      const enrolledUserIds = participants.map((p) => p.userId);
-      const available = response.data.filter(
-        (user) => user.role === "MAHASISWA" && !enrolledUserIds.includes(user.id)
-      );
-      setAvailableUsers(available);
+      if (response.data) {
+        // Filter out users who are already enrolled and are students
+        const enrolledUserIds = participants.map((p) => p.userId);
+        const available = response.data.filter(
+          (user) => user.role === "MAHASISWA" && !enrolledUserIds.includes(user.id)
+        );
+        setAvailableUsers(available);
+      }
     } catch (error) {
       toast.error("Gagal memuat daftar mahasiswa");
     }

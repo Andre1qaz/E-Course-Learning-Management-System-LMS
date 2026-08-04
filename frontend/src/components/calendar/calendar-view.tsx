@@ -421,6 +421,7 @@ export function CalendarView({
             </div>
             <div className="grid grid-cols-7 gap-2">
               {days.map((date, index) => {
+                if (!date) return null;
                 const dayEvents = getEventsForDate(date);
                 const isToday = date.toDateString() === today.toDateString();
                 const isSelected = selectedDate?.toDateString() === date.toDateString();
@@ -490,6 +491,7 @@ export function CalendarView({
             </div>
             <div className="space-y-3">
               {days.map((date, index) => {
+                if (!date) return null;
                 const dayEvents = getEventsForDate(date);
 
                 return (

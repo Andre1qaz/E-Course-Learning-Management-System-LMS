@@ -220,6 +220,7 @@ export interface ForumReply {
   createdAt: string;
   updatedAt: string;
   author: ForumAuthor;
+  attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
 }
 
 export interface ForumThread {
@@ -229,6 +230,10 @@ export interface ForumThread {
   title: string;
   content: string;
   isPinned: boolean;
+  isLocked: boolean;
+  bestReplyId?: string;
+  bestReply?: ForumReply;
+  attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   createdAt: string;
   updatedAt: string;
   author: ForumAuthor;

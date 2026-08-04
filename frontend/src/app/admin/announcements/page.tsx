@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function AdminAnnouncementsPage() {
-  const { data: session } = useSession();
+  const session = useSession();
 
-  if (!session) {
+  if (!session || !session.data) {
     return null;
   }
 
@@ -26,7 +26,7 @@ export default function AdminAnnouncementsPage() {
           Buat Pengumuman
         </Button>
       </div>
-      
+
       <AnnouncementsList basePath="/admin" />
     </div>
   );

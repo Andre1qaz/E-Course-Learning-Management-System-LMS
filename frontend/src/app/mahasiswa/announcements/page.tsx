@@ -4,9 +4,9 @@ import { useSession } from "next-auth/react";
 import { AnnouncementsList } from "@/components/announcements/announcements-list";
 
 export default function AnnouncementsPage() {
-  const { data: session } = useSession();
+  const session = useSession();
 
-  if (!session) {
+  if (!session || !session.data) {
     return null;
   }
 
@@ -18,7 +18,7 @@ export default function AnnouncementsPage() {
           Lihat semua pengumuman terbaru dari sistem dan course Anda
         </p>
       </div>
-      
+
       <AnnouncementsList basePath="/mahasiswa" />
     </div>
   );

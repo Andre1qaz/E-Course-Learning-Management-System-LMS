@@ -562,7 +562,7 @@ export class CalendarService {
     }
 
     // Determine category based on exam category
-    let category = EventCategory.QUIZ;
+    let category: EventCategory = EventCategory.QUIZ;
     if (exam.category === ExamCategory.UTS) category = EventCategory.UTS;
     if (exam.category === ExamCategory.UAS) category = EventCategory.UAS;
 

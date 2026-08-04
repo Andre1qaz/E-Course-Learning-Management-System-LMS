@@ -31,9 +31,11 @@ export function ParticipantsManagerClient({ courseId, token }: ParticipantsManag
     try {
       setLoading(true);
       const response = await getCourse(token, courseId);
-      setCourseName(response.data.name);
-      setEnrollmentCode(response.data.enrollmentCode);
-      setEnrollmentEnabled(response.data.enrollmentEnabled);
+      if (response.data) {
+        setCourseName(response.data.name);
+        setEnrollmentCode(response.data.enrollmentCode);
+        setEnrollmentEnabled(response.data.enrollmentEnabled);
+      }
     } catch (error) {
       toast.error("Gagal memuat informasi course");
     } finally {
