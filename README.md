@@ -582,12 +582,31 @@ frontend/
 
 #### Assignment
 - **Fields**: id, courseId, title, description, deadline, maxScore
-- **Relations**: course, submissions
+- **Relations**: course, submissions, rubric
 
 #### AssignmentSubmission
 - **Fields**: id, assignmentId, studentId, fileUrl, fileName, submittedAt, score, feedback, rubricNotes, status
 - **Status**: NOT_SUBMITTED, SUBMITTED, LATE, GRADED
 - **Constraints**: Unique(assignmentId, studentId)
+- **Relations**: assignment, student, rubricAssessments
+
+#### Rubric
+- **Fields**: id, assignmentId, name, description, totalPoints
+- **Constraints**: Unique(assignmentId)
+- **Relations**: assignment, criteria
+
+#### RubricCriterion
+- **Fields**: id, rubricId, name, description, maxPoints, order
+- **Relations**: rubric, levels, assessments
+
+#### RubricCriterionLevel
+- **Fields**: id, criterionId, name, description, points, order
+- **Relations**: criterion, assessments
+
+#### RubricAssessment
+- **Fields**: id, submissionId, rubricCriterionId, rubricCriterionLevelId, score, feedback
+- **Constraints**: Unique(submissionId, rubricCriterionId)
+- **Relations**: submission, criterion, level
 
 #### Exam
 - **Fields**: id, courseId, weekId, title, description, category, startTime, deadline, duration, maxScore, maxAttempts, passingGrade, isPublished, showResults, showExplanation, shuffleQuestions, shuffleOptions, allowReview, allowBack, autoSubmit
@@ -779,11 +798,56 @@ frontend/
 - **Body**: `{ fileUrl, fileName }`
 - **Response**: Submission object
 
-#### POST `/assignments/:id/grade/:submissionId`
+#### POST `/assignments/submissions/:submissionId/grade`
 - **Description**: Grade submission (Instructor only)
-- **Params**: `id, submissionId`
+- **Params**: `submissionId`
 - **Body**: `{ score, feedback, rubricNotes }`
 - **Response**: Graded submission
+
+#### GET `/assignments/:id/submissions`
+- **Description**: Get all submissions for an assignment (Instructor only)
+- **Params**: `id`
+- **Response**: Submission list with student info
+
+#### GET `/assignments/gradebook/:courseId`
+- **Description**: Get gradebook for a course (Instructor only)
+- **Params**: `courseId`
+- **Response**: Gradebook data with all students and assignments
+
+### Rubric Endpoints
+
+#### POST `/rubrics/assignment/:assignmentId`
+- **Description**: Create rubric for assignment (Instructor only)
+- **Params**: `assignmentId`
+- **Body**: `{ name, description, totalPoints, criteria: [{ name, description, maxPoints, order, levels: [{ name, description, points, order }] }] }`
+- **Response**: Created rubric with criteria and levels
+
+#### GET `/rubrics/assignment/:assignmentId`
+- **Description**: Get rubric for assignment
+- **Params**: `assignmentId`
+- **Response**: Rubric with criteria and levels
+
+#### PUT `/rubrics/:id`
+- **Description**: Update rubric (Instructor only)
+- **Params**: `id`
+- **Body**: Partial rubric data
+- **Response**: Updated rubric
+
+#### DELETE `/rubrics/:id`
+- **Description**: Delete rubric (Instructor only)
+- **Params**: `id`
+- **Response**: Success message
+
+#### POST `/rubrics/submissions/:submissionId/assess`
+- **Description**: Submit rubric assessment for submission (Instructor only)
+- **Params**: `submissionId`
+- **Body**: `{ assessments: [{ rubricCriterionId, rubricCriterionLevelId, score, feedback }] }`
+- **Response**: Assessment result with total score
+
+#### GET `/rubrics/submissions/:submissionId/assessment`
+- **Description**: Get rubric assessment for submission
+- **Params**: `submissionId`
+- **Response**: Assessment data with criteria scores
 
 ### Exam Endpoints
 
@@ -836,21 +900,10 @@ frontend/
 
 ### Gradebook Endpoints
 
-#### GET `/courses/:courseId/gradebook`
+#### GET `/assignments/gradebook/:courseId`
 - **Description**: Get gradebook for course (Instructor only)
 - **Params**: `courseId`
-- **Response**: Gradebook data
-
-#### GET `/courses/:courseId/grades/:studentId`
-- **Description**: Get student grades (Student/Instructor only)
-- **Params**: `courseId, studentId`
-- **Response**: Student grade data
-
-#### POST `/courses/:courseId/grades/:studentId`
-- **Description**: Update student grade (Instructor only)
-- **Params**: `courseId, studentId`
-- **Body**: Grade data
-- **Response**: Updated grade
+- **Response**: Gradebook data with all students and assignments
 
 ### Notification Endpoints
 
@@ -1061,19 +1114,25 @@ Located in `src/components/ui/`:
 - [x] Activity publish/unpublish
 - [x] Week creation dialog
 
-### ⚠️ Fase 3 - Tugas & Penilaian (Partial)
+### ✅ Fase 3 - Tugas & Penilaian (Completed)
 
 #### Backend
 - [x] Assignment CRUD endpoints
 - [x] Assignment submission endpoints
 - [x] Grading endpoints
 - [x] File upload via MinIO presigned URL
+- [x] Rubric CRUD endpoints
+- [x] Rubric assessment endpoints
+- [x] Structured rubric system with criteria and levels
 
 #### Frontend
 - [x] Assignment list view
 - [x] Assignment submission form
-- [ ] Grading interface (partial)
-- [ ] Rubric system (TODO)
+- [x] Grading interface with feedback
+- [x] Rubric system with form builder
+- [x] Rubric-based grading interface
+- [x] Assignment submissions management view
+- [x] Integration with course activities
 
 ### ⚠️ Fase 4 - Ujian (Partial)
 

@@ -174,6 +174,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
             onActivityChange={fetchWeeks}
             token={token}
             userRole={userRole}
+            courseId={courseId}
           />
         ))}
       </div>
@@ -184,6 +185,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
           onOpenChange={setShowAddActivity}
           weekId={selectedWeekId}
           token={token}
+          courseId={courseId}
           onSuccess={handleActivityCreated}
         />
       )}

@@ -41,6 +41,7 @@ interface EditActivityDialogProps {
   weekId: string;
   activity: Activity | null;
   token: string;
+  courseId: string;
   onSuccess: () => void;
 }
 
@@ -59,6 +60,7 @@ export function EditActivityDialog({
   weekId,
   activity,
   token,
+  courseId,
   onSuccess,
 }: EditActivityDialogProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -103,6 +105,7 @@ export function EditActivityDialog({
           <AssignmentForm 
             weekId={weekId} 
             token={token} 
+            courseId={courseId}
             activity={activity}
             onSuccess={handleSuccess} 
             onCancel={() => onOpenChange(false)} 

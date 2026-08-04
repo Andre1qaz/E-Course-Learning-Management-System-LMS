@@ -29,6 +29,7 @@ interface AddActivityDialogProps {
   onOpenChange: (open: boolean) => void;
   weekId: string;
   token: string;
+  courseId: string;
   onSuccess: () => void;
 }
 
@@ -46,6 +47,7 @@ export function AddActivityDialog({
   onOpenChange,
   weekId,
   token,
+  courseId,
   onSuccess,
 }: AddActivityDialogProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export function AddActivityDialog({
             <MaterialForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "ASSIGNMENT" && (
-            <AssignmentForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
+            <AssignmentForm weekId={weekId} token={token} courseId={courseId} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "QUIZ" && (
             <QuizForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />

@@ -430,6 +430,16 @@ export class AssignmentsService {
             email: true,
           },
         },
+        rubricAssessments: {
+          include: {
+            criterion: {
+              include: {
+                levels: true,
+              },
+            },
+            level: true,
+          },
+        },
       },
       orderBy: { submittedAt: 'desc' },
     });

@@ -62,6 +62,7 @@ interface WeekAccordionProps {
   onActivityChange: () => void;
   token: string;
   userRole: string;
+  courseId: string;
 }
 
 export function WeekAccordion({
@@ -73,6 +74,7 @@ export function WeekAccordion({
   onActivityChange,
   token,
   userRole,
+  courseId,
 }: WeekAccordionProps) {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
@@ -244,6 +246,7 @@ export function WeekAccordion({
                     token={token}
                     userRole={userRole}
                     onChange={onActivityChange}
+                    courseId={courseId}
                   />
                 ))}
                 {canEdit && draftActivities.length > 0 && (
@@ -261,6 +264,7 @@ export function WeekAccordion({
                         token={token}
                         userRole={userRole}
                         onChange={onActivityChange}
+                        courseId={courseId}
                       />
                     ))}
                   </>
@@ -288,6 +292,7 @@ export function WeekAccordion({
         weekId={week.id}
         activity={editingActivity}
         token={token}
+        courseId={courseId}
         onSuccess={onActivityChange}
       />
     </Card>

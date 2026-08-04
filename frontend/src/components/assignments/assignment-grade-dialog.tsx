@@ -63,6 +63,8 @@ interface AssignmentGradeDialogProps {
       maxScore: number;
     };
   };
+  hasRubric?: boolean;
+  onSwitchToRubricGrading?: () => void;
   onSuccess: () => void;
 }
 
@@ -70,6 +72,8 @@ export function AssignmentGradeDialog({
   open,
   onOpenChange,
   submission,
+  hasRubric,
+  onSwitchToRubricGrading,
   onSuccess,
 }: AssignmentGradeDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -253,6 +257,19 @@ export function AssignmentGradeDialog({
                 >
                   Batal
                 </Button>
+                {hasRubric && onSwitchToRubricGrading && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onSwitchToRubricGrading();
+                    }}
+                    disabled={loading}
+                  >
+                    Gunakan Rubrik
+                  </Button>
+                )}
                 <Button type="submit" disabled={loading}>
                   {loading ? "Menyimpan..." : "Simpan Penilaian"}
                 </Button>

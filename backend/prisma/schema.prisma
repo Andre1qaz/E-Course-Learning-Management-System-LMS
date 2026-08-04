@@ -299,6 +299,7 @@ model Assignment {
 
   course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
   submissions AssignmentSubmission[]
+  rubric      Rubric?
 
   @@map("assignments")
 }
@@ -315,11 +316,80 @@ model AssignmentSubmission {
   rubricNotes  String?
   status       AssignmentSubmissionStatus @default(NOT_SUBMITTED)
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignment          Assignment                      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student             User                            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rubricAssessments   RubricAssessment[]
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
+}
+
+// Heuristic #16: Instructional Assessment — detailed rubric assessment tracking
+model RubricAssessment {
+  id                    String @id @default(cuid())
+  submissionId          String
+  rubricCriterionId     String
+  rubricCriterionLevelId String?
+  score                 Float
+  feedback              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  submission AssignmentSubmission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  criterion  RubricCriterion       @relation(fields: [rubricCriterionId], references: [id], onDelete: Cascade)
+  level      RubricCriterionLevel? @relation(fields: [rubricCriterionLevelId], references: [id], onDelete: SetNull)
+
+  @@unique([submissionId, rubricCriterionId])
+  @@map("rubric_assessments")
+}
+
+// Heuristic #16: Instructional Assessment — structured rubric system for grading
+model Rubric {
+  id           String   @id @default(cuid())
+  assignmentId String   @unique
+  name         String
+  description  String?
+  totalPoints  Float    @default(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignment Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  criteria  RubricCriterion[]
+
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id          String   @id @default(cuid())
+  rubricId    String
+  name        String
+  description String?
+  maxPoints   Float
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rubric   Rubric             @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  levels   RubricCriterionLevel[]
+  assessments RubricAssessment[]
+
+  @@map("rubric_criteria")
+}
+
+model RubricCriterionLevel {
+  id          String   @id @default(cuid())
+  criterionId String
+  name        String
+  description String
+  points      Float
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  criterion   RubricCriterion  @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  assessments RubricAssessment[]
+
+  @@map("rubric_criterion_levels")
 }
 
 model Exam {

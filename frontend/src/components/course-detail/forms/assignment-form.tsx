@@ -24,12 +24,13 @@ interface Activity {
 interface AssignmentFormProps {
   weekId: string;
   token: string;
+  courseId: string;
   activity?: Activity;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function AssignmentForm({ weekId, token, activity, onSuccess, onCancel }: AssignmentFormProps) {
+export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, onCancel }: AssignmentFormProps) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,6 +59,41 @@ export function AssignmentForm({ weekId, token, activity, onSuccess, onCancel }:
 
     try {
       const isEdit = !!activity;
+      
+      // First, create/update the assignment in the backend
+      let assignmentId = activity?.metadata?.assignmentId;
+      
+      if (!isEdit) {
+        // Create new assignment
+        const assignmentResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/assignments/course/${courseId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              title,
+              description,
+              deadline,
+              maxScore: parseInt(maxScore),
+            }),
+          }
+        );
+
+        const assignmentResult = await assignmentResponse.json();
+        
+        if (assignmentResult.success) {
+          assignmentId = assignmentResult.data.id;
+        } else {
+          toast.error("Failed to create assignment");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Then create/update the activity
       const url = isEdit
         ? `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}`
         : `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`;
@@ -77,6 +113,7 @@ export function AssignmentForm({ weekId, token, activity, onSuccess, onCancel }:
           status: isPublished ? "PUBLISHED" : "DRAFT",
           order: activity?.order || 0,
           metadata: {
+            assignmentId,
             attachmentUrl,
             deadline,
             maxScore: parseInt(maxScore),

@@ -16,6 +16,7 @@ import {
   EyeOff,
   Clock,
   Calendar,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +50,7 @@ interface ActivityCardProps {
   token: string;
   userRole: string;
   onChange: () => void;
+  courseId: string;
 }
 
 const activityConfig: Record<
@@ -101,6 +103,7 @@ export function ActivityCard({
   token,
   userRole,
   onChange,
+  courseId,
 }: ActivityCardProps) {
   const config = activityConfig[activity.type] || activityConfig.MATERIAL;
   const Icon = config.icon;
@@ -267,6 +270,14 @@ export function ActivityCard({
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
+                {activity.type === "ASSIGNMENT" && canEdit && (
+                  <DropdownMenuItem asChild>
+                    <a href={`/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
+                      <Users className="mr-2 h-4 w-4" />
+                      View Submissions
+                    </a>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleDuplicate}>
                   <Copy className="mr-2 h-4 w-4" />
                   Duplicate
