@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +35,41 @@ export function CreateWeekDialog({
     endDate: "",
     order: 0,
   });
+
   const [loading, setLoading] = useState(false);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        weekNumber: 1,
+        title: "",
+        startDate: "",
+        endDate: "",
+        order: 0,
+      });
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.title.trim()) {
+      toast.error("Judul week wajib diisi");
+      return;
+    }
+    
+    if (!formData.startDate || !formData.endDate) {
+      toast.error("Tanggal mulai dan selesai wajib diisi");
+      return;
+    }
+    
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+      toast.error("Tanggal selesai harus setelah tanggal mulai");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -57,7 +88,7 @@ export function CreateWeekDialog({
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Week created successfully");
+        toast.success("Week berhasil dibuat");
         onOpenChange(false);
         onSuccess();
         setFormData({
@@ -68,10 +99,10 @@ export function CreateWeekDialog({
           order: 0,
         });
       } else {
-        toast.error(result.message || "Failed to create week");
+        toast.error(result.message || "Gagal membuat week");
       }
     } catch (error) {
-      toast.error("Error creating week");
+      toast.error("Terjadi kesalahan saat membuat week");
     } finally {
       setLoading(false);
     }
@@ -141,19 +172,19 @@ export function CreateWeekDialog({
               required
             />
           </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Menyimpan..." : "Buat Week"}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Batal
-          </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? "Menyimpan..." : "Buat Week"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

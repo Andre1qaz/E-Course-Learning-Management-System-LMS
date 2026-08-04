@@ -12,7 +12,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Move,
   Eye,
   EyeOff,
   Clock,
@@ -47,9 +46,6 @@ interface ActivityCardProps {
   weekId: string;
   canEdit: boolean;
   onEdit: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onMove: () => void;
   token: string;
   userRole: string;
   onChange: () => void;
@@ -102,9 +98,6 @@ export function ActivityCard({
   weekId,
   canEdit,
   onEdit,
-  onDelete,
-  onDuplicate,
-  onMove,
   token,
   userRole,
   onChange,
@@ -278,9 +271,9 @@ export function ActivityCard({
                   <Copy className="mr-2 h-4 w-4" />
                   Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onMove}>
-                  <Move className="mr-2 h-4 w-4" />
-                  Move to Week
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
                 </DropdownMenuItem>
                 {isDraft ? (
                   <DropdownMenuItem
@@ -297,10 +290,6 @@ export function ActivityCard({
                     Unpublish
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}

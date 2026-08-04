@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,14 +8,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+interface Activity {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  order: number;
+  metadata: any;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface VideoFormProps {
   weekId: string;
   token: string;
+  activity?: Activity;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function VideoForm({ weekId, token, onSuccess, onCancel }: VideoFormProps) {
+export function VideoForm({ weekId, token, activity, onSuccess, onCancel }: VideoFormProps) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -23,41 +37,56 @@ export function VideoForm({ weekId, token, onSuccess, onCancel }: VideoFormProps
   const [duration, setDuration] = useState("");
   const [isPublished, setIsPublished] = useState(false);
 
+  // Populate form with activity data if editing
+  useEffect(() => {
+    if (activity) {
+      setTitle(activity.title);
+      setDescription(activity.description || "");
+      setVideoUrl(activity.metadata?.videoUrl || "");
+      setDuration(activity.metadata?.duration || "");
+      setIsPublished(activity.status === "PUBLISHED");
+    }
+  }, [activity]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+      const isEdit = !!activity;
+      const url = isEdit
+        ? `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`;
+      
+      const method = isEdit ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: "VIDEO",
+          title,
+          description,
+          status: isPublished ? "PUBLISHED" : "DRAFT",
+          order: activity?.order || 0,
+          metadata: {
+            videoUrl,
+            duration,
           },
-          body: JSON.stringify({
-            type: "VIDEO",
-            title,
-            description,
-            status: isPublished ? "PUBLISHED" : "DRAFT",
-            order: 0,
-            metadata: {
-              videoUrl,
-              duration,
-            },
-          }),
-        }
-      );
+        }),
+      });
 
       if (response.ok) {
-        toast.success("Video created successfully");
+        toast.success(isEdit ? "Video updated successfully" : "Video created successfully");
         onSuccess();
       } else {
-        toast.error("Failed to create video");
+        toast.error(isEdit ? "Failed to update video" : "Failed to create video");
       }
     } catch (error) {
-      toast.error("Error creating video");
+      toast.error("Error saving video");
     } finally {
       setLoading(false);
     }
@@ -116,7 +145,7 @@ export function VideoForm({ weekId, token, onSuccess, onCancel }: VideoFormProps
           Cancel
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Video"}
+          {loading ? (activity ? "Updating..." : "Creating...") : (activity ? "Update Video" : "Create Video")}
         </Button>
       </div>
     </form>

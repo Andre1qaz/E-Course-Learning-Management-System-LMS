@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ActivityCard } from "./activity-card";
+import { EditActivityDialog } from "./edit-activity-dialog";
 import { toast } from "sonner";
 
 interface Week {
@@ -73,10 +74,7 @@ export function WeekAccordion({
   token,
   userRole,
 }: WeekAccordionProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [showMoveDialog, setShowMoveDialog] = useState(false);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
@@ -90,90 +88,9 @@ export function WeekAccordion({
 
   const handleEditActivity = (activity: Activity) => {
     setEditingActivity(activity);
-    // TODO: Open edit dialog with activity data
-    toast.info("Edit activity dialog would open here");
   };
 
-  const handleDeleteActivity = async (activityId: string) => {
-    if (!confirm("Are you sure you want to delete this activity?")) return;
 
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${week.id}/activities/${activityId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Activity deleted successfully");
-        onActivityChange();
-      } else {
-        toast.error("Failed to delete activity");
-      }
-    } catch (error) {
-      toast.error("Error deleting activity");
-    }
-  };
-
-  const handleDuplicateActivity = async (activityId: string) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${week.id}/activities/${activityId}/duplicate`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Activity duplicated successfully");
-        onActivityChange();
-      } else {
-        toast.error("Failed to duplicate activity");
-      }
-    } catch (error) {
-      toast.error("Error duplicating activity");
-    }
-  };
-
-  const handleMoveActivity = (activityId: string) => {
-    setSelectedActivityId(activityId);
-    setShowMoveDialog(true);
-  };
-
-  const handleMoveToWeek = async (newWeekId: string) => {
-    if (!selectedActivityId) return;
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${week.id}/activities/${selectedActivityId}/move`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ newWeekId }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Activity moved successfully");
-        setShowMoveDialog(false);
-        onActivityChange();
-      } else {
-        toast.error("Failed to move activity");
-      }
-    } catch (error) {
-      toast.error("Error moving activity");
-    }
-  };
 
   const publishedActivities = week.activities.filter((a) => a.status === "PUBLISHED");
   const draftActivities = week.activities.filter((a) => a.status === "DRAFT");
@@ -324,9 +241,6 @@ export function WeekAccordion({
                     weekId={week.id}
                     canEdit={canEdit}
                     onEdit={() => handleEditActivity(activity)}
-                    onDelete={() => handleDeleteActivity(activity.id)}
-                    onDuplicate={() => handleDuplicateActivity(activity.id)}
-                    onMove={() => handleMoveActivity(activity.id)}
                     token={token}
                     userRole={userRole}
                     onChange={onActivityChange}
@@ -344,9 +258,6 @@ export function WeekAccordion({
                         weekId={week.id}
                         canEdit={canEdit}
                         onEdit={() => handleEditActivity(activity)}
-                        onDelete={() => handleDeleteActivity(activity.id)}
-                        onDuplicate={() => handleDuplicateActivity(activity.id)}
-                        onMove={() => handleMoveActivity(activity.id)}
                         token={token}
                         userRole={userRole}
                         onChange={onActivityChange}
@@ -369,6 +280,16 @@ export function WeekAccordion({
           </div>
         </CardContent>
       )}
+      
+      {/* Edit Activity Dialog */}
+      <EditActivityDialog
+        open={!!editingActivity}
+        onOpenChange={(open) => !open && setEditingActivity(null)}
+        weekId={week.id}
+        activity={editingActivity}
+        token={token}
+        onSuccess={onActivityChange}
+      />
     </Card>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,14 +8,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+interface Activity {
+  id: string;
+  type: string;
+  title: string;
+  description: string | null;
+  status: string;
+  order: number;
+  metadata: any;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface MaterialFormProps {
   weekId: string;
   token: string;
+  activity?: Activity;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function MaterialForm({ weekId, token, onSuccess, onCancel }: MaterialFormProps) {
+export function MaterialForm({ weekId, token, activity, onSuccess, onCancel }: MaterialFormProps) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -24,42 +38,58 @@ export function MaterialForm({ weekId, token, onSuccess, onCancel }: MaterialFor
   const [references, setReferences] = useState("");
   const [isPublished, setIsPublished] = useState(false);
 
+  // Populate form with activity data if editing
+  useEffect(() => {
+    if (activity) {
+      setTitle(activity.title);
+      setDescription(activity.description || "");
+      setFileUrl(activity.metadata?.fileUrl || "");
+      setVideoUrl(activity.metadata?.videoUrl || "");
+      setReferences(activity.metadata?.references || "");
+      setIsPublished(activity.status === "PUBLISHED");
+    }
+  }, [activity]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+      const isEdit = !!activity;
+      const url = isEdit
+        ? `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`;
+      
+      const method = isEdit ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: "MATERIAL",
+          title,
+          description,
+          status: isPublished ? "PUBLISHED" : "DRAFT",
+          order: activity?.order || 0,
+          metadata: {
+            fileUrl,
+            videoUrl,
+            references,
           },
-          body: JSON.stringify({
-            type: "MATERIAL",
-            title,
-            description,
-            status: isPublished ? "PUBLISHED" : "DRAFT",
-            order: 0,
-            metadata: {
-              fileUrl,
-              videoUrl,
-              references,
-            },
-          }),
-        }
-      );
+        }),
+      });
 
       if (response.ok) {
-        toast.success("Material created successfully");
+        toast.success(isEdit ? "Material updated successfully" : "Material created successfully");
         onSuccess();
       } else {
-        toast.error("Failed to create material");
+        toast.error(isEdit ? "Failed to update material" : "Failed to create material");
       }
     } catch (error) {
-      toast.error("Error creating material");
+      toast.error("Error saving material");
     } finally {
       setLoading(false);
     }
@@ -126,7 +156,7 @@ export function MaterialForm({ weekId, token, onSuccess, onCancel }: MaterialFor
           Cancel
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Material"}
+          {loading ? (activity ? "Updating..." : "Creating...") : (activity ? "Update Material" : "Create Material")}
         </Button>
       </div>
     </form>
