@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, Res, HttpStatus } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { QuestionBanksService } from './question-banks.service';
+import { Response } from 'express';
 
 interface RequestWithUser extends Request {
   user: {
@@ -63,5 +64,25 @@ export class QuestionBanksController {
   @Roles(Role.ADMIN, Role.DOSEN)
   async importFromBank(@Request() req: RequestWithUser, @Param('id') questionBankId: string, @Param('examId') examId: string) {
     return this.questionBanksService.importFromBank(questionBankId, examId, req.user.userId, req.user.role);
+  }
+
+  @Get(':id/export/:format')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async exportQuestionBank(
+    @Request() req: RequestWithUser,
+    @Param('id') id: string,
+    @Param('format') format: string,
+    @Res() res: Response,
+  ) {
+    return this.questionBanksService.exportQuestionBank(id, req.user.userId, req.user.role, format, res);
+  }
+
+  @Post('import')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async importQuestionBank(
+    @Request() req: RequestWithUser,
+    @Body() body: { format: string; data: any; courseId?: string },
+  ) {
+    return this.questionBanksService.importQuestionBank(body.format, body.data, req.user.userId, req.user.role, body.courseId);
   }
 }

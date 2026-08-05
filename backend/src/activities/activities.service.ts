@@ -212,6 +212,34 @@ export class ActivitiesService {
     );
   }
 
+  async reorderGlobal(activityOrders: { id: string; order: number }[], userId: string, userRole: Role) {
+    // Only ADMIN and DOSEN can reorder activities
+    if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
+      throw new ForbiddenException('Only Admin and Dosen can reorder activities');
+    }
+
+    // Verify that all activities belong to courses the user has access to
+    const activityIds = activityOrders.map(a => a.id);
+    const activities = await this.prisma.activity.findMany({
+      where: { id: { in: activityIds } },
+      include: { week: { include: { course: true } } },
+    });
+
+    for (const activity of activities) {
+      await this.checkCourseAccess(activity.week.courseId, userId, userRole);
+    }
+
+    // Update orders in a transaction
+    return this.prisma.$transaction(
+      activityOrders.map(({ id, order }) =>
+        this.prisma.activity.update({
+          where: { id },
+          data: { order },
+        }),
+      ),
+    );
+  }
+
   async publish(id: string, userId: string, userRole: Role) {
     // Only ADMIN and DOSEN can publish activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {

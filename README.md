@@ -2183,3 +2183,300 @@ For questions or issues related to this project, please contact the development 
 **Last Updated**: August 2026
 **Version**: 1.0.0
 **Status**: Active Development
+
+📚 1. Authentication & Authorization
+Login
+Logout
+Role-Based Access Control (RBAC)
+Administrator Role
+Lecturer Role
+Student Role
+Permission Management
+👥 2. User Management
+Administrator Management
+Lecturer Management
+Student Management
+User Role Assignment
+📖 3. Course Management
+Create Course
+Edit Course
+Delete Course
+Publish Course
+Course Thumbnail
+Course Description
+Course Information
+Course Week Management (Week 1–16)
+🎓 4. Course Enrollment
+Enrollment menggunakan Enrollment Key
+Enrollment tanpa Key (oleh Admin/Lecturer)
+Generate Enrollment Key
+Regenerate Enrollment Key
+Disable Enrollment Key
+Add Student to Course
+Remove Student from Course
+Participant List
+Student Count
+Enrollment Status
+Join Date
+📂 5. Course Detail
+Week Management
+Week 1–16
+Expand/Collapse Week
+Week Date Range
+Rename Week
+Activity Management
+Add Activity
+Edit Activity
+Delete Activity
+Duplicate Activity
+Move Activity
+Drag & Drop Activity Order
+Draft Activity
+Publish Activity
+📄 6. Material Management
+Upload PDF
+Upload PPT
+Upload DOCX
+Upload Video
+YouTube Embed
+Reference Link
+Publish Material
+Draft Material
+📝 7. Assignment Management
+Create Assignment
+Edit Assignment
+Delete Assignment
+Assignment Deadline
+Maximum Score
+Late Submission
+Assignment Attachment
+Assignment Submission Type
+Draft Assignment
+Publish Assignment
+🧪 8. Quiz & Exam Management
+Exam Information
+Quiz
+Mid Exam (UTS)
+Final Exam (UAS)
+General Exam
+Week Exam
+Course Relation
+Exam Configuration
+Start Time
+End Time
+Duration
+Passing Grade
+Maximum Score
+Attempt Limit
+Publish Status
+Draft Status
+Show Result
+Hide Result
+Auto Submit
+Auto Save
+Timer
+Exam Navigation
+Allow Back Navigation
+Disable Back Navigation
+Random Question
+Random Answer
+❓ 9. Question Management
+Multiple Choice
+Single Answer
+Multiple Answer
+Question Image
+Explanation
+Question Weight
+Shuffle Choices
+Essay
+Long Answer
+Rubric
+Guideline
+Character Limit
+Manual Grading
+True / False
+True Answer
+False Answer
+Explanation
+Score Weight
+Short Answer
+Multiple Accepted Answers
+Case Sensitive
+Answer Tolerance
+Automatic Grading
+Explanation
+🏦 10. Question Bank
+Save Question
+Reuse Question
+Course Category
+Topic
+Week
+Difficulty
+Question Type
+Duplicate Question
+Import Question Bank
+Export Question Bank
+Random Question Selection
+Manual Question Selection
+📊 11. Gradebook
+Assignment Grade
+Quiz Grade
+Mid Exam Grade
+Final Exam Grade
+Final Score
+Passing Status
+Manual Essay Score
+Automatic Quiz Score
+Student Grade View
+Lecturer Grade View
+Administrator Grade View
+Grade Average
+Learning Progress
+Grade History
+Export Excel
+Export PDF
+📅 12. Calendar & Event Management
+Calendar
+Monthly View
+Weekly View
+Daily View
+Event Management
+Create Event
+Edit Event
+Delete Event
+Publish Event
+Event Color
+Event Thumbnail Color
+Event Category
+Event Attachment
+Meeting Link
+Event Location
+Offline Event
+Online Event
+Event Category
+Lecture
+Material
+Assignment
+Quiz
+UTS
+UAS
+Seminar
+Project
+Meeting
+Deadline
+Announcement
+Calendar Integration
+Auto Assignment Event
+Auto Quiz Event
+Auto Exam Event
+Auto Material Event
+Auto Schedule Event
+Calendar Filter
+Search Event
+Filter by Course
+Filter by Category
+Filter by Date
+Upcoming Event
+Dashboard Upcoming Event
+Remaining Time
+🔔 13. Notification System
+Real-time Notification
+Notification Center
+Course Notification
+Assignment Notification
+Quiz Notification
+Exam Notification
+Material Notification
+Schedule Change Notification
+Calendar Notification
+Announcement Notification
+💬 14. Discussion Forum
+Create Discussion
+Reply Discussion
+Upload Image
+Upload File
+Mention Lecturer (@)
+Best Answer
+Close Discussion
+Lock Discussion
+Delete Comment
+Notification Reply
+Notification Mention
+📢 15. Announcement Management
+Course Announcement
+Global Announcement
+Publish Announcement
+Announcement Attachment
+Announcement Period
+Dashboard Announcement
+Notification Announcement
+Unread Badge
+📈 16. Dashboard
+Administrator Dashboard
+Total Course
+Total Student
+Total Lecturer
+Total Assignment
+Total Quiz
+Total Active Course
+Active User
+Recent Activity
+Lecturer Dashboard
+Teaching Course Count
+Student Count
+Active Assignment
+Ungraded Assignment
+Running Quiz
+Recent Activity
+Student Dashboard
+Enrolled Course
+Pending Assignment
+Upcoming Event
+Latest Announcement
+Average Grade
+Learning Progress
+Recent Notification
+📊 17. Course Progress
+Progress Bar
+Progress Percentage
+Material Completion
+Assignment Completion
+Quiz Completion
+Exam Completion
+Student Progress Monitoring
+Progress Dashboard
+👨‍🎓 18. Student Features
+View Course
+View Material
+Download Material
+Submit Assignment
+Join Quiz
+Join Exam
+View Calendar
+View Announcement
+View Grade
+View Progress
+Participate in Discussion
+👨‍🏫 19. Lecturer Features
+Manage Course
+Manage Material
+Manage Assignment
+Manage Quiz
+Manage Exam
+Manage Discussion
+Manage Announcement
+Grade Student
+Monitor Progress
+Manage Calendar
+👨‍💼 20. Administrator Features
+Full Course Management
+User Management
+Enrollment Management
+Exam Management
+Question Bank Management
+Calendar Management
+Event Management
+Announcement Management
+Dashboard Management
+Gradebook Management
+Student Monitoring

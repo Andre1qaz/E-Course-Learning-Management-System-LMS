@@ -118,6 +118,24 @@ export class ActivitiesController {
   ) {
     return this.activitiesService.reorder(weekId, body.activityOrders, userId, role);
   }
+}
+
+@Controller('activities')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
+export class ActivitiesGlobalController {
+  constructor(private readonly activitiesService: ActivitiesService) {}
+
+  @Post('reorder')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  @ApiOperation({ summary: 'Reorder activities globally (Admin/Dosen only)' })
+  reorderGlobal(
+    @Body() body: { activities: { id: string; order: number }[] },
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.activitiesService.reorderGlobal(body.activities, userId, role);
+  }
 
   @Post(':id/publish')
   @Roles(Role.ADMIN, Role.DOSEN)

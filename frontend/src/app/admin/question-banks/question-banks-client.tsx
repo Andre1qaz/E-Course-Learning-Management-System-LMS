@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Search, BookOpen, Download, Upload, Trash2, Edit } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, Search, BookOpen, Download, Upload, Trash2, Edit, FileJson, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Course {
   id: string;
@@ -44,6 +50,10 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFormat, setImportFormat] = useState("json");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     courseId: "",
     title: "",
@@ -166,6 +176,102 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
     }
   };
 
+  const handleExportQuestionBank = async (id: string, format: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/question-banks/${id}/export/${format}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const fileName = format === 'json' ? 'questions.json' : 
+                      format === 'csv' ? 'questions.csv' : 'questions.xlsx';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success(`Question bank berhasil diexport sebagai ${format.toUpperCase()}`);
+    } catch (error) {
+      toast.error('Gagal mengexport question bank');
+    }
+  };
+
+  const handleImportQuestionBank = async () => {
+    if (!importFile) {
+      toast.error('Pilih file terlebih dahulu');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/question-banks/import`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            format: importFormat,
+            data: await parseImportFile(importFile, importFormat),
+            courseId: formData.courseId || undefined,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Question bank berhasil diimport');
+        setShowImportDialog(false);
+        setImportFile(null);
+        fetchQuestionBanks();
+      } else {
+        toast.error(result.message || 'Gagal mengimport question bank');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat mengimport question bank');
+    }
+  };
+
+  const parseImportFile = async (file: File, format: string): Promise<any> => {
+    if (format === 'json') {
+      const text = await file.text();
+      return JSON.parse(text);
+    } else if (format === 'csv') {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split(',');
+      return lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header.trim()] = values[index]?.trim() || '';
+        });
+        return obj;
+      });
+    } else if (format === 'excel' || format === 'xlsx') {
+      // For Excel, we'll need a library like xlsx
+      // For now, return empty array as placeholder
+      return [];
+    }
+    return null;
+  };
+
   const filteredQuestionBanks = questionBanks.filter((qb) => {
     return (
       qb.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -204,10 +310,16 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
             <h1 className="font-display text-2xl font-bold">Question Banks</h1>
             <p className="text-muted-foreground">Kelola bank soal untuk digunakan di ujian</p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat Question Bank
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat Question Bank
+            </Button>
+          </div>
         </div>
 
         {/* Search */}
@@ -281,6 +393,27 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
                       <Edit className="mr-2 h-4 w-4" />
                       Kelola
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExportQuestionBank(qb.id, 'json')}>
+                          <FileJson className="mr-2 h-4 w-4" />
+                          Export JSON
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportQuestionBank(qb.id, 'csv')}>
+                          <FileSpreadsheet className="mr-2 h-4 w-4" />
+                          Export CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportQuestionBank(qb.id, 'excel')}>
+                          <FileSpreadsheet className="mr-2 h-4 w-4" />
+                          Export Excel
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       variant="outline"
                       size="sm"
@@ -383,6 +516,63 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
               Batal
             </Button>
             <Button onClick={handleCreateQuestionBank}>Buat Question Bank</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Question Bank Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import Question Bank</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="format">Format File</Label>
+              <select
+                id="format"
+                value={importFormat}
+                onChange={(e) => setImportFormat(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              >
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+                <option value="excel">Excel (XLSX)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="file">File</Label>
+              <Input
+                id="file"
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                accept={importFormat === 'json' ? '.json' : importFormat === 'csv' ? '.csv' : '.xlsx,.xls'}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="importCourse">Course (Opsional)</Label>
+              <select
+                id="importCourse"
+                value={formData.courseId}
+                onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+              >
+                <option value="">Tanpa Course (Umum)</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} - {course.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+              Batal
+            </Button>
+            <Button onClick={handleImportQuestionBank}>Import</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

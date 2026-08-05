@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Calendar, Plus, MoreVertical, Edit, Trash2, Copy, Move, Clock, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, Calendar, Plus, MoreVertical, Edit, Trash2, Copy, Move, Clock, FileText, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
 import { ActivityCard } from "./activity-card";
 import { EditActivityDialog } from "./edit-activity-dialog";
 import { toast } from "sonner";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 interface Week {
   id: string;
@@ -77,6 +78,68 @@ export function WeekAccordion({
   courseId,
 }: WeekAccordionProps) {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [activities, setActivities] = useState<Activity[]>(week.activities);
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination || !canEdit) return;
+
+    const { source, destination } = result;
+
+    if (source.index === destination.index) return;
+
+    // Reorder activities locally
+    const newActivities = Array.from(activities);
+    const [reorderedActivity] = newActivities.splice(source.index, 1);
+    newActivities.splice(destination.index, 0, reorderedActivity);
+
+    // Update order values
+    const updatedActivities = newActivities.map((activity, index) => ({
+      ...activity,
+      order: index,
+    }));
+
+    setActivities(updatedActivities);
+
+    // Persist order to backend
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/activities/reorder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            activities: updatedActivities.map((a) => ({
+              id: a.id,
+              order: a.order,
+            })),
+          }),
+        }
+      );
+
+      const apiResult = await response.json();
+
+      if (apiResult.success) {
+        toast.success("Activity order updated successfully");
+        onActivityChange(); // Refresh parent component
+      } else {
+        toast.error(apiResult.message || "Failed to update activity order");
+        // Revert on error
+        setActivities(activities);
+      }
+    } catch (error) {
+      toast.error("Failed to update activity order");
+      // Revert on error
+      setActivities(activities);
+    }
+  };
+
+  // Update local activities when week.activities changes
+  useEffect(() => {
+    setActivities(week.activities);
+  }, [week.activities]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
@@ -235,41 +298,127 @@ export function WeekAccordion({
                 Belum ada aktivitas atau ujian di week ini
               </div>
             ) : (
-              <>
-                {publishedActivities.map((activity) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    weekId={week.id}
-                    canEdit={canEdit}
-                    onEdit={() => handleEditActivity(activity)}
-                    token={token}
-                    userRole={userRole}
-                    onChange={onActivityChange}
-                    courseId={courseId}
-                  />
-                ))}
-                {canEdit && draftActivities.length > 0 && (
-                  <>
-                    <div className="text-sm text-muted-foreground font-medium mt-4 mb-2">
-                      Draft ({draftActivities.length})
-                    </div>
-                    {draftActivities.map((activity) => (
-                      <ActivityCard
-                        key={activity.id}
-                        activity={activity}
-                        weekId={week.id}
-                        canEdit={canEdit}
-                        onEdit={() => handleEditActivity(activity)}
-                        token={token}
-                        userRole={userRole}
-                        onChange={onActivityChange}
-                        courseId={courseId}
-                      />
-                    ))}
-                  </>
-                )}
-              </>
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <>
+                  {canEdit ? (
+                    <Droppable droppableId="activities">
+                      {(provided) => (
+                        <div {...provided.droppableProps} ref={provided.innerRef}>
+                          {publishedActivities.map((activity, index) => (
+                            <Draggable
+                              key={activity.id}
+                              draggableId={activity.id}
+                              index={index}
+                              isDragDisabled={!canEdit}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`${snapshot.isDragging ? "opacity-50" : ""}`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    {canEdit && (
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="mt-4 cursor-grab active:cursor-grabbing"
+                                      >
+                                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1">
+                                      <ActivityCard
+                                        key={activity.id}
+                                        activity={activity}
+                                        weekId={week.id}
+                                        canEdit={canEdit}
+                                        onEdit={() => handleEditActivity(activity)}
+                                        token={token}
+                                        userRole={userRole}
+                                        onChange={onActivityChange}
+                                        courseId={courseId}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  ) : (
+                    <>
+                      {publishedActivities.map((activity) => (
+                        <ActivityCard
+                          key={activity.id}
+                          activity={activity}
+                          weekId={week.id}
+                          canEdit={canEdit}
+                          onEdit={() => handleEditActivity(activity)}
+                          token={token}
+                          userRole={userRole}
+                          onChange={onActivityChange}
+                          courseId={courseId}
+                        />
+                      ))}
+                    </>
+                  )}
+                  {canEdit && draftActivities.length > 0 && (
+                    <>
+                      <div className="text-sm text-muted-foreground font-medium mt-4 mb-2">
+                        Draft ({draftActivities.length})
+                      </div>
+                      <Droppable droppableId="draft-activities">
+                        {(provided) => (
+                          <div {...provided.droppableProps} ref={provided.innerRef}>
+                            {draftActivities.map((activity, index) => (
+                              <Draggable
+                                key={activity.id}
+                                draggableId={`draft-${activity.id}`}
+                                index={index}
+                                isDragDisabled={!canEdit}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`${snapshot.isDragging ? "opacity-50" : ""}`}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div
+                                        {...provided.dragHandleProps}
+                                        className="mt-4 cursor-grab active:cursor-grabbing"
+                                      >
+                                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <ActivityCard
+                                          key={activity.id}
+                                          activity={activity}
+                                          weekId={week.id}
+                                          canEdit={canEdit}
+                                          onEdit={() => handleEditActivity(activity)}
+                                          token={token}
+                                          userRole={userRole}
+                                          onChange={onActivityChange}
+                                          courseId={courseId}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </>
+                  )}
+                </>
+              </DragDropContext>
             )}
             {canEdit && (
               <Button

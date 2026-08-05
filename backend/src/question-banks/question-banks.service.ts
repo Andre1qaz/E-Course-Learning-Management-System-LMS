@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { DifficultyLevel, QuestionType } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
+import { Response } from 'express';
 
 @Injectable()
 export class QuestionBanksService {
@@ -352,6 +354,379 @@ export class QuestionBanksService {
       success: true,
       data: importedQuestions,
       message: `${importedQuestions.length} questions imported successfully`,
+    };
+  }
+
+  async exportQuestionBank(id: string, userId: string, userRole: Role, format: string, res: Response) {
+    const questionBank = await this.prisma.questionBank.findUnique({
+      where: { id },
+      include: {
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            instructorId: true,
+          },
+        },
+        questions: {
+          include: {
+            options: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!questionBank) {
+      throw new NotFoundException('Question bank not found');
+    }
+
+    // Check permissions
+    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
+      throw new ForbiddenException('You do not have access to this question bank');
+    }
+
+    const fileName = `${questionBank.title.replace(/[^a-z0-9]/gi, '_')}_export`;
+
+    switch (format.toLowerCase()) {
+      case 'json':
+        return this.exportAsJson(questionBank, fileName, res);
+      case 'csv':
+        return this.exportAsCsv(questionBank, fileName, res);
+      case 'excel':
+      case 'xlsx':
+        return this.exportAsExcel(questionBank, fileName, res);
+      default:
+        throw new BadRequestException('Unsupported export format. Use: json, csv, or excel');
+    }
+  }
+
+  private async exportAsJson(questionBank: any, fileName: string, res: Response) {
+    const exportData = {
+      metadata: {
+        title: questionBank.title,
+        description: questionBank.description,
+        topic: questionBank.topic,
+        difficulty: questionBank.difficulty,
+        questionType: questionBank.questionType,
+        course: questionBank.course,
+        exportedAt: new Date().toISOString(),
+      },
+      questions: questionBank.questions.map((q: any) => ({
+        type: q.type,
+        questionText: q.questionText,
+        points: q.points,
+        explanation: q.explanation,
+        options: q.options?.map((o: any) => ({
+          optionText: o.optionText,
+          isCorrect: o.isCorrect,
+        })),
+      })),
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.json"`);
+    res.status(HttpStatus.OK).json(exportData);
+  }
+
+  private async exportAsCsv(questionBank: any, fileName: string, res: Response) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Questions');
+
+    // Headers
+    worksheet.columns = [
+      { header: 'Question ID', key: 'id' },
+      { header: 'Type', key: 'type' },
+      { header: 'Question Text', key: 'questionText' },
+      { header: 'Points', key: 'points' },
+      { header: 'Explanation', key: 'explanation' },
+      { header: 'Options', key: 'options' },
+      { header: 'Correct Answer', key: 'correctAnswer' },
+    ];
+
+    // Add questions
+    questionBank.questions.forEach((q: any) => {
+      const optionsText = q.options?.map((o: any) => o.optionText).join(' | ') || '';
+      const correctAnswer = q.options?.filter((o: any) => o.isCorrect).map((o: any) => o.optionText).join(' | ') || '';
+
+      worksheet.addRow({
+        id: q.id,
+        type: q.type,
+        questionText: q.questionText,
+        points: q.points,
+        explanation: q.explanation || '',
+        options: optionsText,
+        correctAnswer: correctAnswer,
+      });
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.csv"`);
+
+    const buffer = await workbook.csv.writeBuffer();
+    res.status(HttpStatus.OK).send(buffer);
+  }
+
+  private async exportAsExcel(questionBank: any, fileName: string, res: Response) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Questions');
+
+    // Add metadata
+    worksheet.addRow(['Question Bank Export']);
+    worksheet.addRow(['Title', questionBank.title]);
+    worksheet.addRow(['Description', questionBank.description]);
+    worksheet.addRow(['Topic', questionBank.topic]);
+    worksheet.addRow(['Difficulty', questionBank.difficulty]);
+    worksheet.addRow(['Question Type', questionBank.questionType]);
+    worksheet.addRow(['Course', questionBank.course?.name || 'N/A']);
+    worksheet.addRow(['Exported At', new Date().toLocaleString()]);
+    worksheet.addRow([]); // Empty row
+
+    // Headers
+    worksheet.columns = [
+      { header: 'Type', key: 'type', width: 15 },
+      { header: 'Question Text', key: 'questionText', width: 50 },
+      { header: 'Points', key: 'points', width: 10 },
+      { header: 'Explanation', key: 'explanation', width: 30 },
+      { header: 'Option 1', key: 'option1', width: 20 },
+      { header: 'Option 2', key: 'option2', width: 20 },
+      { header: 'Option 3', key: 'option3', width: 20 },
+      { header: 'Option 4', key: 'option4', width: 20 },
+      { header: 'Correct Answer(s)', key: 'correctAnswer', width: 20 },
+    ];
+
+    // Style header row
+    const headerRow = worksheet.getRow(9);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    };
+
+    // Add questions
+    questionBank.questions.forEach((q: any) => {
+      const options = q.options || [];
+      const correctAnswers = options.filter((o: any) => o.isCorrect).map((o: any, i: number) => `Option ${i + 1}`).join(', ');
+
+      worksheet.addRow({
+        type: q.type,
+        questionText: q.questionText,
+        points: q.points,
+        explanation: q.explanation || '',
+        option1: options[0]?.optionText || '',
+        option2: options[1]?.optionText || '',
+        option3: options[2]?.optionText || '',
+        option4: options[3]?.optionText || '',
+        correctAnswer: correctAnswers,
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.xlsx"`);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.status(HttpStatus.OK).send(buffer);
+  }
+
+  async importQuestionBank(format: string, data: any, userId: string, userRole: Role, courseId?: string) {
+    // Check course access if courseId is provided
+    if (courseId) {
+      const course = await this.prisma.course.findUnique({
+        where: { id: courseId },
+      });
+
+      if (!course) {
+        throw new NotFoundException('Course not found');
+      }
+
+      if (userRole !== Role.ADMIN && course.instructorId !== userId) {
+        throw new ForbiddenException('Only Admin and course instructor can import question banks');
+      }
+    }
+
+    switch (format.toLowerCase()) {
+      case 'json':
+        return this.importFromJson(data, userId, userRole, courseId);
+      case 'csv':
+        return this.importFromCsv(data, userId, userRole, courseId);
+      case 'excel':
+      case 'xlsx':
+        return this.importFromExcel(data, userId, userRole, courseId);
+      default:
+        throw new BadRequestException('Unsupported import format. Use: json, csv, or excel');
+    }
+  }
+
+  private async importFromJson(data: any, userId: string, userRole: Role, courseId?: string) {
+    const { metadata, questions } = data;
+
+    if (!metadata || !questions) {
+      throw new BadRequestException('Invalid JSON format. Missing metadata or questions');
+    }
+
+    // Create question bank
+    const questionBank = await this.prisma.questionBank.create({
+      data: {
+        courseId,
+        title: metadata.title,
+        description: metadata.description,
+        topic: metadata.topic,
+        difficulty: metadata.difficulty || DifficultyLevel.MEDIUM,
+        questionType: metadata.questionType,
+      },
+    });
+
+    // Import questions
+    for (const q of questions) {
+      const question = await this.prisma.question.create({
+        data: {
+          questionBankId: questionBank.id,
+          type: q.type,
+          questionText: q.questionText,
+          points: q.points,
+          explanation: q.explanation,
+        },
+      });
+
+      // Import options for multiple choice
+      if (q.type === QuestionType.MULTIPLE_CHOICE && q.options) {
+        for (let i = 0; i < q.options.length; i++) {
+          await this.prisma.questionOption.create({
+            data: {
+              questionId: question.id,
+              optionText: q.options[i].optionText,
+              isCorrect: q.options[i].isCorrect,
+              order: i,
+            },
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: questionBank,
+      message: `Question bank imported with ${questions.length} questions`,
+    };
+  }
+
+  private async importFromCsv(data: any, userId: string, userRole: Role, courseId?: string) {
+    // For CSV import, data should be an array of objects
+    if (!Array.isArray(data)) {
+      throw new BadRequestException('Invalid CSV format. Expected array of question objects');
+    }
+
+    // Create question bank
+    const questionBank = await this.prisma.questionBank.create({
+      data: {
+        courseId,
+        title: `Imported Question Bank ${new Date().toISOString()}`,
+        description: 'Imported from CSV',
+        topic: 'Imported',
+        difficulty: DifficultyLevel.MEDIUM,
+        questionType: QuestionType.MULTIPLE_CHOICE, // Default
+      },
+    });
+
+    // Import questions
+    for (const q of data) {
+      const question = await this.prisma.question.create({
+        data: {
+          questionBankId: questionBank.id,
+          type: q.type || QuestionType.MULTIPLE_CHOICE,
+          questionText: q.questionText,
+          points: parseFloat(q.points) || 1,
+          explanation: q.explanation,
+        },
+      });
+
+      // Import options for multiple choice
+      if (q.options && typeof q.options === 'string') {
+        const optionTexts = q.options.split(' | ');
+        const correctAnswers = q.correctAnswer ? q.correctAnswer.split(' | ') : [];
+
+        for (let i = 0; i < optionTexts.length; i++) {
+          await this.prisma.questionOption.create({
+            data: {
+              questionId: question.id,
+              optionText: optionTexts[i].trim(),
+              isCorrect: correctAnswers.includes(optionTexts[i].trim()),
+              order: i,
+            },
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: questionBank,
+      message: `Question bank imported with ${data.length} questions`,
+    };
+  }
+
+  private async importFromExcel(data: any, userId: string, userRole: Role, courseId?: string) {
+    // For Excel import, data should be an array of objects (rows)
+    if (!Array.isArray(data)) {
+      throw new BadRequestException('Invalid Excel format. Expected array of question objects');
+    }
+
+    // Skip metadata rows (first 8 rows) and header row (9th row)
+    const questionsData = data.slice(8);
+
+    // Create question bank
+    const questionBank = await this.prisma.questionBank.create({
+      data: {
+        courseId,
+        title: `Imported Question Bank ${new Date().toISOString()}`,
+        description: 'Imported from Excel',
+        topic: 'Imported',
+        difficulty: DifficultyLevel.MEDIUM,
+        questionType: QuestionType.MULTIPLE_CHOICE, // Default
+      },
+    });
+
+    // Import questions
+    for (const q of questionsData) {
+      if (!q.questionText) continue; // Skip empty rows
+
+      const question = await this.prisma.question.create({
+        data: {
+          questionBankId: questionBank.id,
+          type: q.type || QuestionType.MULTIPLE_CHOICE,
+          questionText: q.questionText,
+          points: parseFloat(q.points) || 1,
+          explanation: q.explanation,
+        },
+      });
+
+      // Import options
+      const options = [];
+      if (q.option1) options.push({ text: q.option1, isCorrect: q.correctAnswer?.includes('Option 1') });
+      if (q.option2) options.push({ text: q.option2, isCorrect: q.correctAnswer?.includes('Option 2') });
+      if (q.option3) options.push({ text: q.option3, isCorrect: q.correctAnswer?.includes('Option 3') });
+      if (q.option4) options.push({ text: q.option4, isCorrect: q.correctAnswer?.includes('Option 4') });
+
+      for (let i = 0; i < options.length; i++) {
+        await this.prisma.questionOption.create({
+          data: {
+            questionId: question.id,
+            optionText: options[i].text,
+            isCorrect: options[i].isCorrect,
+            order: i,
+          },
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: questionBank,
+      message: `Question bank imported with ${questionsData.filter(q => q.questionText).length} questions`,
     };
   }
 }
