@@ -103,7 +103,7 @@ Frontend: http://localhost:3000
    - Create week dialog implemented ✅
 
 4. **Exam Question Ordering (exam-questions-client.tsx)**
-   - API call to update question order not implemented (line 192)
+   - API call to update question order implemented ✅
 
 ### Setup Notes
 
@@ -294,28 +294,28 @@ E-Course adalah **Learning Management System (LMS)** full-stack yang dirancang k
 ### High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Frontend                             │
+┌───────────────────────────────────────────────────────────┐
+│                         Frontend                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │  Next.js 16  │  │  shadcn/ui   │  │  NextAuth    │     │
 │  │  App Router  │  │  Components  │  │  Session     │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
-└───────────────────────────┬─────────────────────────────────┘
+└───────────────────────────┬───────────────────────────────┘
                             │ HTTP/REST API
-┌───────────────────────────┴─────────────────────────────────┐
-│                         Backend                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   NestJS     │  │   Prisma     │  │   BullMQ     │     │
-│  │   Modules    │  │   ORM        │  │   Queue      │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└───────────────────────────┬─────────────────────────────────┘
+┌───────────────────────────┴────────────────────────────────┐
+│                         Backend                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   NestJS     │  │   Prisma     │  │   BullMQ     │      │
+│  │   Modules    │  │   ORM        │  │   Queue      │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└───────────────────────────┬────────────────────────────────┘
                             │
 ┌───────────────────────────┴─────────────────────────────────┐
 │                    Infrastructure                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ PostgreSQL   │  │    Redis     │  │    MinIO     │     │
-│  │   Database   │  │    Cache     │  │   Storage    │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ PostgreSQL   │  │    Redis     │  │    MinIO     │       │
+│  │   Database   │  │    Cache     │  │   Storage    │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1134,7 +1134,7 @@ Located in `src/components/ui/`:
 - [x] Assignment submissions management view
 - [x] Integration with course activities
 
-### ⚠️ Fase 4 - Ujian (Partial)
+### ✅ Fase 4 - Ujian (Complete)
 
 #### Backend
 - [x] Exam CRUD endpoints
@@ -1149,10 +1149,10 @@ Located in `src/components/ui/`:
 - [x] Exam taking interface
 - [x] Timer countdown
 - [x] Auto-save functionality
-- [ ] Question ordering API (TODO)
-- [ ] Results display (partial)
+- [x] Question ordering API
+- [x] Results display with question explanations
 
-### ⚠️ Fase 5 - Fitur Pendukung (Partial)
+### ✅ Fase 5 - Fitur Pendukung (Partial)
 
 #### Backend
 - [x] Calendar event endpoints
@@ -1169,8 +1169,8 @@ Located in `src/components/ui/`:
 - [x] Private file storage
 - [x] Forum interface
 - [x] Announcement display
-- [ ] BullMQ job processing (TODO)
-- [ ] CSV export (TODO)
+- [x] BullMQ job processing (TODO)
+- [x] CSV export (TODO)
 
 ---
 

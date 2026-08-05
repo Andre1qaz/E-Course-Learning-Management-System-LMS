@@ -6,7 +6,7 @@ import { UpdateModuleDto } from './dto/update-module.dto';
 import { CreateModuleFileDto } from './dto/create-module.dto';
 import { Role, ModuleFileType } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -19,7 +19,7 @@ export class ModulesService {
     private prisma: PrismaService,
     private storageService: StorageService,
     private calendarService: CalendarService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   /**
@@ -67,14 +67,14 @@ export class ModulesService {
     // Automatically create calendar event
     await this.calendarService.createEventFromModule(module.id);
 
-    // Send notifications to enrolled students
+    // Send notifications to enrolled students via queue
     const enrollments = await this.prisma.enrollment.findMany({
       where: { courseId },
       select: { userId: true },
     });
 
     const studentIds = enrollments.map((e: any) => e.userId);
-    await this.notificationsService.createBulkNotifications({
+    await this.notificationsQueueService.addBulkNotificationJob({
       userIds: studentIds,
       type: 'MATERIAL_PUBLISHED',
       title: 'Materi Baru Tersedia',

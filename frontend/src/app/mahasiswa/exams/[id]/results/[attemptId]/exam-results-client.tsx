@@ -14,6 +14,7 @@ interface Question {
   questionText: string;
   points: number;
   options?: Array<{ id: string; text: string; isCorrect: boolean }>;
+  explanation?: string;
 }
 
 interface Answer {
@@ -38,6 +39,7 @@ interface ExamAttempt {
     duration: number;
     maxScore?: number;
     passingGrade?: number;
+    showExplanation?: boolean;
   };
 }
 
@@ -343,6 +345,13 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
                       <div className="mt-2 p-3 rounded bg-primary/10">
                         <p className="text-sm text-muted-foreground mb-1">Pembahasan:</p>
                         <p className="text-sm">{answer.feedback}</p>
+                      </div>
+                    )}
+
+                    {question.explanation && attempt?.exam.showExplanation && (
+                      <div className="mt-2 p-3 rounded bg-accent/10">
+                        <p className="text-sm text-muted-foreground mb-1">Penjelasan Soal:</p>
+                        <p className="text-sm">{question.explanation}</p>
                       </div>
                     )}
                   </div>

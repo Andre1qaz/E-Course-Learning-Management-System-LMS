@@ -794,40 +794,127 @@ export class GradebookService {
       'Completion %',
     ];
 
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
     const rows = data.students.map((student: any) => {
       const grade = student.grade;
       return [
-        student.name,
-        student.email,
-        grade?.assignmentScore || 0,
-        grade?.quizScore || 0,
-        grade?.utsScore || 0,
-        grade?.uasScore || 0,
-        grade?.otherScore || 0,
-        grade?.finalScore || 0,
-        grade?.passed ? 'Passed' : 'Failed',
-        grade?.completionPercentage || 0,
+        escapeCsvValue(student.name),
+        escapeCsvValue(student.email),
+        escapeCsvValue(grade?.assignmentScore || 0),
+        escapeCsvValue(grade?.quizScore || 0),
+        escapeCsvValue(grade?.utsScore || 0),
+        escapeCsvValue(grade?.uasScore || 0),
+        escapeCsvValue(grade?.otherScore || 0),
+        escapeCsvValue(grade?.finalScore || 0),
+        escapeCsvValue(grade?.passed ? 'Passed' : 'Failed'),
+        escapeCsvValue(grade?.completionPercentage || 0),
       ].join(',');
     });
 
-    const csv = [headers.join(','), ...rows].join('\n');
+    const headerRow = headers.map(escapeCsvValue).join(',');
+    const csv = [headerRow, ...rows].join('\n');
 
     return {
       success: true,
       data: {
-        buffer: Buffer.from(csv).toString('base64'),
+        buffer: Buffer.from(csv, 'utf-8').toString('base64'),
         filename: `gradebook_${data.course.code}_${new Date().toISOString().split('T')[0]}.csv`,
-        mimeType: 'text/csv',
+        mimeType: 'text/csv; charset=utf-8',
       },
     };
   }
 
   private async generatePdf(data: any) {
-    return {
-      success: true,
-      data: {
-        message: 'PDF export requires additional setup. Use Excel export for now.',
-      },
-    };
+    return new Promise((resolve) => {
+      const doc = new PDFKit({
+        margin: 30,
+        size: 'A4',
+        layout: 'landscape',
+      });
+
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        resolve({
+          success: true,
+          data: {
+            buffer: buffer.toString('base64'),
+            filename: `gradebook_${data.course.code}_${new Date().toISOString().split('T')[0]}.pdf`,
+            mimeType: 'application/pdf',
+          },
+        });
+      });
+
+      // Title
+      doc.fontSize(18).font('Helvetica-Bold').text(`Gradebook - ${data.course.name}`, { align: 'center' });
+      doc.fontSize(12).font('Helvetica').text(`Course Code: ${data.course.code}`, { align: 'center' });
+      doc.moveDown();
+
+      // Table setup
+      const tableTop = doc.y;
+      const tableHeaders = ['Student Name', 'Email', 'Assignment', 'Quiz', 'UTS', 'UAS', 'Other', 'Final', 'Status', 'Completion %'];
+      const columnWidths = [120, 150, 60, 50, 50, 50, 50, 50, 60, 70];
+      const rowHeight = 25;
+      const startX = 30;
+
+      // Draw headers
+      doc.fontSize(10).font('Helvetica-Bold');
+      let xPos = startX;
+      tableHeaders.forEach((header, index) => {
+        doc.text(header, xPos, tableTop, { width: columnWidths[index], align: 'left' });
+        xPos += columnWidths[index];
+      });
+
+      // Draw line under headers
+      doc.moveTo(startX, tableTop + 20).lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), tableTop + 20).stroke();
+
+      // Draw data rows
+      doc.fontSize(9).font('Helvetica');
+      let yPos = tableTop + 30;
+
+      data.students.forEach((student: any) => {
+        const grade = student.grade;
+        const rowData = [
+          student.name,
+          student.email,
+          grade?.assignmentScore?.toFixed(2) || '0.00',
+          grade?.quizScore?.toFixed(2) || '0.00',
+          grade?.utsScore?.toFixed(2) || '0.00',
+          grade?.uasScore?.toFixed(2) || '0.00',
+          grade?.otherScore?.toFixed(2) || '0.00',
+          grade?.finalScore?.toFixed(2) || '0.00',
+          grade?.passed ? 'Passed' : 'Failed',
+          `${grade?.completionPercentage?.toFixed(1) || 0}%`,
+        ];
+
+        xPos = startX;
+        rowData.forEach((cell, index) => {
+          doc.text(cell, xPos, yPos, { width: columnWidths[index], align: 'left' });
+          xPos += columnWidths[index];
+        });
+
+        yPos += rowHeight;
+
+        // Add new page if needed
+        if (yPos > 500) {
+          doc.addPage();
+          yPos = 30;
+        }
+      });
+
+      doc.end();
+    });
   }
 }

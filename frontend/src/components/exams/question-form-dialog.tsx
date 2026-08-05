@@ -37,6 +37,7 @@ const questionSchema = z.object({
   options: z.array(z.string()).optional(),
   correctAnswer: z.string().optional(),
   rubric: z.string().max(5000, "Rubrik maksimal 5000 karakter").optional(),
+  explanation: z.string().max(5000, "Penjelasan maksimal 5000 karakter").optional(),
 });
 
 type QuestionFormValues = z.infer<typeof questionSchema>;
@@ -66,6 +67,7 @@ export function QuestionFormDialog({
       options: ["", ""],
       correctAnswer: "",
       rubric: "",
+      explanation: "",
     },
   });
 
@@ -99,6 +101,7 @@ export function QuestionFormDialog({
         questionText: values.questionText,
         type: values.type,
         points: values.points,
+        explanation: values.explanation,
       };
 
       if (values.type === "MULTIPLE_CHOICE") {
@@ -306,6 +309,24 @@ export function QuestionFormDialog({
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="explanation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Penjelasan Soal (Opsional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Penjelasan yang akan ditampilkan setelah ujian selesai..."
+                      className="min-h-[80px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button

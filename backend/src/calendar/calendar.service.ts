@@ -11,7 +11,7 @@ import {
   ExamCategory,
   NotificationType,
 } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
 // Heuristic #5: Error Prevention — validate event ownership before modification
@@ -21,7 +21,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 export class CalendarService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   private async buildAccessWhere(userId: string, userRole: Role) {
@@ -229,7 +229,7 @@ export class CalendarService {
       });
 
       const studentIds = enrollments.map((e: any) => e.userId);
-      await this.notificationsService.createBulkNotifications({
+      await this.notificationsQueueService.addBulkNotificationJob({
         userIds: studentIds,
         type: NotificationType.EVENT_CREATED,
         title: 'Event Baru Ditambahkan',
@@ -318,7 +318,7 @@ export class CalendarService {
       });
 
       const studentIds = enrollments.map((e: any) => e.userId);
-      await this.notificationsService.createBulkNotifications({
+      await this.notificationsQueueService.addBulkNotificationJob({
         userIds: studentIds,
         type: NotificationType.SCHEDULE_CHANGED,
         title: 'Perubahan Jadwal Event',

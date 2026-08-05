@@ -6,6 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { GradebookService } from './gradebook.service';
+import { GradebookQueueService } from './gradebook-queue.service';
 import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses
@@ -17,7 +18,10 @@ import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class GradebookController {
-  constructor(private gradebookService: GradebookService) {}
+  constructor(
+    private gradebookService: GradebookService,
+    private gradebookQueueService: GradebookQueueService,
+  ) {}
 
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get gradebook for a course (Admin/Lecturer only)' })
@@ -162,5 +166,61 @@ export class GradebookController {
     @CurrentUser('role') role: Role,
   ) {
     return this.gradebookService.exportGradebookPdf(courseId, userId, role);
+  }
+
+  @Post('course/:courseId/export/queue')
+  @ApiOperation({ summary: 'Export gradebook via queue (Admin/Lecturer only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async exportGradebookQueue(
+    @Param('courseId') courseId: string,
+    @Body() body: { format: 'excel' | 'csv' },
+    @CurrentUser('sub') userId: string,
+  ) {
+    const job = await this.gradebookQueueService.addExportJob({
+      courseId,
+      userId,
+      format: body.format || 'excel',
+    });
+
+    return {
+      success: true,
+      data: {
+        jobId: job.id,
+        message: 'Export job queued successfully',
+      },
+      message: 'Export job queued successfully',
+    };
+  }
+
+  @Get('queue/stats')
+  @ApiOperation({ summary: 'Get gradebook queue statistics (Admin only)' })
+  @Roles(Role.ADMIN)
+  async getQueueStats() {
+    return {
+      success: true,
+      data: await this.gradebookQueueService.getQueueStats(),
+      message: 'Queue statistics retrieved successfully',
+    };
+  }
+
+  @Get('queue/job/:jobId')
+  @ApiOperation({ summary: 'Get job status (Admin only)' })
+  @Roles(Role.ADMIN)
+  async getJobStatus(@Param('jobId') jobId: string) {
+    const status = await this.gradebookQueueService.getJobStatus(jobId);
+    
+    if (!status) {
+      return {
+        success: false,
+        data: null,
+        message: 'Job not found',
+      };
+    }
+
+    return {
+      success: true,
+      data: status,
+      message: 'Job status retrieved successfully',
+    };
   }
 }

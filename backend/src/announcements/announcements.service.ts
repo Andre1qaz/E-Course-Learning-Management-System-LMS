@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 @Injectable()
 export class AnnouncementsService {
   constructor(
     private prisma: PrismaService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   private async buildAccessWhere(userId: string, userRole: Role) {
@@ -264,11 +264,11 @@ export class AnnouncementsService {
       }
 
       if (targetUserIds.length > 0) {
-        await this.notificationsService.createBulkNotifications({
+        await this.notificationsQueueService.addBulkNotificationJob({
           userIds: targetUserIds,
           type: 'ANNOUNCEMENT_CREATED' as any,
           title: 'Pengumuman Baru',
-          message: announcement.courseId 
+          message: announcement.courseId
             ? `Pengumuman baru: "${announcement.title}" di ${announcement.course.name}`
             : `Pengumuman baru: "${announcement.title}"`,
           link: announcement.courseId ? `/courses/${announcement.courseId}` : '/announcements',

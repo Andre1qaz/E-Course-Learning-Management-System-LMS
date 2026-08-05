@@ -6,7 +6,7 @@ import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
 import { Role, QuestionType, ExamAttemptStatus } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -18,7 +18,7 @@ export class ExamsService {
   constructor(
     private prisma: PrismaService,
     private calendarService: CalendarService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   /**
@@ -71,7 +71,7 @@ export class ExamsService {
     // Automatically create calendar event
     await this.calendarService.createEventFromExam(exam.id);
 
-    // Send notifications to enrolled students if published
+    // Send notifications to enrolled students if published via queue
     if (exam.isPublished) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { courseId },
@@ -79,7 +79,7 @@ export class ExamsService {
       });
 
       const studentIds = enrollments.map((e: any) => e.userId);
-      await this.notificationsService.createBulkNotifications({
+      await this.notificationsQueueService.addBulkNotificationJob({
         userIds: studentIds,
         type: 'EXAM_CREATED',
         title: 'Ujian Baru Dijadwalkan',
@@ -198,7 +198,7 @@ export class ExamsService {
         where: { courseId: exam.courseId },
         select: { userId: true },
       });
-      await this.notificationsService.createBulkNotifications({
+      await this.notificationsQueueService.addBulkNotificationJob({
         userIds: enrollments.map((e) => e.userId),
         type: 'SCHEDULE_CHANGED',
         title: 'Perubahan Jadwal Ujian',
@@ -400,6 +400,12 @@ export class ExamsService {
         attachmentUrl: dto.attachmentUrl,
         points: dto.points,
         order: nextOrder,
+        explanation: dto.explanation,
+        rubric: dto.rubric,
+        maxChars: dto.maxChars,
+        caseSensitive: dto.caseSensitive,
+        tolerance: dto.tolerance,
+        allowMultiple: dto.allowMultiple,
       },
     });
 

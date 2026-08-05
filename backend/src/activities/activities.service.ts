@@ -4,14 +4,14 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { Role, ActivityStatus, ActivityType } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     private prisma: PrismaService,
     private calendarService: CalendarService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   async findByWeek(weekId: string, userId: string, userRole: Role) {
@@ -338,7 +338,7 @@ export class ActivitiesService {
       ? ` Deadline: ${new Date(metadata.deadline as string).toLocaleDateString('id-ID')}`
       : '';
 
-    await this.notificationsService.createBulkNotifications({
+    await this.notificationsQueueService.addBulkNotificationJob({
       userIds: studentIds,
       type: notificationTypeMap[activity.type] || 'MATERIAL_PUBLISHED',
       title: `${typeLabels[activity.type] || 'Aktivitas'} Baru Dipublikasikan`,

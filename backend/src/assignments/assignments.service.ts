@@ -5,7 +5,7 @@ import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { GradeAssignmentDto } from './dto/grade-assignment.dto';
 import { Role, AssignmentSubmissionStatus } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -17,7 +17,7 @@ export class AssignmentsService {
   constructor(
     private prisma: PrismaService,
     private calendarService: CalendarService,
-    private notificationsService: NotificationsService,
+    private notificationsQueueService: NotificationsQueueService,
   ) {}
 
   /**
@@ -60,14 +60,14 @@ export class AssignmentsService {
     // Automatically create calendar event
     await this.calendarService.createEventFromAssignment(assignment.id);
 
-    // Send notifications to enrolled students
+    // Send notifications to enrolled students via queue
     const enrollments = await this.prisma.enrollment.findMany({
       where: { courseId },
       select: { userId: true },
     });
 
     const studentIds = enrollments.map((e: any) => e.userId);
-    await this.notificationsService.createBulkNotifications({
+    await this.notificationsQueueService.addBulkNotificationJob({
       userIds: studentIds,
       type: 'ASSIGNMENT_CREATED',
       title: 'Tugas Baru Ditambahkan',
@@ -170,7 +170,7 @@ export class AssignmentsService {
         where: { courseId: assignment.courseId },
         select: { userId: true },
       });
-      await this.notificationsService.createBulkNotifications({
+      await this.notificationsQueueService.addBulkNotificationJob({
         userIds: enrollments.map((e) => e.userId),
         type: 'SCHEDULE_CHANGED',
         title: 'Perubahan Deadline Tugas',
