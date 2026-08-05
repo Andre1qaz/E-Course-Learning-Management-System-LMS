@@ -121,7 +121,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
   if (filtered.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <Bell className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+        <Bell className="icon-xl text-muted-foreground/50 mx-auto mb-4" />
         <h3 className="font-semibold text-lg mb-2">Tidak ada pengumuman</h3>
         <p className="text-sm text-muted-foreground">
           {showUnreadOnly ? "Tidak ada pengumuman yang belum dibaca" : "Belum ada pengumuman tersedia"}
@@ -134,7 +134,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
+          <Bell className="icon-lg" />
           <h3 className="font-semibold">Pengumuman</h3>
           {unreadCount > 0 && (
             <Badge variant="destructive" className="ml-2">
@@ -150,7 +150,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
               className="gap-2"
               onClick={handleMarkAllAsRead}
             >
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="icon-md" />
               Tandai Semua Dibaca
             </Button>
           )}
@@ -160,7 +160,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
             className="gap-2"
             onClick={() => setShowUnreadOnly(!showUnreadOnly)}
           >
-            <Filter className="h-4 w-4" />
+            <Filter className="icon-md" />
             {showUnreadOnly ? "Semua" : "Belum Dibaca"}
           </Button>
         </div>
@@ -180,7 +180,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
             className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
             onClick={() => setSearch("")}
           >
-            <X className="h-4 w-4" />
+            <X className="icon-md" />
           </Button>
         )}
       </div>

@@ -74,36 +74,36 @@ export function LecturerDashboard() {
       title: "Course yang Diajar",
       value: stats?.totalCourses || 0,
       icon: BookOpen,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-semantic-blue",
+      bgColor: "bg-semantic-blue-light",
     },
     {
       title: "Total Mahasiswa",
       value: stats?.totalStudents || 0,
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: "text-semantic-green",
+      bgColor: "bg-semantic-green-light",
     },
     {
       title: "Assignment Aktif",
       value: stats?.activeAssignments || 0,
       icon: FileText,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: "text-semantic-orange",
+      bgColor: "bg-semantic-orange-light",
     },
     {
       title: "Assignment Belum Dinilai",
       value: stats?.ungradedAssignments || 0,
       icon: ClipboardCheck,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      color: "text-semantic-red",
+      bgColor: "bg-semantic-red-light",
     },
     {
       title: "Quiz Berlangsung",
       value: stats?.ongoingQuizzes || 0,
       icon: Clock,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: "text-semantic-purple",
+      bgColor: "bg-semantic-purple-light",
     },
   ];
 
@@ -125,8 +125,8 @@ export function LecturerDashboard() {
                 <CardTitle className="text-sm font-medium">
                   {card.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${card.color}`} />
+                <div className={`p-2 rounded-xl ${card.bgColor}`}>
+                  <Icon className={`icon-md ${card.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
@@ -140,7 +140,7 @@ export function LecturerDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
+            <Activity className="icon-lg" />
             Aktivitas Terbaru pada Course
           </CardTitle>
         </CardHeader>

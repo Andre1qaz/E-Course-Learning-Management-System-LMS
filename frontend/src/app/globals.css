@@ -113,6 +113,113 @@ body {
   font-family: var(--font-space-grotesk), system-ui, sans-serif;
 }
 
+/* Semantic Color Utilities — Consistent color usage across components */
+.bg-semantic-blue { background-color: hsl(221 83% 53%); }
+.bg-semantic-blue-light { background-color: hsl(221 83% 97%); }
+.text-semantic-blue { color: hsl(221 83% 53%); }
+
+.bg-semantic-green { background-color: hsl(142 76% 36%); }
+.bg-semantic-green-light { background-color: hsl(142 76% 97%); }
+.text-semantic-green { color: hsl(142 76% 36%); }
+
+.bg-semantic-purple { background-color: hsl(262 83% 58%); }
+.bg-semantic-purple-light { background-color: hsl(262 83% 97%); }
+.text-semantic-purple { color: hsl(262 83% 58%); }
+
+.bg-semantic-orange { background-color: hsl(25 95% 53%); }
+.bg-semantic-orange-light { background-color: hsl(25 95% 97%); }
+.text-semantic-orange { color: hsl(25 95% 53%); }
+
+.bg-semantic-red { background-color: hsl(0 84% 60%); }
+.bg-semantic-red-light { background-color: hsl(0 84% 97%); }
+.text-semantic-red { color: hsl(0 84% 60%); }
+
+.bg-semantic-teal { background-color: hsl(174 62% 47%); }
+.bg-semantic-teal-light { background-color: hsl(174 62% 97%); }
+.text-semantic-teal { color: hsl(174 62% 47%); }
+
+.bg-semantic-indigo { background-color: hsl(239 84% 67%); }
+.bg-semantic-indigo-light { background-color: hsl(239 84% 97%); }
+.text-semantic-indigo { color: hsl(239 84% 67%); }
+
+.bg-semantic-amber { background-color: hsl(38 92% 50%); }
+.bg-semantic-amber-light { background-color: hsl(38 92% 97%); }
+.text-semantic-amber { color: hsl(38 92% 50%); }
+
+.bg-semantic-slate { background-color: hsl(215 25% 27%); }
+.bg-semantic-slate-light { background-color: hsl(215 25% 97%); }
+.text-semantic-slate { color: hsl(215 25% 27%); }
+
+/* Icon Size Utilities — Consistent icon sizing across components */
+.icon-xs { width: 0.75rem; height: 0.75rem; }
+.icon-sm { width: 1rem; height: 1rem; }
+.icon-md { width: 1.25rem; height: 1.25rem; }
+.icon-lg { width: 1.5rem; height: 1.5rem; }
+.icon-xl { width: 1.75rem; height: 1.75rem; }
+
+/* Responsive Table Utilities — Mobile-friendly tables */
+.table-responsive {
+  @apply overflow-x-auto -mx-4 px-4;
+}
+
+.table-responsive-sm {
+  @apply overflow-x-auto -mx-2 px-2;
+}
+
+/* Responsive Form Utilities — Mobile-friendly forms */
+.form-responsive {
+  @apply grid gap-4;
+}
+
+@media (min-width: 640px) {
+  .form-responsive {
+    @apply grid-cols-2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-responsive {
+    @apply grid-cols-3;
+  }
+}
+
+.form-full-width {
+  @apply sm:col-span-2 lg:col-span-3;
+}
+
+/* Mobile Card View for Tables — Transform tables to cards on mobile */
+@media (max-width: 640px) {
+  .mobile-card-view {
+    @apply space-y-4;
+  }
+  
+  .mobile-card-view table,
+  .mobile-card-view thead,
+  .mobile-card-view tbody,
+  .mobile-card-view th,
+  .mobile-card-view td,
+  .mobile-card-view tr {
+    @apply block;
+  }
+  
+  .mobile-card-view thead tr {
+    @apply absolute -left-[9999px];
+  }
+  
+  .mobile-card-view tr {
+    @apply border border-border rounded-xl p-4 mb-4 bg-card;
+  }
+  
+  .mobile-card-view td {
+    @apply border-none p-0 pl-0 relative text-left;
+  }
+  
+  .mobile-card-view td:before {
+    content: attr(data-label);
+    @apply font-semibold text-sm pr-4 block;
+  }
+}
+
 /* Skeleton loading — Heuristic #1: Visibility of System Status */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

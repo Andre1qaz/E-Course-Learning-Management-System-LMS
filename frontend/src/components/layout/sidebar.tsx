@@ -125,7 +125,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
               href={item.href}
               title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
                   ? "bg-accent/10 text-accent border-l-2 border-accent"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -133,7 +133,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
               )}
             >
               <div className="relative">
-                <Icon className="size-5 shrink-0" />
+                <Icon className="icon-lg shrink-0" />
                 {showBadge && !collapsed && (
                   <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
                     {unreadCount}

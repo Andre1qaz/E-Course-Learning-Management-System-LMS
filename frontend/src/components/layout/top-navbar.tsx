@@ -37,7 +37,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
             onClick={onMenuClick}
             aria-label="Buka menu"
           >
-            <Menu className="size-5" />
+            <Menu className="icon-lg" />
           </Button>
 
           {breadcrumbs && breadcrumbs.length > 0 && (
@@ -64,7 +64,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
         <div className="flex items-center gap-2">
           <Link href={`/${user.role.toLowerCase()}/exams`}>
             <Button variant="ghost" size="sm" className="gap-2">
-              <ClipboardList className="size-4" />
+              <ClipboardList className="icon-md" />
               <span className="hidden sm:inline">Ujian</span>
             </Button>
           </Link>
@@ -74,7 +74,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
           )}
 
           <div className="relative group">
-            <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors">
+            <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted transition-colors">
               <div className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {user.name.charAt(0).toUpperCase()}
               </div>
@@ -82,22 +82,22 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
                 <p className="text-sm font-medium leading-tight">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
               </div>
-              <ChevronDown className="size-4 text-muted-foreground hidden sm:block" />
+              <ChevronDown className="icon-md text-muted-foreground hidden sm:block" />
             </button>
 
-            <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-card py-1 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card py-1 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
               <Link
                 href={`/${user.role.toLowerCase()}/profile`}
                 className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
               >
-                <User className="size-4" />
+                <User className="icon-md" />
                 Profil
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
               >
-                <LogOut className="size-4" />
+                <LogOut className="icon-md" />
                 Keluar
               </button>
             </div>

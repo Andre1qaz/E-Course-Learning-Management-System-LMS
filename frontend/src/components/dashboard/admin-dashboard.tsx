@@ -78,50 +78,50 @@ export function AdminDashboard() {
       title: "Total Course",
       value: stats?.totalCourses || 0,
       icon: BookOpen,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-semantic-blue",
+      bgColor: "bg-semantic-blue-light",
     },
     {
       title: "Total Mahasiswa",
       value: stats?.totalStudents || 0,
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: "text-semantic-green",
+      bgColor: "bg-semantic-green-light",
     },
     {
       title: "Total Dosen",
       value: stats?.totalLecturers || 0,
       icon: UserCheck,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: "text-semantic-purple",
+      bgColor: "bg-semantic-purple-light",
     },
     {
       title: "Total Assignment",
       value: stats?.totalAssignments || 0,
       icon: FileText,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: "text-semantic-orange",
+      bgColor: "bg-semantic-orange-light",
     },
     {
       title: "Total Quiz",
       value: stats?.totalQuizzes || 0,
       icon: ClipboardList,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      color: "text-semantic-red",
+      bgColor: "bg-semantic-red-light",
     },
     {
       title: "Course Aktif",
       value: stats?.activeCourses || 0,
       icon: TrendingUp,
-      color: "text-teal-600",
-      bgColor: "bg-teal-50",
+      color: "text-semantic-teal",
+      bgColor: "bg-semantic-teal-light",
     },
     {
       title: "Pengguna Aktif",
       value: stats?.activeUsers || 0,
       icon: Activity,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
+      color: "text-semantic-indigo",
+      bgColor: "bg-semantic-indigo-light",
     },
   ];
 
@@ -143,8 +143,8 @@ export function AdminDashboard() {
                 <CardTitle className="text-sm font-medium">
                   {card.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${card.color}`} />
+                <div className={`p-2 rounded-xl ${card.bgColor}`}>
+                  <Icon className={`icon-md ${card.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
@@ -158,7 +158,7 @@ export function AdminDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+            <Clock className="icon-lg" />
             Aktivitas Terbaru
           </CardTitle>
         </CardHeader>

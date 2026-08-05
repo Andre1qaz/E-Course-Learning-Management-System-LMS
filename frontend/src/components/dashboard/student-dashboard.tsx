@@ -65,36 +65,36 @@ export function StudentDashboard() {
       title: "Course yang Diikuti",
       value: stats?.totalCourses || 0,
       icon: BookOpen,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-semantic-blue",
+      bgColor: "bg-semantic-blue-light",
     },
     {
       title: "Assignment Belum Diselesaikan",
       value: stats?.incompleteAssignments || 0,
       icon: FileText,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: "text-semantic-orange",
+      bgColor: "bg-semantic-orange-light",
     },
     {
       title: "Rata-rata Nilai",
       value: stats?.averageGrade ? stats.averageGrade.toFixed(1) : "0",
       icon: Award,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: "text-semantic-green",
+      bgColor: "bg-semantic-green-light",
     },
     {
       title: "Progress Pembelajaran",
       value: stats?.averageProgress ? `${stats.averageProgress.toFixed(0)}%` : "0%",
       icon: TrendingUp,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: "text-semantic-purple",
+      bgColor: "bg-semantic-purple-light",
     },
     {
       title: "Notifikasi",
       value: stats?.unreadNotifications || 0,
       icon: Bell,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      color: "text-semantic-red",
+      bgColor: "bg-semantic-red-light",
     },
   ];
 
@@ -116,8 +116,8 @@ export function StudentDashboard() {
                 <CardTitle className="text-sm font-medium">
                   {card.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${card.color}`} />
+                <div className={`p-2 rounded-xl ${card.bgColor}`}>
+                  <Icon className={`icon-md ${card.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
@@ -132,7 +132,7 @@ export function StudentDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+              <Calendar className="icon-lg" />
               Upcoming Events
             </CardTitle>
           </CardHeader>
@@ -168,7 +168,7 @@ export function StudentDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
+              <AlertCircle className="icon-lg" />
               Pengumuman Terbaru
             </CardTitle>
           </CardHeader>

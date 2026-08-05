@@ -187,26 +187,26 @@ export function CalendarView({
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case "DEADLINE":
-        return "bg-red-500/10 text-red-700 border-red-500/20";
+        return "bg-semantic-red/10 text-semantic-red border-semantic-red/20";
       case "PERSONAL_NOTE":
-        return "bg-blue-500/10 text-blue-700 border-blue-500/20";
+        return "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/20";
       case "ANNOUNCEMENT":
-        return "bg-amber-500/10 text-amber-700 border-amber-500/20";
+        return "bg-semantic-amber/10 text-semantic-amber border-semantic-amber/20";
       default:
-        return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+        return "bg-muted/10 text-muted-foreground border-border/20";
     }
   };
 
   const getEventTypeIcon = (type: string) => {
     switch (type) {
       case "DEADLINE":
-        return <AlertCircle className="h-3 w-3" />;
+        return <AlertCircle className="icon-sm" />;
       case "PERSONAL_NOTE":
-        return <CalendarIcon className="h-3 w-3" />;
+        return <CalendarIcon className="icon-sm" />;
       case "ANNOUNCEMENT":
-        return <Clock className="h-3 w-3" />;
+        return <Clock className="icon-sm" />;
       default:
-        return <CalendarIcon className="h-3 w-3" />;
+        return <CalendarIcon className="icon-sm" />;
     }
   };
 
@@ -229,10 +229,10 @@ export function CalendarView({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="icon-md" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="icon-md" />
           </Button>
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <Button
@@ -261,7 +261,7 @@ export function CalendarView({
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="icon-md mr-2" />
                   Buat Event
                 </Button>
               </DialogTrigger>

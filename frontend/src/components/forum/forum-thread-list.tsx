@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ForumThread } from "@/lib/api";
-import { MessageSquare, Pin, MessageCircle, Clock, User, Lock, CheckCircle, Paperclip } from "lucide-react";
+import { MessageSquare, Pin, MessageCircle, Clock, User, Lock, CheckCircle, Paperclip, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ export function ForumThreadList({
         <h2 className="text-2xl font-display font-bold">Diskusi Forum</h2>
         {canCreate && onCreateThread && (
           <Button onClick={onCreateThread}>
-            <MessageSquare className="h-4 w-4 mr-2" />
+            <MessageSquare className="icon-md mr-2" />
             Buat Diskusi Baru
           </Button>
         )}
@@ -63,7 +63,7 @@ export function ForumThreadList({
 
       {threads.length === 0 ? (
         <Card className="p-12 text-center">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <MessageSquare className="icon-xl mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-medium mb-2">Belum ada diskusi</h3>
           <p className="text-muted-foreground mb-4">
             Mulai diskusi dengan bertanya atau berbagi informasi
@@ -88,20 +88,20 @@ export function ForumThreadList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {thread.isPinned && (
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                        <Pin className="h-3 w-3 mr-1" />
+                      <Badge variant="secondary" className="bg-semantic-amber-light text-semantic-amber dark:bg-semantic-amber/20 dark:text-semantic-amber">
+                        <Pin className="icon-sm mr-1" />
                         Disematkan
                       </Badge>
                     )}
                     {thread.isLocked && (
-                      <Badge variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                        <Lock className="h-3 w-3 mr-1" />
+                      <Badge variant="secondary" className="bg-semantic-slate-light text-semantic-slate dark:bg-semantic-slate/20 dark:text-semantic-slate">
+                        <Lock className="icon-sm mr-1" />
                         Dikunci
                       </Badge>
                     )}
                     {thread.bestReply && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        <CheckCircle className="h-3 w-3 mr-1" />
+                      <Badge variant="secondary" className="bg-semantic-green-light text-semantic-green dark:bg-semantic-green/20 dark:text-semantic-green">
+                        <CheckCircle className="icon-sm mr-1" />
                         Solusi
                       </Badge>
                     )}
@@ -112,7 +112,7 @@ export function ForumThreadList({
                     )}
                     {thread.attachments && thread.attachments.length > 0 && (
                       <Badge variant="outline">
-                        <Paperclip className="h-3 w-3 mr-1" />
+                        <Paperclip className="icon-sm mr-1" />
                         {thread.attachments.length}
                       </Badge>
                     )}
@@ -123,15 +123,15 @@ export function ForumThreadList({
                   </p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
+                      <User className="icon-sm" />
                       <span>{thread.author.name}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="icon-sm" />
                       <span>{formatDate(thread.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" />
+                      <MessageCircle className="icon-sm" />
                       <span>{thread._count?.replies || thread.replies.length} balasan</span>
                     </div>
                   </div>
@@ -146,7 +146,7 @@ export function ForumThreadList({
                           onClick={() => onPinThread?.(thread.id)}
                           title={thread.isPinned ? "Lepas semat" : "Sematkan"}
                         >
-                          <Pin className={cn("h-4 w-4", thread.isPinned && "fill-current")} />
+                          <Pin className={cn("icon-md", thread.isPinned && "fill-current")} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -154,7 +154,7 @@ export function ForumThreadList({
                           onClick={() => onLockThread?.(thread.id)}
                           title={thread.isLocked ? "Buka kunci" : "Kunci"}
                         >
-                          <Lock className={cn("h-4 w-4", thread.isLocked && "fill-current")} />
+                          <Lock className={cn("icon-md", thread.isLocked && "fill-current")} />
                         </Button>
                       </>
                     ) : null}
@@ -164,6 +164,7 @@ export function ForumThreadList({
                       onClick={() => onDeleteThread?.(thread.id)}
                       className="text-destructive hover:text-destructive"
                     >
+                      <Trash2 className="icon-md" />
                       Hapus
                     </Button>
                   </div>
