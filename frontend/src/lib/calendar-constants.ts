@@ -1,30 +1,31 @@
 import { EventCategory } from "@/lib/api";
 
-export const EVENT_CATEGORIES: { value: EventCategory; label: string; color: string }[] = [
-  { value: "PERKULIAHAN", label: "Perkuliahan", color: "#1a365d" },
-  { value: "MATERI_BARU", label: "Materi Baru", color: "#2d6a4f" },
-  { value: "ASSIGNMENT", label: "Assignment", color: "#f4a261" },
-  { value: "QUIZ", label: "Quiz", color: "#e07a5f" },
-  { value: "UTS", label: "UTS", color: "#e07a5f" },
-  { value: "UAS", label: "UAS", color: "#c1121f" },
-  { value: "SEMINAR", label: "Seminar", color: "#457b9d" },
-  { value: "PROJECT", label: "Project", color: "#1d3557" },
-  { value: "MEETING", label: "Meeting", color: "#6c757d" },
-  { value: "DEADLINE", label: "Deadline", color: "#f4a261" },
-  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", color: "#1a365d" },
+export const EVENT_CATEGORIES: { value: EventCategory; label: string; bgClass: string; textClass: string }[] = [
+  { value: "PERKULIAHAN", label: "Perkuliahan", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue" },
+  { value: "MATERI_BARU", label: "Materi Baru", bgClass: "bg-semantic-green", textClass: "text-semantic-green" },
+  { value: "ASSIGNMENT", label: "Assignment", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber" },
+  { value: "QUIZ", label: "Quiz", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange" },
+  { value: "UTS", label: "UTS", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange" },
+  { value: "UAS", label: "UAS", bgClass: "bg-semantic-red", textClass: "text-semantic-red" },
+  { value: "SEMINAR", label: "Seminar", bgClass: "bg-semantic-indigo", textClass: "text-semantic-indigo" },
+  { value: "PROJECT", label: "Project", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate" },
+  { value: "MEETING", label: "Meeting", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate" },
+  { value: "DEADLINE", label: "Deadline", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber" },
+  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue" },
 ];
 
 export function getCategoryInfo(category: EventCategory) {
   return EVENT_CATEGORIES.find((c) => c.value === category) ?? EVENT_CATEGORIES[EVENT_CATEGORIES.length - 1];
 }
 
-export function getCategoryStyle(category: EventCategory, customColor?: string) {
+export function getCategoryClasses(category: EventCategory, customBgClass?: string) {
   const info = getCategoryInfo(category);
-  const color = customColor || info.color;
+  const bgClass = customBgClass || info.bgClass;
+  const textClass = info.textClass;
   return {
-    backgroundColor: `${color}1a`,
-    color,
-    borderColor: `${color}40`,
+    bgClass,
+    textClass,
+    lightBgClass: bgClass.replace('bg-', 'bg-').replace('bg-', '-light'),
   };
 }
 

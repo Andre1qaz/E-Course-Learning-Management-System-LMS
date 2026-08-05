@@ -88,7 +88,7 @@ export function AnnouncementCard({ announcement, onMarkAsRead, basePath }: Annou
               {priorityLabels[announcement.priority as keyof typeof priorityLabels]}
             </Badge>
             {announcement.course && (
-              <Badge variant="outline" style={{ borderColor: announcement.course.thumbnailColor, color: announcement.course.thumbnailColor }}>
+              <Badge variant="outline" className={announcement.course.thumbnailColor}>
                 {announcement.course.code}
               </Badge>
             )}

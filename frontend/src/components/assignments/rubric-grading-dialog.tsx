@@ -325,7 +325,7 @@ export function RubricGradingDialog({
                                   {criterion.levels.map((level) => (
                                     <div
                                       key={level.id}
-                                      className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                                      className="flex items-start space-x-3 p-3 border rounded-xl hover:bg-muted/50 cursor-pointer"
                                       onClick={() => handleLevelSelect(index, level)}
                                     >
                                       <RadioGroupItem value={level.id} id={`level-${level.id}`} />

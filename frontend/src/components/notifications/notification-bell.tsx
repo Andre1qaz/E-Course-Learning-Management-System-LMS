@@ -43,7 +43,9 @@ export function NotificationBell({ token, userId }: NotificationBellProps) {
       setNotifications(notificationsData.data || []);
       setUnreadCount(unreadData.data?.count || 0);
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      // Silently fail - notifications are not critical
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }

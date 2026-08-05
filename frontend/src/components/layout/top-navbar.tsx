@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import {
@@ -26,8 +27,37 @@ interface TopNavbarProps {
 }
 
 export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[aria-haspopup="true"]') && !target.closest('[role="menu"]')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <header
+      className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      role="banner"
+      onKeyDown={handleKeyDown}
+    >
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-4">
           <Button
@@ -63,8 +93,8 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
 
         <div className="flex items-center gap-2">
           <Link href={`/${user.role.toLowerCase()}/exams`}>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ClipboardList className="icon-md" />
+            <Button variant="ghost" size="sm" className="gap-2" aria-label="Ke halaman ujian">
+              <ClipboardList className="icon-md" aria-hidden="true" />
               <span className="hidden sm:inline">Ujian</span>
             </Button>
           </Link>
@@ -73,34 +103,49 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
             <NotificationBell token={user.accessToken} userId={user.id} />
           )}
 
-          <div className="relative group">
-            <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted transition-colors">
-              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted transition-colors"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              aria-expanded={isDropdownOpen}
+              aria-haspopup="true"
+              aria-label="Menu pengguna"
+            >
+              <div className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground" aria-hidden="true">
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="hidden text-left sm:block">
                 <p className="text-sm font-medium leading-tight">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
               </div>
-              <ChevronDown className="icon-md text-muted-foreground hidden sm:block" />
+              <ChevronDown className="icon-md text-muted-foreground hidden sm:block" aria-hidden="true" />
             </button>
 
-            <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card py-1 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <Link
-                href={`/${user.role.toLowerCase()}/profile`}
-                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
+            {isDropdownOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card py-1 shadow-lg"
+                role="menu"
+                aria-label="Menu pengguna"
               >
-                <User className="icon-md" />
-                Profil
-              </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
-              >
-                <LogOut className="icon-md" />
-                Keluar
-              </button>
-            </div>
+                <Link
+                  href={`/${user.role.toLowerCase()}/profile`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
+                  role="menuitem"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  <User className="icon-md" aria-hidden="true" />
+                  Profil
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
+                  role="menuitem"
+                >
+                  <LogOut className="icon-md" aria-hidden="true" />
+                  Keluar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

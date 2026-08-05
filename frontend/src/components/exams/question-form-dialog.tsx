@@ -145,10 +145,10 @@ export function QuestionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
           <DialogTitle>Tambah Soal</DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="dialog-description">
             Tambah soal baru ke ujian ini
           </DialogDescription>
         </DialogHeader>
@@ -160,15 +160,17 @@ export function QuestionFormDialog({
               name="questionText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pertanyaan</FormLabel>
+                  <FormLabel htmlFor="questionText">Pertanyaan</FormLabel>
                   <FormControl>
                     <Textarea
+                      id="questionText"
                       placeholder="Masukkan pertanyaan..."
                       className="min-h-[80px] resize-none"
+                      aria-describedby="questionText-error"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage id="questionText-error" />
                 </FormItem>
               )}
             />
@@ -178,10 +180,10 @@ export function QuestionFormDialog({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipe Soal</FormLabel>
+                  <FormLabel htmlFor="questionType">Tipe Soal</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger id="questionType" aria-describedby="questionType-error">
                         <SelectValue placeholder="Pilih tipe soal" />
                       </SelectTrigger>
                     </FormControl>
@@ -191,7 +193,7 @@ export function QuestionFormDialog({
                       <SelectItem value="SHORT_ANSWER">Isian Singkat</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  <FormMessage id="questionType-error" />
                 </FormItem>
               )}
             />
@@ -201,17 +203,19 @@ export function QuestionFormDialog({
               name="points"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Poin</FormLabel>
+                  <FormLabel htmlFor="points">Poin</FormLabel>
                   <FormControl>
                     <Input
+                      id="points"
                       type="number"
                       min="1"
                       max="100"
+                      aria-describedby="points-error"
                       {...field}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage id="points-error" />
                 </FormItem>
               )}
             />
@@ -222,9 +226,11 @@ export function QuestionFormDialog({
                 {options.map((option, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
+                      id={`option-${index}`}
                       placeholder={`Opsi ${index + 1}`}
                       value={option}
                       onChange={(e) => updateOption(index, e.target.value)}
+                      aria-label={`Opsi jawaban ${index + 1}`}
                     />
                     {options.length > 2 && (
                       <Button
@@ -232,8 +238,9 @@ export function QuestionFormDialog({
                         size="icon"
                         variant="ghost"
                         onClick={() => removeOption(index)}
+                        aria-label={`Hapus opsi ${index + 1}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="icon-sm" aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -244,8 +251,9 @@ export function QuestionFormDialog({
                     variant="outline"
                     size="sm"
                     onClick={addOption}
+                    aria-label="Tambah opsi jawaban"
                   >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="mr-2 icon-sm" aria-hidden="true" />
                     Tambah Opsi
                   </Button>
                 )}
@@ -258,14 +266,16 @@ export function QuestionFormDialog({
                 name="correctAnswer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Jawaban Benar</FormLabel>
+                    <FormLabel htmlFor="correctAnswerMC">Jawaban Benar</FormLabel>
                     <FormControl>
                       <Input
+                        id="correctAnswerMC"
                         placeholder="Masukkan jawaban yang benar (harus sama persis dengan salah satu opsi)"
+                        aria-describedby="correctAnswerMC-error"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage id="correctAnswerMC-error" />
                   </FormItem>
                 )}
               />
@@ -277,14 +287,16 @@ export function QuestionFormDialog({
                 name="correctAnswer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Jawaban Benar</FormLabel>
+                    <FormLabel htmlFor="correctAnswerSA">Jawaban Benar</FormLabel>
                     <FormControl>
                       <Input
+                        id="correctAnswerSA"
                         placeholder="Masukkan jawaban yang benar (case-insensitive)"
+                        aria-describedby="correctAnswerSA-error"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage id="correctAnswerSA-error" />
                   </FormItem>
                 )}
               />
@@ -296,15 +308,17 @@ export function QuestionFormDialog({
                 name="rubric"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Rubrik Penilaian</FormLabel>
+                    <FormLabel htmlFor="rubric">Rubrik Penilaian</FormLabel>
                     <FormControl>
                       <Textarea
+                        id="rubric"
                         placeholder="Rubrik penilaian untuk soal essay..."
                         className="min-h-[100px] resize-none"
+                        aria-describedby="rubric-error"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage id="rubric-error" />
                   </FormItem>
                 )}
               />
@@ -315,15 +329,17 @@ export function QuestionFormDialog({
               name="explanation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Penjelasan Soal (Opsional)</FormLabel>
+                  <FormLabel htmlFor="explanation">Penjelasan Soal (Opsional)</FormLabel>
                   <FormControl>
                     <Textarea
+                      id="explanation"
                       placeholder="Penjelasan yang akan ditampilkan setelah ujian selesai..."
                       className="min-h-[80px] resize-none"
+                      aria-describedby="explanation-error"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage id="explanation-error" />
                 </FormItem>
               )}
             />

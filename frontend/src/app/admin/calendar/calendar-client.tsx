@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent, toggleEventPublish, getUpcomingEvents, EventCategory, EventTargetAudience, getCourses } from "@/lib/api";
+import { getCategoryInfo, EVENT_CATEGORIES } from "@/lib/calendar-constants";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, Clock, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,26 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface CalendarClientProps {
   role: string;
   token: string;
   userId: string;
 }
-
-const EVENT_CATEGORIES: { value: EventCategory; label: string; color: string }[] = [
-  { value: "PERKULIAHAN", label: "Perkuliahan", color: "#1a365d" },
-  { value: "MATERI_BARU", label: "Materi Baru", color: "#2d6a4f" },
-  { value: "ASSIGNMENT", label: "Assignment", color: "#f4a261" },
-  { value: "QUIZ", label: "Quiz", color: "#e07a5f" },
-  { value: "UTS", label: "UTS", color: "#e07a5f" },
-  { value: "UAS", label: "UAS", color: "#c1121f" },
-  { value: "SEMINAR", label: "Seminar", color: "#457b9d" },
-  { value: "PROJECT", label: "Project", color: "#1d3557" },
-  { value: "MEETING", label: "Meeting", color: "#6c757d" },
-  { value: "DEADLINE", label: "Deadline", color: "#f4a261" },
-  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", color: "#1a365d" },
-];
 
 export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -55,7 +43,6 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     isOnline: false,
     meetingLink: "",
     category: "PENGUMUMAN_AKADEMIK" as EventCategory,
-    color: "#1a365d",
     courseId: "",
     targetAudience: "COURSE_STUDENTS" as EventTargetAudience,
     attachments: "",
@@ -124,7 +111,6 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       isOnline: event.isOnline,
       meetingLink: event.meetingLink || "",
       category: event.category,
-      color: event.color,
       courseId: event.courseId || "",
       targetAudience: event.targetAudience,
       attachments: event.attachments ? JSON.stringify(event.attachments) : "",
@@ -144,7 +130,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         try {
           return JSON.parse(newEvent.attachments);
         } catch (e) {
-          console.error('Invalid JSON for attachments:', e);
+          toast.error("Format JSON tidak valid untuk lampiran");
           return undefined;
         }
       })() : undefined,
@@ -161,7 +147,6 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       isOnline: false,
       meetingLink: "",
       category: "PENGUMUMAN_AKADEMIK",
-      color: "#1a365d",
       courseId: "",
       targetAudience: "COURSE_STUDENTS",
       attachments: "",
@@ -181,7 +166,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         try {
           return JSON.parse(newEvent.attachments);
         } catch (e) {
-          console.error('Invalid JSON for attachments:', e);
+          toast.error("Format JSON tidak valid untuk lampiran");
           return undefined;
         }
       })() : undefined,
@@ -199,7 +184,6 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       isOnline: false,
       meetingLink: "",
       category: "PENGUMUMAN_AKADEMIK",
-      color: "#1a365d",
       courseId: "",
       targetAudience: "COURSE_STUDENTS",
       attachments: "",
@@ -207,9 +191,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     await fetchEvents();
   };
 
-  const getCategoryInfo = (category: EventCategory) => {
-    return EVENT_CATEGORIES.find(c => c.value === category) || EVENT_CATEGORIES[10];
-  };
+
 
   const filteredEvents = events.filter(event => {
     if (searchQuery) {
@@ -275,7 +257,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
               {EVENT_CATEGORIES.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
                     {cat.label}
                   </div>
                 </SelectItem>
@@ -306,8 +288,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   <div className="space-y-2">
                     <Label>Kategori</Label>
                     <Select value={newEvent.category} onValueChange={(value) => {
-                      const cat = EVENT_CATEGORIES.find(c => c.value === value);
-                      setNewEvent({ ...newEvent, category: value as EventCategory, color: cat?.color || "#1a365d" });
+                      setNewEvent({ ...newEvent, category: value as EventCategory });
                     }}>
                       <SelectTrigger>
                         <SelectValue />
@@ -316,30 +297,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                         {EVENT_CATEGORIES.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
                             <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                              <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
                               {cat.label}
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Warna Event</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="color"
-                      value={newEvent.color}
-                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                    <Input
-                      value={newEvent.color}
-                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
-                      placeholder="#1a365d"
-                      className="flex-1"
-                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -486,8 +450,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   <div className="space-y-2">
                     <Label>Kategori</Label>
                     <Select value={newEvent.category} onValueChange={(value) => {
-                      const cat = EVENT_CATEGORIES.find(c => c.value === value);
-                      setNewEvent({ ...newEvent, category: value as EventCategory, color: cat?.color || "#1a365d" });
+                      setNewEvent({ ...newEvent, category: value as EventCategory });
                     }}>
                       <SelectTrigger>
                         <SelectValue />
@@ -496,30 +459,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                         {EVENT_CATEGORIES.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
                             <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                              <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
                               {cat.label}
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Warna Event</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="color"
-                      value={newEvent.color}
-                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                    <Input
-                      value={newEvent.color}
-                      onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
-                      placeholder="#1a365d"
-                      className="flex-1"
-                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -671,13 +617,12 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: event.color || catInfo.color }}
+                      className={`w-2 h-2 rounded-full ${catInfo.bgClass}`}
                     />
                     <div>
                       <p className="font-medium text-sm">{event.title}</p>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs" style={{ borderColor: catInfo.color, color: catInfo.color }}>
+                        <Badge variant="outline" className={`text-xs ${catInfo.textClass}`}>
                           {catInfo.label}
                         </Badge>
                         {event.course && (

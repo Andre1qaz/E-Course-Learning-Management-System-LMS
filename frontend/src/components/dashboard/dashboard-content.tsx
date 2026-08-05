@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AnnouncementsList } from "@/components/announcements/announcements-list";
 import { apiFetch, CalendarEvent, getUpcomingEvents } from "@/lib/api";
-import { EventCategory } from "@/lib/api";
+import { getCategoryInfo } from "@/lib/calendar-constants";
 
 interface Course {
   id: string;
@@ -34,20 +34,6 @@ interface DashboardContentProps {
   title: string;
   subtitle: string;
 }
-
-const EVENT_CATEGORIES: { value: EventCategory; label: string; color: string }[] = [
-  { value: "PERKULIAHAN", label: "Perkuliahan", color: "#1a365d" },
-  { value: "MATERI_BARU", label: "Materi Baru", color: "#2d6a4f" },
-  { value: "ASSIGNMENT", label: "Assignment", color: "#f4a261" },
-  { value: "QUIZ", label: "Quiz", color: "#e07a5f" },
-  { value: "UTS", label: "UTS", color: "#e07a5f" },
-  { value: "UAS", label: "UAS", color: "#c1121f" },
-  { value: "SEMINAR", label: "Seminar", color: "#457b9d" },
-  { value: "PROJECT", label: "Project", color: "#1d3557" },
-  { value: "MEETING", label: "Meeting", color: "#6c757d" },
-  { value: "DEADLINE", label: "Deadline", color: "#f4a261" },
-  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", color: "#1a365d" },
-];
 
 export function DashboardContent({
   role,
@@ -107,27 +93,25 @@ export function DashboardContent({
 
   const uncategorized = filtered.filter((c) => !c.category);
 
-  const getCategoryInfo = (category: EventCategory) => {
-    return EVENT_CATEGORIES.find(c => c.value === category) || EVENT_CATEGORIES[10];
-  };
-
   return (
-    <div className="space-y-6">
+    <main className="space-y-6" role="main" aria-label="Dashboard konten">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">{title}</h1>
-          <p className="text-muted-foreground">{subtitle}</p>
+          <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold">{title}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">{subtitle}</p>
         </div>
         {(role === "DOSEN" || role === "ADMIN") && (
-          <Button className="gap-2" onClick={() => window.location.href = `${basePath}/courses`}>
+          <Button className="gap-2 w-full sm:w-auto" onClick={() => window.location.href = `${basePath}/courses`}>
             <Plus className="size-4" />
-            Buat Course
+            <span className="hidden sm:inline">Buat Course</span>
+            <span className="sm:hidden">Buat</span>
           </Button>
         )}
         {role === "MAHASISWA" && (
-          <Button className="gap-2" onClick={() => window.location.href = `${basePath}/courses/join`}>
+          <Button className="gap-2 w-full sm:w-auto" onClick={() => window.location.href = `${basePath}/courses/join`}>
             <Plus className="size-4" />
-            Gabung Course
+            <span className="hidden sm:inline">Gabung Course</span>
+            <span className="sm:hidden">Gabung</span>
           </Button>
         )}
       </div>
@@ -137,16 +121,16 @@ export function DashboardContent({
 
       {/* Upcoming Events Panel */}
       {upcomingEvents.length > 0 && (
-        <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
+        <Card className="p-4 md:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+              <h3 className="font-semibold text-base md:text-lg text-blue-900 dark:text-blue-100">
                 Event Mendatang
               </h3>
             </div>
             <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400" onClick={() => window.location.href = `${basePath}/calendar`}>
-              Lihat Semua
+              <span className="hidden sm:inline">Lihat Semua</span>
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -156,18 +140,17 @@ export function DashboardContent({
               return (
                 <div
                   key={event.id}
-                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer gap-2 sm:gap-3"
                   onClick={() => window.location.href = `${basePath}/calendar`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: event.color || catInfo.color }}
+                      className={`w-2 h-2 rounded-full ${catInfo.bgClass}`}
                     />
-                    <div>
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs" style={{ borderColor: catInfo.color, color: catInfo.color }}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm md:text-base truncate">{event.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={`text-xs ${catInfo.textClass}`}>
                           {catInfo.label}
                         </Badge>
                         {event.course && (
@@ -178,7 +161,7 @@ export function DashboardContent({
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right sm:text-left">
                     <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
                       {new Date(event.startDate).toLocaleDateString("id-ID", {
                         day: "numeric",
@@ -199,20 +182,25 @@ export function DashboardContent({
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             placeholder="Cari course berdasarkan nama atau kode..."
-            className="pl-9"
+            className="pl-9 text-sm md:text-base"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Cari course"
+            id="course-search"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="size-4 text-muted-foreground" />
+          <Filter className="size-4 text-muted-foreground" aria-hidden="true" />
+          <label htmlFor="category-filter" className="sr-only">Filter kategori</label>
           <select
-            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+            id="category-filter"
+            className="h-10 w-full sm:w-auto rounded-lg border border-input bg-background px-3 text-sm"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            aria-label="Filter tahun ajaran"
           >
             <option value="all">Semua Tahun Ajaran</option>
             {categories.map((cat) => (
@@ -225,16 +213,16 @@ export function DashboardContent({
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite" aria-busy="true">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-48 rounded-xl" />
+            <div key={i} className="skeleton h-48 rounded-xl" aria-hidden="true" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-          <BookOpen className="size-12 text-muted-foreground/50 mb-4" />
-          <h3 className="font-display text-lg font-semibold">Belum ada course</h3>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-12 md:py-16 px-4 text-center" role="status" aria-live="polite">
+          <BookOpen className="size-10 md:size-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
+          <h3 className="font-display text-base md:text-lg font-semibold">Belum ada course</h3>
+          <p className="mt-1 max-w-sm text-xs md:text-sm text-muted-foreground">
             {role === "MAHASISWA"
               ? "Gabung course menggunakan kode enrollment dari dosen Anda."
               : "Buat course pertama Anda untuk memulai."}
@@ -244,11 +232,11 @@ export function DashboardContent({
         <>
           {Object.entries(grouped).map(([cat, catCourses]) =>
             catCourses.length > 0 ? (
-              <section key={cat}>
-                <h2 className="font-display mb-4 text-lg font-semibold text-muted-foreground">
+              <section key={cat} aria-labelledby={`category-${cat.replace(/\s+/g, '-')}`}>
+                <h2 id={`category-${cat.replace(/\s+/g, '-')}`} className="font-display mb-3 md:mb-4 text-base md:text-lg font-semibold text-muted-foreground">
                   {cat}
                 </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {catCourses.map((course) => (
                     <CourseCard
                       key={course.id}
@@ -265,11 +253,11 @@ export function DashboardContent({
             ) : null,
           )}
           {uncategorized.length > 0 && (
-            <section>
-              <h2 className="font-display mb-4 text-lg font-semibold text-muted-foreground">
+            <section aria-labelledby="category-uncategorized">
+              <h2 id="category-uncategorized" className="font-display mb-3 md:mb-4 text-base md:text-lg font-semibold text-muted-foreground">
                 Lainnya
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {uncategorized.map((course) => (
                   <CourseCard
                     key={course.id}
@@ -286,6 +274,6 @@ export function DashboardContent({
           )}
         </>
       )}
-    </div>
+    </main>
   );
 }

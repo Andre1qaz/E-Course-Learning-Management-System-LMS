@@ -1,14 +1,5 @@
 # E-Course — Learning Management System
 
-perbaiki seluruh main issue
-Main Issues:
-
-
-⚠️ Hardcoded color usage di beberapa components
-⚠️ Inconsistent border radius dan icon sizing
-⚠️ Mobile responsiveness bisa ditingkatkan
-⚠️ Accessibility support perlu enhancement
-
 Platform pembelajaran online full-stack yang dibangun dengan fokus pada **23 indikator heuristic evaluation** untuk e-Learning. Aplikasi ini dirancang khusus untuk kebutuhan akademik dengan UX yang modern dan konsisten.
 
 ## Tech Stack

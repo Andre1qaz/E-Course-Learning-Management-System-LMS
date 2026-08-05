@@ -18,6 +18,7 @@ import {
   User,
   Bell,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,7 +87,8 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
         const response = await apiFetch("/announcements/unread-count", {}, session.accessToken);
         setUnreadCount((response.data as any)?.unreadCount ?? 0);
       } catch (error) {
-        console.error("Failed to fetch unread count:", error);
+        // Silently fail - unread count is not critical
+        setUnreadCount(0);
       }
     }
 
@@ -99,20 +101,27 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
         "fixed left-0 top-0 z-40 flex h-full flex-col border-r border-border bg-card transition-all duration-300",
         collapsed ? "w-[var(--sidebar-collapsed-width)]" : "w-[var(--sidebar-width)]",
       )}
+      role="complementary"
+      aria-label="Sidebar navigation"
     >
       <div className="flex h-16 items-center gap-2 border-b border-border px-4">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
           <GraduationCap className="size-5" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="font-display text-sm font-bold leading-tight">E-Course</p>
+            <h2 className="font-display text-sm font-bold leading-tight">E-Course</h2>
             <p className="text-xs text-muted-foreground">LMS Platform</p>
           </div>
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav
+        className="flex-1 space-y-1 overflow-y-auto p-3"
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        <h2 className="sr-only">Menu Navigasi</h2>
         {items.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -131,11 +140,16 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 collapsed && "justify-center px-2",
               )}
+              aria-current={isActive ? "page" : undefined}
             >
               <div className="relative">
-                <Icon className="icon-lg shrink-0" />
+                <Icon className="icon-lg shrink-0" aria-hidden="true" />
                 {showBadge && !collapsed && (
-                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                  <Badge
+                    className="absolute -top-1 -right-1 icon-xs p-0 flex items-center justify-center text-[10px]"
+                    aria-live="polite"
+                    aria-label={`${unreadCount} pengumuman belum dibaca`}
+                  >
                     {unreadCount}
                   </Badge>
                 )}
@@ -153,6 +167,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
           onClick={onToggle}
           className="w-full"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
         >
           <ChevronLeft
             className={cn(

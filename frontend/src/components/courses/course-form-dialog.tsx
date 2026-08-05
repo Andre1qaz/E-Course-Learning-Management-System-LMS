@@ -28,7 +28,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
     code: course?.code || "",
     description: course?.description || "",
     learningObjectives: course?.learningObjectives || "",
-    thumbnailColor: course?.thumbnailColor || "#1a365d",
+    thumbnailColor: course?.thumbnailColor || "bg-semantic-blue",
     categoryId: course?.categoryId || "",
   });
 
@@ -75,7 +75,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
             code: "",
             description: "",
             learningObjectives: "",
-            thumbnailColor: "#1a365d",
+            thumbnailColor: "bg-semantic-blue",
             categoryId: "",
           });
         }
@@ -90,22 +90,25 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
   };
 
   const colorOptions = [
-    { value: "#1a365d", label: "Deep Navy", color: "#1a365d" },
-    { value: "#2d6a4f", label: "Forest Green", color: "#2d6a4f" },
-    { value: "#e07a5f", label: "Coral", color: "#e07a5f" },
-    { value: "#3d5a80", label: "Steel Blue", color: "#3d5a80" },
-    { value: "#e63946", label: "Red", color: "#e63946" },
-    { value: "#457b9d", label: "Sky Blue", color: "#457b9d" },
+    { value: "bg-semantic-blue", label: "Deep Navy", class: "bg-semantic-blue" },
+    { value: "bg-semantic-green", label: "Forest Green", class: "bg-semantic-green" },
+    { value: "bg-semantic-orange", label: "Coral", class: "bg-semantic-orange" },
+    { value: "bg-semantic-indigo", label: "Steel Blue", class: "bg-semantic-indigo" },
+    { value: "bg-semantic-red", label: "Red", class: "bg-semantic-red" },
+    { value: "bg-semantic-teal", label: "Sky Blue", class: "bg-semantic-teal" },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
           <DialogTitle>{course ? "Edit Course" : "Buat Course Baru"}</DialogTitle>
+          <DialogDescription id="dialog-description">
+            {course ? "Edit informasi course yang ada" : "Buat course baru dan tambahkan ke sistem"}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nama Course *</Label>
@@ -115,7 +118,10 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Contoh: Pemrograman Web"
                 disabled={loading}
+                aria-required="true"
+                aria-describedby="name-error"
               />
+              <span id="name-error" className="sr-only" role="alert"></span>
             </div>
 
             <div className="space-y-2">
@@ -127,7 +133,10 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
                 placeholder="Contoh: IF101"
                 disabled={loading}
                 maxLength={20}
+                aria-required="true"
+                aria-describedby="code-error"
               />
+              <span id="code-error" className="sr-only" role="alert"></span>
             </div>
           </div>
 
@@ -140,7 +149,11 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
               placeholder="Deskripsi singkat tentang course..."
               disabled={loading}
               rows={3}
+              aria-describedby="description-hint"
             />
+            <p id="description-hint" className="text-xs text-muted-foreground">
+              Opsional: Berikan deskripsi singkat tentang course
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -152,16 +165,17 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
               placeholder="1. Memahami konsep dasar&#10;2. Mampu menerapkan..."
               disabled={loading}
               rows={4}
+              aria-describedby="learningObjectives-hint"
             />
-            <p className="text-xs text-muted-foreground">
+            <p id="learningObjectives-hint" className="text-xs text-muted-foreground">
               {/* Heuristic #12: Clarity of Purpose and Objectives */}
               Tuliskan tujuan pembelajaran secara terstruktur (gunakan angka untuk poin)
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Warna Thumbnail</Label>
-            <div className="flex gap-2 flex-wrap">
+            <Label id="color-label">Warna Thumbnail</Label>
+            <div className="flex gap-2 flex-wrap" role="radiogroup" aria-labelledby="color-label">
               {colorOptions.map((option) => (
                 <button
                   key={option.value}
@@ -171,9 +185,10 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
                     formData.thumbnailColor === option.value
                       ? "border-accent scale-110"
                       : "border-border hover:scale-105"
-                  }`}
-                  style={{ backgroundColor: option.color }}
+                  } ${option.class}`}
                   title={option.label}
+                  aria-label={`Pilih warna ${option.label}`}
+                  aria-pressed={formData.thumbnailColor === option.value}
                 />
               ))}
             </div>

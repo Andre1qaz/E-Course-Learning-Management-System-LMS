@@ -332,8 +332,7 @@ export function ExamsClient({ token }: ExamsClientProps) {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: exam.course?.thumbnailColor ?? "#999999" }}
+                          className={`w-3 h-3 rounded-full ${exam.course?.thumbnailColor ?? "bg-muted"}`}
                         />
                         <span className="font-medium">{exam.course?.code ?? "-"}</span>
                         <span>-</span>

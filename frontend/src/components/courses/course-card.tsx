@@ -43,18 +43,17 @@ export function CourseCard({
         )}
       >
         <div
-          className="h-24 px-5 py-4 text-white"
-          style={{ backgroundColor: thumbnailColor }}
+          className={`h-20 md:h-24 px-4 md:px-5 py-3 md:py-4 text-white ${thumbnailColor}`}
         >
           <p className="text-xs font-medium opacity-80">{code}</p>
-          <h3 className="font-display mt-1 text-lg font-bold leading-tight line-clamp-2">
+          <h3 className="font-display mt-1 text-base md:text-lg font-bold leading-tight line-clamp-2">
             {name}
           </h3>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="p-3 md:p-4 space-y-2 md:space-y-3">
           {category && (
-            <span className="inline-block rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+            <span className="inline-block rounded-full bg-secondary px-2 md:px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
               {category.name}
             </span>
           )}
@@ -66,7 +65,7 @@ export function CourseCard({
           )}
 
           {stats && (
-            <div className="flex gap-4 text-xs text-muted-foreground">
+            <div className="flex gap-3 md:gap-4 text-xs text-muted-foreground">
               {stats.modules !== undefined && (
                 <span className="flex items-center gap-1">
                   <BookOpen className="size-3" />
@@ -96,7 +95,7 @@ export function CourseCard({
                   {isComplete && " ✓"}
                 </span>
               </div>
-              <Progress value={progressValue} />
+              <Progress value={progressValue} className="h-1.5 md:h-2" />
             </div>
           )}
         </div>

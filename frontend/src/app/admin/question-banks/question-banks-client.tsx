@@ -85,7 +85,7 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
         setCourses(result.data);
       }
     } catch (error) {
-      console.error("Failed to fetch courses:", error);
+      toast.error("Gagal memuat courses");
     }
   };
 
@@ -303,34 +303,36 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-8 py-6">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6">
           <div>
-            <h1 className="font-display text-2xl font-bold">Question Banks</h1>
-            <p className="text-muted-foreground">Kelola bank soal untuk digunakan di ujian</p>
+            <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold">Question Banks</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Kelola bank soal untuk digunakan di ujian</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="w-full sm:w-auto">
               <Upload className="mr-2 h-4 w-4" />
-              Import
+              <span className="hidden sm:inline">Import</span>
+              <span className="sm:hidden">Imp</span>
             </Button>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
-              Buat Question Bank
+              <span className="hidden sm:inline">Buat Question Bank</span>
+              <span className="sm:hidden">Buat</span>
             </Button>
           </div>
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Cari question bank berdasarkan judul, topik, atau course..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm md:text-base"
             />
           </div>
         </div>
@@ -346,12 +348,12 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
           </div>
         ) : filteredQuestionBanks.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                <BookOpen className="h-8 w-8 text-muted-foreground" />
+            <CardContent className="py-8 md:py-12 text-center px-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full bg-muted mb-4">
+                <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
               </div>
-              <h3 className="font-display text-lg font-semibold mb-2">Belum ada Question Bank</h3>
-              <p className="text-muted-foreground">
+              <h3 className="font-display text-base md:text-lg font-semibold mb-2">Belum ada Question Bank</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {searchQuery
                   ? "Tidak ada question bank yang cocok dengan pencarian"
                   : "Mulai dengan membuat question bank pertama"}
@@ -362,41 +364,42 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredQuestionBanks.map((qb) => (
               <Card key={qb.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
+                <CardHeader className="p-4 md:p-6">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-2">{qb.title}</CardTitle>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={getDifficultyColor(qb.difficulty)}>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base md:text-lg mb-2 truncate">{qb.title}</CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Badge className={getDifficultyColor(qb.difficulty) + " text-xs"}>
                           {qb.difficulty}
                         </Badge>
-                        <Badge variant="outline">{qb.questionType}</Badge>
+                        <Badge variant="outline" className="text-xs">{qb.questionType}</Badge>
                       </div>
                       {qb.topic && (
-                        <p className="text-sm text-muted-foreground mb-2">{qb.topic}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-2 truncate">{qb.topic}</p>
                       )}
                       {qb.course && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs md:text-sm text-muted-foreground truncate">
                           {qb.course.code} - {qb.course.name}
                         </p>
                       )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                <CardContent className="p-4 md:p-6 pt-0">
+                  <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground mb-4">
                     <span>{qb._count.questions} soal</span>
-                    <span>{formatDate(qb.createdAt)}</span>
+                    <span className="hidden sm:inline">{formatDate(qb.createdAt)}</span>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Kelola
+                    <Button variant="outline" size="sm" className="flex-1 text-xs">
+                      <Edit className="mr-2 h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline">Kelola</span>
+                      <span className="sm:hidden">Kelola</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Download className="h-3 w-3 md:h-4 md:w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -418,8 +421,9 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteQuestionBank(qb.id)}
+                      className="text-xs"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -431,28 +435,29 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
 
       {/* Create Question Bank Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95%] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Buat Question Bank Baru</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Buat Question Bank Baru</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Judul</Label>
+              <Label htmlFor="title" className="text-sm">Judul</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Masukkan judul question bank"
                 required
+                className="text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="course">Course (Opsional)</Label>
+              <Label htmlFor="course" className="text-sm">Course (Opsional)</Label>
               <select
                 id="course"
                 value={formData.courseId}
                 onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
               >
                 <option value="">Tanpa Course (Umum)</option>
                 {courses.map((course) => (
@@ -463,22 +468,23 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="topic">Topik</Label>
+              <Label htmlFor="topic" className="text-sm">Topik</Label>
               <Input
                 id="topic"
                 value={formData.topic}
                 onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
                 placeholder="Contoh: JavaScript, Database, dll."
+                className="text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="difficulty">Tingkat Kesulitan</Label>
+                <Label htmlFor="difficulty" className="text-sm">Tingkat Kesulitan</Label>
                 <select
                   id="difficulty"
                   value={formData.difficulty}
                   onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="EASY">Mudah</option>
                   <option value="MEDIUM">Sedang</option>
@@ -486,12 +492,12 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="questionType">Tipe Soal</Label>
+                <Label htmlFor="questionType" className="text-sm">Tipe Soal</Label>
                 <select
                   id="questionType"
                   value={formData.questionType}
                   onChange={(e) => setFormData({ ...formData, questionType: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
                   <option value="ESSAY">Essay</option>
@@ -501,39 +507,40 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Deskripsi</Label>
+              <Label htmlFor="description" className="text-sm">Deskripsi</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Deskripsi question bank (opsional)"
                 rows={3}
+                className="text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="text-sm w-full sm:w-auto">
               Batal
             </Button>
-            <Button onClick={handleCreateQuestionBank}>Buat Question Bank</Button>
+            <Button onClick={handleCreateQuestionBank} className="text-sm w-full sm:w-auto">Buat Question Bank</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Import Question Bank Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95%] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Question Bank</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Import Question Bank</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="format">Format File</Label>
+              <Label htmlFor="format" className="text-sm">Format File</Label>
               <select
                 id="format"
                 value={importFormat}
                 onChange={(e) => setImportFormat(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
               >
                 <option value="json">JSON</option>
                 <option value="csv">CSV</option>
@@ -541,7 +548,7 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="file">File</Label>
+              <Label htmlFor="file" className="text-sm">File</Label>
               <Input
                 id="file"
                 type="file"
@@ -549,15 +556,16 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                 accept={importFormat === 'json' ? '.json' : importFormat === 'csv' ? '.csv' : '.xlsx,.xls'}
                 required
+                className="text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="importCourse">Course (Opsional)</Label>
+              <Label htmlFor="importCourse" className="text-sm">Course (Opsional)</Label>
               <select
                 id="importCourse"
                 value={formData.courseId}
                 onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
               >
                 <option value="">Tanpa Course (Umum)</option>
                 {courses.map((course) => (
@@ -568,11 +576,11 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
               </select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowImportDialog(false)} className="text-sm w-full sm:w-auto">
               Batal
             </Button>
-            <Button onClick={handleImportQuestionBank}>Import</Button>
+            <Button onClick={handleImportQuestionBank} className="text-sm w-full sm:w-auto">Import</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

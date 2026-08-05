@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 import { 
   BookOpen, 
   FileText, 
@@ -37,7 +38,7 @@ export function StudentDashboard() {
         const response = await apiFetch<StudentStats>("/dashboard/student", {}, session.accessToken);
         setStats(response.data);
       } catch (error) {
-        console.error("Failed to fetch student stats:", error);
+        toast.error("Gagal memuat statistik dashboard");
       } finally {
         setLoading(false);
       }

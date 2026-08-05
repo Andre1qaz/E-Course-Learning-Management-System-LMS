@@ -211,11 +211,11 @@ export function CalendarView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-display font-bold">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 md:gap-4">
+          <h2 className="text-lg md:text-xl lg:text-2xl font-display font-bold">
             {viewMode === "monthly"
               ? `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
               : viewMode === "weekly"
@@ -227,76 +227,85 @@ export function CalendarView({
             Hari Ini
           </Button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
             <ChevronLeft className="icon-md" />
           </Button>
           <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
             <ChevronRight className="icon-md" />
           </Button>
-          <div className="flex items-center gap-1 border rounded-lg p-1">
+          <div className="flex items-center gap-1 border rounded-xl p-1">
             <Button
               variant={viewMode === "monthly" ? "default" : "ghost"}
               size="sm"
+              className="text-xs md:text-sm"
               onClick={() => setViewMode("monthly")}
             >
-              Bulanan
+              <span className="hidden sm:inline">Bulanan</span>
+              <span className="sm:hidden">Bulan</span>
             </Button>
             <Button
               variant={viewMode === "weekly" ? "default" : "ghost"}
               size="sm"
+              className="text-xs md:text-sm"
               onClick={() => setViewMode("weekly")}
             >
-              Mingguan
+              <span className="hidden sm:inline">Mingguan</span>
+              <span className="sm:hidden">Minggu</span>
             </Button>
             <Button
               variant={viewMode === "daily" ? "default" : "ghost"}
               size="sm"
+              className="text-xs md:text-sm"
               onClick={() => setViewMode("daily")}
             >
-              Harian
+              <span className="hidden sm:inline">Harian</span>
+              <span className="sm:hidden">Hari</span>
             </Button>
           </div>
           {canCreate && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <Plus className="icon-md mr-2" />
-                  Buat Event
+                  <span className="hidden sm:inline">Buat Event</span>
+                  <span className="sm:hidden">Buat</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md w-[95%]">
                 <DialogHeader>
-                  <DialogTitle>Buat Event Baru</DialogTitle>
+                  <DialogTitle className="text-base md:text-lg">Buat Event Baru</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateEvent} className="space-y-4">
                   <div>
-                    <Label htmlFor="title">Judul *</Label>
-                    <Input id="title" name="title" required placeholder="Masukkan judul event" />
+                    <Label htmlFor="title" className="text-sm">Judul *</Label>
+                    <Input id="title" name="title" required placeholder="Masukkan judul event" className="text-sm" />
                   </div>
                   <div>
-                    <Label htmlFor="description">Deskripsi</Label>
+                    <Label htmlFor="description" className="text-sm">Deskripsi</Label>
                     <Textarea
                       id="description"
                       name="description"
                       placeholder="Deskripsi event (opsional)"
                       rows={3}
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="startDate">Tanggal *</Label>
+                    <Label htmlFor="startDate" className="text-sm">Tanggal *</Label>
                     <Input
                       id="startDate"
                       name="startDate"
                       type="date"
                       required
                       defaultValue={selectedDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]}
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="type">Tipe Event</Label>
+                    <Label htmlFor="type" className="text-sm">Tipe Event</Label>
                     <Select value={eventType} onValueChange={(value) => setEventType(value as typeof eventType)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -308,9 +317,9 @@ export function CalendarView({
                   </div>
                   {(userRole === "DOSEN" || userRole === "ADMIN") && courses.length > 0 && (
                     <div>
-                      <Label htmlFor="courseId">Course (Opsional)</Label>
+                      <Label htmlFor="courseId" className="text-sm">Course (Opsional)</Label>
                       <Select value={eventCourseId} onValueChange={setEventCourseId}>
-                        <SelectTrigger>
+                        <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Pilih course" />
                         </SelectTrigger>
                         <SelectContent>
@@ -324,10 +333,10 @@ export function CalendarView({
                     </div>
                   )}
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="text-sm">
                       Batal
                     </Button>
-                    <Button type="submit">Simpan</Button>
+                    <Button type="submit" className="text-sm">Simpan</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -337,20 +346,20 @@ export function CalendarView({
       </div>
 
       {/* Calendar Grid */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         {viewMode === "monthly" ? (
           <>
-            <div className="grid grid-cols-7 gap-2 mb-4">
+            <div className="hidden sm:grid grid-cols-7 gap-2 mb-4">
               {dayNames.map((day) => (
                 <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                   {day}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
               {days.map((date, index) => {
                 if (!date) {
-                  return <div key={index} className="h-32 rounded-lg bg-muted/20" />;
+                  return <div key={index} className="hidden sm:block h-32 rounded-xl bg-muted/20" />;
                 }
 
                 const dayEvents = getEventsForDate(date);
@@ -362,7 +371,7 @@ export function CalendarView({
                     key={index}
                     onClick={() => handleDateClick(date)}
                     className={cn(
-                      "h-32 rounded-lg border p-2 cursor-pointer transition-all hover:border-accent/50",
+                      "min-h-20 sm:h-32 rounded-xl border p-2 cursor-pointer transition-all hover:border-accent/50",
                       isToday && "bg-accent/5 border-accent/30",
                       isSelected && "ring-2 ring-accent",
                     )}
@@ -375,12 +384,12 @@ export function CalendarView({
                         {date.getDate()}
                       </span>
                       {isToday && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs hidden sm:inline">
                           Hari Ini
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-1 overflow-y-auto max-h-24">
+                    <div className="space-y-1 overflow-y-auto max-h-16 sm:max-h-24">
                       {dayEvents.slice(0, 3).map((event) => (
                         <div
                           key={event.id}
@@ -412,14 +421,14 @@ export function CalendarView({
           </>
         ) : viewMode === "weekly" ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-7 gap-2 mb-4">
+            <div className="hidden sm:grid grid-cols-7 gap-2 mb-4">
               {dayNames.map((day) => (
                 <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                   {day}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
               {days.map((date, index) => {
                 if (!date) return null;
                 const dayEvents = getEventsForDate(date);
@@ -431,7 +440,7 @@ export function CalendarView({
                     key={index}
                     onClick={() => handleDateClick(date)}
                     className={cn(
-                      "min-h-64 rounded-lg border p-3 cursor-pointer transition-all hover:border-accent/50",
+                      "min-h-40 sm:min-h-64 rounded-xl border p-3 cursor-pointer transition-all hover:border-accent/50",
                       isToday && "bg-accent/5 border-accent/30",
                       isSelected && "ring-2 ring-accent",
                     )}
@@ -444,12 +453,12 @@ export function CalendarView({
                         {date.getDate()}
                       </span>
                       {isToday && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs hidden sm:inline">
                           Hari Ini
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-2 overflow-y-auto max-h-48">
+                    <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-48">
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
@@ -482,7 +491,7 @@ export function CalendarView({
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-base md:text-lg font-semibold">
                 {currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </h3>
               {currentDate.toDateString() === today.toDateString() && (
@@ -506,14 +515,14 @@ export function CalendarView({
                           key={event.id}
                           onClick={() => handleEventClick(event)}
                           className={cn(
-                            "p-4 rounded-lg border cursor-pointer transition-all hover:border-accent/50 mb-3",
+                            "p-3 md:p-4 rounded-xl border cursor-pointer transition-all hover:border-accent/50 mb-3",
                             getEventTypeColor(event.type)
                           )}
                         >
-                          <div className="flex items-start justify-between mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
                               {getEventTypeIcon(event.type)}
-                              <span className="font-medium">{event.title}</span>
+                              <span className="font-medium text-sm md:text-base">{event.title}</span>
                             </div>
                             {event.startTime && (
                               <Badge variant="outline" className="text-xs">
@@ -522,7 +531,7 @@ export function CalendarView({
                             )}
                           </div>
                           {event.description && (
-                            <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground mb-2">{event.description}</p>
                           )}
                           {event.location && (
                             <div className="text-xs text-muted-foreground mb-1">
@@ -547,19 +556,19 @@ export function CalendarView({
 
       {/* Event View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md w-[95%] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detail Event</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Detail Event</DialogTitle>
           </DialogHeader>
           {selectedEvent && (
             <div className="space-y-4">
               <div>
-                <Label>Judul</Label>
-                <p className="font-medium">{selectedEvent.title}</p>
+                <Label className="text-sm">Judul</Label>
+                <p className="font-medium text-sm md:text-base">{selectedEvent.title}</p>
               </div>
               <div>
-                <Label>Tanggal</Label>
-                <p className="text-sm text-muted-foreground">
+                <Label className="text-sm">Tanggal</Label>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {new Date(selectedEvent.startDate).toLocaleDateString("id-ID", {
                     weekday: "long",
                     year: "numeric",
@@ -569,8 +578,8 @@ export function CalendarView({
                 </p>
               </div>
               <div>
-                <Label>Tipe</Label>
-                <Badge className={getEventTypeColor(selectedEvent.type)}>
+                <Label className="text-sm">Tipe</Label>
+                <Badge className={getEventTypeColor(selectedEvent.type) + " text-xs"}>
                   {getEventTypeIcon(selectedEvent.type)}
                   <span className="ml-1">
                     {selectedEvent.type === "DEADLINE" && "Deadline"}
@@ -581,24 +590,24 @@ export function CalendarView({
               </div>
               {selectedEvent.description && (
                 <div>
-                  <Label>Deskripsi</Label>
-                  <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
+                  <Label className="text-sm">Deskripsi</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">{selectedEvent.description}</p>
                 </div>
               )}
               {selectedEvent.location && (
                 <div>
-                  <Label>Lokasi</Label>
-                  <p className="text-sm text-muted-foreground">{selectedEvent.location}</p>
+                  <Label className="text-sm">Lokasi</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">{selectedEvent.location}</p>
                 </div>
               )}
               {selectedEvent.isOnline && selectedEvent.meetingLink && (
                 <div>
-                  <Label>Tautan Meeting</Label>
+                  <Label className="text-sm">Tautan Meeting</Label>
                   <a
                     href={selectedEvent.meetingLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-xs md:text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
                   >
                     {selectedEvent.meetingLink}
                   </a>
@@ -606,15 +615,15 @@ export function CalendarView({
               )}
               {selectedEvent.startTime && (
                 <div>
-                  <Label>Waktu</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="text-sm">Waktu</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {selectedEvent.startTime} {selectedEvent.endTime ? `- ${selectedEvent.endTime}` : ''}
                   </p>
                 </div>
               )}
               {selectedEvent.attachments && Array.isArray(selectedEvent.attachments) && selectedEvent.attachments.length > 0 && (
                 <div>
-                  <Label>Lampiran</Label>
+                  <Label className="text-sm">Lampiran</Label>
                   <div className="space-y-2">
                     {selectedEvent.attachments.map((attachment: any, index: number) => (
                       <a
@@ -622,7 +631,7 @@ export function CalendarView({
                         href={attachment.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="flex items-center gap-2 text-xs md:text-sm text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         📎 {attachment.fileName}
                       </a>
@@ -632,13 +641,12 @@ export function CalendarView({
               )}
               {selectedEvent.course && (
                 <div>
-                  <Label>Course</Label>
+                  <Label className="text-sm">Course</Label>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: selectedEvent.course.thumbnailColor }}
+                      className={`w-3 h-3 rounded-full ${selectedEvent.course.thumbnailColor || 'bg-muted'}`}
                     />
-                    <p className="text-sm font-medium">
+                    <p className="text-xs md:text-sm font-medium">
                       {selectedEvent.course.code} - {selectedEvent.course.name}
                     </p>
                   </div>
@@ -646,10 +654,11 @@ export function CalendarView({
               )}
               {selectedEvent.relatedActivityId && selectedEvent.relatedActivityType && (
                 <div>
-                  <Label>Link ke Aktivitas</Label>
+                  <Label className="text-sm">Link ke Aktivitas</Label>
                   <Button
                     variant="outline"
                     size="sm"
+                    className="text-xs md:text-sm w-full sm:w-auto"
                     onClick={() => {
                       const basePath = userRole === 'ADMIN' ? '/admin' : userRole === 'DOSEN' ? '/dosen' : '/mahasiswa';
                       let link = '';
@@ -667,15 +676,15 @@ export function CalendarView({
                   </Button>
                 </div>
               )}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="text-xs md:text-sm w-full sm:w-auto">
                   Tutup
                 </Button>
                 {onEventTogglePublish && (userRole === "ADMIN" || (userRole === "DOSEN" && selectedEvent.courseId)) && (
                   <Button variant={selectedEvent.isPublished ? "outline" : "default"} onClick={async () => {
                     await onEventTogglePublish(selectedEvent.id);
                     setIsViewDialogOpen(false);
-                  }}>
+                  }} className="text-xs md:text-sm w-full sm:w-auto">
                     {selectedEvent.isPublished ? "Unpublish" : "Publish"}
                   </Button>
                 )}
@@ -683,12 +692,12 @@ export function CalendarView({
                   <Button variant="default" onClick={() => {
                     setIsViewDialogOpen(false);
                     onEventEdit(selectedEvent);
-                  }}>
+                  }} className="text-xs md:text-sm w-full sm:w-auto">
                     Edit
                   </Button>
                 )}
                 {(selectedEvent.userId || (userRole === "DOSEN" && selectedEvent.courseId) || userRole === "ADMIN") && (
-                  <Button variant="destructive" onClick={handleDeleteEvent}>
+                  <Button variant="destructive" onClick={handleDeleteEvent} className="text-xs md:text-sm w-full sm:w-auto">
                     Hapus
                   </Button>
                 )}

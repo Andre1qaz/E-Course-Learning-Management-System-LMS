@@ -67,7 +67,7 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
         setExam(result.data);
       }
     } catch (error) {
-      console.error("Failed to fetch exam:", error);
+      toast.error("Gagal memuat exam");
     }
   };
 

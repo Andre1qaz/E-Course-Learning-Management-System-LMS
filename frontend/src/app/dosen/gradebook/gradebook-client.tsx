@@ -139,7 +139,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
         setStatistics(data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch statistics');
+      toast.error('Gagal memuat statistik');
     }
   };
 

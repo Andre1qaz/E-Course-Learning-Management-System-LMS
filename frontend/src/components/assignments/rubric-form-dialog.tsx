@@ -415,7 +415,7 @@ function CriterionForm({
         </div>
 
         {levelFields.map((level, levelIndex) => (
-          <div key={level.id} className="grid grid-cols-12 gap-3 items-start p-3 border rounded-lg">
+          <div key={level.id} className="grid grid-cols-12 gap-3 items-start p-3 border rounded-xl">
             <div className="col-span-1 flex items-center justify-center">
               <GripVertical className="h-4 w-4 text-muted-foreground" />
             </div>

@@ -162,7 +162,7 @@ export function ExamTakingClient({ examId, token }: ExamTakingClientProps) {
       );
     } catch (error) {
       // Silent fail for auto-save, don't interrupt user
-      console.error("Auto-save failed:", error);
+      // Intentionally not showing toast to avoid disrupting exam experience
     }
   };
 

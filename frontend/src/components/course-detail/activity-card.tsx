@@ -224,7 +224,7 @@ export function ActivityCard({
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">
             <div className={`w-10 h-10 rounded-lg ${config.bgColor} flex items-center justify-center flex-shrink-0`}>
-              <Icon className={`h-5 w-5 ${config.color}`} />
+              <Icon className={`icon-md ${config.color}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -234,7 +234,7 @@ export function ActivityCard({
                 </Badge>
                 {isDraft && (
                   <Badge variant="secondary" className="flex items-center gap-1">
-                    <EyeOff className="h-3 w-3" />
+                    <EyeOff className="icon-xs" />
                     Draft
                   </Badge>
                 )}
@@ -247,12 +247,12 @@ export function ActivityCard({
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 {getDeadline() && (
                   <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                    <Clock className="icon-xs" />
                     <span>Deadline: {getDeadline()}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
+                  <Calendar className="icon-xs" />
                   <span>Created: {formatDate(activity.createdAt)}</span>
                 </div>
               </div>
@@ -262,42 +262,42 @@ export function ActivityCard({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="icon-sm" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onEdit}>
-                  <Edit className="mr-2 h-4 w-4" />
+                  <Edit className="mr-2 icon-sm" />
                   Edit
                 </DropdownMenuItem>
                 {activity.type === "ASSIGNMENT" && canEdit && (
                   <DropdownMenuItem asChild>
                     <a href={`/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
-                      <Users className="mr-2 h-4 w-4" />
+                      <Users className="mr-2 icon-sm" />
                       View Submissions
                     </a>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleDuplicate}>
-                  <Copy className="mr-2 h-4 w-4" />
+                  <Copy className="mr-2 icon-sm" />
                   Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 className="mr-2 icon-sm" />
                   Delete
                 </DropdownMenuItem>
                 {isDraft ? (
                   <DropdownMenuItem
                     onClick={handlePublish}
                   >
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-2 icon-sm" />
                     Publish
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem
                     onClick={handleUnpublish}
                   >
-                    <EyeOff className="mr-2 h-4 w-4" />
+                    <EyeOff className="mr-2 icon-sm" />
                     Unpublish
                   </DropdownMenuItem>
                 )}

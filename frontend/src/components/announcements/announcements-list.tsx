@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { AnnouncementCard } from "./announcement-card";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Announcement {
   id: string;
@@ -66,7 +67,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
         setAnnouncements(Array.isArray(announcementsRes.data) ? announcementsRes.data.slice(0, limit) : []);
         setUnreadCount((unreadRes.data as any)?.unreadCount ?? 0);
       } catch (error) {
-        console.error("Failed to fetch announcements:", error);
+        toast.error("Gagal memuat pengumuman");
         setAnnouncements([]);
         setUnreadCount(0);
       } finally {
@@ -87,7 +88,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("Failed to mark as read:", error);
+      toast.error("Gagal menandai sebagai dibaca");
     }
   };
 
@@ -99,7 +100,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
       setAnnouncements((prev) => prev.map((a) => ({ ...a, isRead: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error("Failed to mark all as read:", error);
+      toast.error("Gagal menandai semua sebagai dibaca");
     }
   };
 
@@ -177,7 +178,7 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+            className="absolute right-1 top-1/2 -translate-y-1/2 icon-md p-0"
             onClick={() => setSearch("")}
           >
             <X className="icon-md" />

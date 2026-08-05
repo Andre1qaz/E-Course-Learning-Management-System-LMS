@@ -187,16 +187,16 @@ export function WeekAccordion({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {isExpanded ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              <ChevronDown className="icon-md text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              <ChevronRight className="icon-md text-muted-foreground" />
             )}
             <div>
               <CardTitle className="text-lg">
                 Week {week.weekNumber}: {week.title}
               </CardTitle>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="icon-sm" />
                 <span>
                   {formatDate(week.startDate)} - {formatDate(week.endDate)}
                 </span>
@@ -212,20 +212,20 @@ export function WeekAccordion({
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="icon-sm" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                  <Edit className="mr-2 h-4 w-4" />
+                  <Edit className="mr-2 icon-sm" />
                   Edit Week
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                  <Copy className="mr-2 h-4 w-4" />
+                  <Copy className="mr-2 icon-sm" />
                   Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => e.stopPropagation()} className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 className="mr-2 icon-sm" />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -240,7 +240,7 @@ export function WeekAccordion({
             {publishedExams.length > 0 && (
               <>
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                  <FileText className="h-4 w-4" />
+                  <FileText className="icon-sm" />
                   <span>Ujian ({publishedExams.length})</span>
                 </div>
                 {publishedExams.map((exam) => (
@@ -257,7 +257,7 @@ export function WeekAccordion({
                           )}
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
+                              <Clock className="icon-xs" />
                               <span>{exam.duration} menit</span>
                             </div>
                             <span>{exam._count.questions} soal</span>
@@ -323,7 +323,7 @@ export function WeekAccordion({
                                         {...provided.dragHandleProps}
                                         className="mt-4 cursor-grab active:cursor-grabbing"
                                       >
-                                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                        <GripVertical className="icon-md text-muted-foreground" />
                                       </div>
                                     )}
                                     <div className="flex-1">
@@ -391,7 +391,7 @@ export function WeekAccordion({
                                         {...provided.dragHandleProps}
                                         className="mt-4 cursor-grab active:cursor-grabbing"
                                       >
-                                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                                        <GripVertical className="icon-md text-muted-foreground" />
                                       </div>
                                       <div className="flex-1">
                                         <ActivityCard
@@ -426,7 +426,7 @@ export function WeekAccordion({
                 className="w-full mt-4"
                 onClick={onAddActivity}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 icon-sm" />
                 Add Activity
               </Button>
             )}

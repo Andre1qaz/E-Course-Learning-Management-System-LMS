@@ -132,9 +132,9 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-live="polite" aria-busy="true">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <div className="animate-spin rounded-full icon-xl border-b-2 border-primary mx-auto mb-4" aria-hidden="true" />
           <p className="text-muted-foreground">Memuat hasil...</p>
         </div>
       </div>
@@ -145,63 +145,70 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
   const passed = isPassed();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-8 py-6">
+    <main className="min-h-screen bg-background" role="main" aria-label="Hasil ujian">
+      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold">Hasil Ujian</h1>
-          <p className="text-muted-foreground">{attempt?.exam.title}</p>
+        <div className="mb-4 md:mb-6">
+          <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold">Hasil Ujian</h1>
+          <p className="text-sm md:text-base text-muted-foreground">{attempt?.exam.title}</p>
         </div>
 
         {/* Score Card */}
-        <Card className="mb-6">
-          <CardContent className="py-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="mb-4 md:mb-6">
+          <CardContent className="py-4 md:py-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-2">
                   {passed ? (
-                    <CheckCircle className="h-8 w-8 text-success" />
+                    <CheckCircle className="icon-lg text-success" aria-hidden="true" />
                   ) : (
-                    <XCircle className="h-8 w-8 text-destructive" />
+                    <XCircle className="icon-lg text-destructive" aria-hidden="true" />
                   )}
                 </div>
-                <p className="text-3xl font-bold">{attempt?.totalScore || 0}</p>
-                <p className="text-sm text-muted-foreground">Nilai Akhir</p>
+                <p className="text-2xl md:text-3xl font-bold" aria-live="polite">{attempt?.totalScore || 0}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Nilai Akhir</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold">{scorePercentage.toFixed(1)}%</p>
-                <p className="text-sm text-muted-foreground">Persentase</p>
+                <p className="text-2xl md:text-3xl font-bold" aria-live="polite">{scorePercentage.toFixed(1)}%</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Persentase</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold">{attempt?.exam.maxScore || 100}</p>
-                <p className="text-sm text-muted-foreground">Nilai Maksimum</p>
+                <p className="text-2xl md:text-3xl font-bold">{attempt?.exam.maxScore || 100}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Nilai Maksimum</p>
               </div>
               <div className="text-center">
-                <Badge variant={passed ? "default" : "destructive"} className="text-lg px-4 py-2">
+                <Badge variant={passed ? "default" : "destructive"} className="text-base md:text-lg px-3 md:px-4 py-2">
                   {passed ? "Lulus" : "Tidak Lulus"}
                 </Badge>
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-xs md:text-sm text-muted-foreground mt-2">
                   Batas Lulus: {attempt?.exam.passingGrade || 60}%
                 </p>
               </div>
             </div>
-            <div className="mt-6">
+            <div className="mt-4 md:mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Progress Nilai</span>
-                <span className="text-sm font-medium">{scorePercentage.toFixed(1)}%</span>
+                <span className="text-xs md:text-sm text-muted-foreground">Progress Nilai</span>
+                <span className="text-xs md:text-sm font-medium" aria-live="polite">{scorePercentage.toFixed(1)}%</span>
               </div>
-              <Progress value={scorePercentage} className="h-3" />
+              <Progress
+                value={scorePercentage}
+                className="h-2 md:h-3"
+                aria-label={`Skor: ${scorePercentage.toFixed(1)}% dari ${attempt?.exam.maxScore || 100}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={scorePercentage}
+              />
             </div>
           </CardContent>
         </Card>
 
         {/* Exam Info */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
-            <CardTitle>Informasi Ujian</CardTitle>
+            <CardTitle className="text-base md:text-lg" id="exam-info-title">Informasi Ujian</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <CardContent aria-labelledby="exam-info-title">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm">
               <div>
                 <p className="text-muted-foreground">Waktu Mulai</p>
                 <p className="font-medium">{attempt?.startedAt ? formatDate(attempt.startedAt) : "-"}</p>
@@ -227,33 +234,33 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
         {/* Question Results */}
         <Card>
           <CardHeader>
-            <CardTitle>Detail Jawaban</CardTitle>
+            <CardTitle className="text-base md:text-lg" id="question-results-title">Detail Jawaban</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent aria-labelledby="question-results-title">
+            <div className="space-y-3 md:space-y-4">
               {questions.map((question, index) => {
                 const { answer } = getQuestionWithAnswer(question.id);
                 const isCorrect = answer?.score === question.points;
 
                 return (
-                  <div key={question.id} className="p-4 rounded-lg border">
-                    <div className="flex items-start justify-between mb-3">
+                  <div key={question.id} className="p-3 md:p-4 rounded-lg border">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Badge variant="outline">Soal {index + 1}</Badge>
-                          <Badge>{question.type}</Badge>
-                          <Badge variant="secondary">{question.points} poin</Badge>
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs">Soal {index + 1}</Badge>
+                          <Badge className="text-xs">{question.type}</Badge>
+                          <Badge variant="secondary" className="text-xs">{question.points} poin</Badge>
                           {answer?.score !== undefined && (
-                            <Badge variant={isCorrect ? "default" : "destructive"}>
+                            <Badge variant={isCorrect ? "default" : "destructive"} className="text-xs">
                               {isCorrect ? "Benar" : "Salah"}
                             </Badge>
                           )}
                         </div>
-                        <p className="font-medium">{question.questionText}</p>
+                        <h3 className="font-medium text-sm md:text-base">{question.questionText}</h3>
                       </div>
                       {answer?.score !== undefined && (
-                        <div className="text-right">
-                          <p className="text-2xl font-bold">{answer.score}</p>
+                        <div className="text-right sm:text-left">
+                          <p className="text-xl md:text-2xl font-bold">{answer.score}</p>
                           <p className="text-xs text-muted-foreground">/ {question.points}</p>
                         </div>
                       )}
@@ -278,10 +285,10 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
                                   : "bg-muted/50"
                               }`}
                             >
-                              <span className="text-sm font-medium">{String.fromCharCode(65 + optIndex)}.</span>
-                              <span className="text-sm flex-1">{option.text}</span>
-                              {isSelected && <Badge variant="outline">Jawaban Anda</Badge>}
-                              {isCorrectOption && <Badge variant="default">Benar</Badge>}
+                              <span className="text-xs md:text-sm font-medium">{String.fromCharCode(65 + optIndex)}.</span>
+                              <span className="text-xs md:text-sm flex-1">{option.text}</span>
+                              {isSelected && <Badge variant="outline" className="text-xs hidden sm:inline">Jawaban Anda</Badge>}
+                              {isCorrectOption && <Badge variant="default" className="text-xs hidden sm:inline">Benar</Badge>}
                             </div>
                           );
                         })}
@@ -290,15 +297,15 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
 
                     {question.type === "TRUE_FALSE" && (
                       <div className="mt-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                           <div className="flex-1 p-2 rounded bg-muted/50">
-                            <span className="text-sm">Jawaban Anda: </span>
-                            <span className="font-medium">{answer?.answerText || "-"}</span>
+                            <span className="text-xs md:text-sm">Jawaban Anda: </span>
+                            <span className="font-medium text-xs md:text-sm">{answer?.answerText || "-"}</span>
                           </div>
                           {question.options && (
                             <div className="flex-1 p-2 rounded bg-success/10">
-                              <span className="text-sm">Jawaban Benar: </span>
-                              <span className="font-medium">
+                              <span className="text-xs md:text-sm">Jawaban Benar: </span>
+                              <span className="font-medium text-xs md:text-sm">
                                 {question.options.find((o) => o.isCorrect)?.text || "-"}
                               </span>
                             </div>
@@ -309,14 +316,14 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
 
                     {question.type === "ESSAY" && (
                       <div className="mt-4">
-                        <div className="p-4 rounded bg-muted/50">
-                          <p className="text-sm text-muted-foreground mb-2">Jawaban Anda:</p>
-                          <p className="text-sm">{answer?.answerText || "Tidak ada jawaban"}</p>
+                        <div className="p-3 md:p-4 rounded bg-muted/50">
+                          <p className="text-xs md:text-sm text-muted-foreground mb-2">Jawaban Anda:</p>
+                          <p className="text-xs md:text-sm">{answer?.answerText || "Tidak ada jawaban"}</p>
                         </div>
                         {answer?.feedback && (
-                          <div className="mt-2 p-4 rounded bg-primary/10">
-                            <p className="text-sm text-muted-foreground mb-2">Feedback:</p>
-                            <p className="text-sm">{answer.feedback}</p>
+                          <div className="mt-2 p-3 md:p-4 rounded bg-primary/10">
+                            <p className="text-xs md:text-sm text-muted-foreground mb-2">Feedback:</p>
+                            <p className="text-xs md:text-sm">{answer.feedback}</p>
                           </div>
                         )}
                       </div>
@@ -324,15 +331,15 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
 
                     {question.type === "SHORT_ANSWER" && (
                       <div className="mt-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                           <div className="flex-1 p-2 rounded bg-muted/50">
-                            <span className="text-sm">Jawaban Anda: </span>
-                            <span className="font-medium">{answer?.answerText || "-"}</span>
+                            <span className="text-xs md:text-sm">Jawaban Anda: </span>
+                            <span className="font-medium text-xs md:text-sm">{answer?.answerText || "-"}</span>
                           </div>
                           {question.options && (
                             <div className="flex-1 p-2 rounded bg-success/10">
-                              <span className="text-sm">Jawaban Benar: </span>
-                              <span className="font-medium">
+                              <span className="text-xs md:text-sm">Jawaban Benar: </span>
+                              <span className="font-medium text-xs md:text-sm">
                                 {question.options.find((o) => o.isCorrect)?.text || "-"}
                               </span>
                             </div>
@@ -343,15 +350,15 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
 
                     {answer?.feedback && question.type !== "ESSAY" && (
                       <div className="mt-2 p-3 rounded bg-primary/10">
-                        <p className="text-sm text-muted-foreground mb-1">Pembahasan:</p>
-                        <p className="text-sm">{answer.feedback}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-1">Pembahasan:</p>
+                        <p className="text-xs md:text-sm">{answer.feedback}</p>
                       </div>
                     )}
 
                     {question.explanation && attempt?.exam.showExplanation && (
                       <div className="mt-2 p-3 rounded bg-accent/10">
-                        <p className="text-sm text-muted-foreground mb-1">Penjelasan Soal:</p>
-                        <p className="text-sm">{question.explanation}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-1">Penjelasan Soal:</p>
+                        <p className="text-xs md:text-sm">{question.explanation}</p>
                       </div>
                     )}
                   </div>
@@ -362,8 +369,8 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
         </Card>
 
         {/* Back Button */}
-        <div className="mt-6">
-          <Button variant="outline" asChild>
+        <div className="mt-4 md:mt-6">
+          <Button variant="outline" className="w-full sm:w-auto" asChild>
             <a href="/mahasiswa/courses">Kembali ke Courses</a>
           </Button>
         </div>

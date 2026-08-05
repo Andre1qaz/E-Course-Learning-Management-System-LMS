@@ -86,7 +86,7 @@ export interface CalendarEvent {
   relatedActivityType: RelatedActivityType;
   relatedActivityId: string | null;
   isPublished: boolean;
-  attachments: any;
+  attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   userId: string | null;
   courseId: string | null;
   course?: {
@@ -150,7 +150,7 @@ export async function createCalendarEvent(
     relatedActivityType?: RelatedActivityType;
     relatedActivityId?: string;
     isPublished?: boolean;
-    attachments?: any;
+    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
     courseId?: string;
   },
 ) {
@@ -180,7 +180,7 @@ export async function updateCalendarEvent(
     relatedActivityType?: RelatedActivityType;
     relatedActivityId?: string;
     isPublished?: boolean;
-    attachments?: any;
+    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   },
 ) {
   return apiFetch<CalendarEvent>(`/calendar/${eventId}`, {

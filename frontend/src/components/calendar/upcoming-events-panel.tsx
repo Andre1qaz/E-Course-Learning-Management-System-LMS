@@ -37,16 +37,14 @@ export function UpcomingEventsPanel({ events, days = 7, onEventClick }: Upcoming
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: event.color || catInfo.color }}
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${event.bgClass || catInfo.bgClass}`}
                 />
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{event.title}</p>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       variant="outline"
-                      className="text-xs"
-                      style={{ borderColor: catInfo.color, color: catInfo.color }}
+                      className={`text-xs ${catInfo.textClass}`}
                     >
                       {catInfo.label}
                     </Badge>
