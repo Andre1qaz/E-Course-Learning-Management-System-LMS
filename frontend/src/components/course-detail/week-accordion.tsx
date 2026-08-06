@@ -302,7 +302,7 @@ export function WeekAccordion({
                 <>
                   {canEdit ? (
                     <Droppable droppableId="activities">
-                      {(provided) => (
+                      {(provided: any) => (
                         <div {...provided.droppableProps} ref={provided.innerRef}>
                           {publishedActivities.map((activity, index) => (
                             <Draggable
@@ -371,7 +371,7 @@ export function WeekAccordion({
                         Draft ({draftActivities.length})
                       </div>
                       <Droppable droppableId="draft-activities">
-                        {(provided) => (
+                        {(provided: any) => (
                           <div {...provided.droppableProps} ref={provided.innerRef}>
                             {draftActivities.map((activity, index) => (
                               <Draggable

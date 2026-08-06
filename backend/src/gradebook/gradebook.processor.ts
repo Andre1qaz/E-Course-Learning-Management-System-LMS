@@ -1,4 +1,4 @@
-import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bullmq';
+import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { GradebookService } from './gradebook.service';
@@ -12,7 +12,6 @@ export class GradebookProcessor {
 
   constructor(private gradebookService: GradebookService) {}
 
-  @Process('export-gradebook')
   async handleExportGradebook(job: Job) {
     this.logger.log(`Processing gradebook export job ${job.id} for course ${job.data.courseId}`);
     
@@ -29,13 +28,12 @@ export class GradebookProcessor {
       
       await job.updateProgress(100);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Gradebook export failed: ${error.message}`);
       throw error;
     }
   }
 
-  @Process('recalculate-grades')
   async handleRecalculateGrades(job: Job) {
     this.logger.log(`Processing grade recalculation job ${job.id} for course ${job.data.courseId}`);
     
@@ -51,24 +49,10 @@ export class GradebookProcessor {
       
       await job.updateProgress(100);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Grade recalculation failed: ${error.message}`);
       throw error;
     }
   }
 
-  @OnQueueActive()
-  onActive(job: Job) {
-    this.logger.log(`Processing job ${job.id} of type ${job.name}`);
-  }
-
-  @OnQueueCompleted()
-  onCompleted(job: Job) {
-    this.logger.log(`Completed job ${job.id} of type ${job.name}`);
-  }
-
-  @OnQueueFailed()
-  onFailed(job: Job, error: Error) {
-    this.logger.error(`Failed job ${job.id} of type ${job.name}: ${error.message}`);
-  }
 }

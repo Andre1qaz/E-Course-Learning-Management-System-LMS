@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Role, ExamCategory } from '@prisma/client';
 import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './dto';
 import * as ExcelJS from 'exceljs';
-import * as PDFKit from 'pdfkit';
+import PDFKit from 'pdfkit';
 
 // Heuristic #1: Visibility of System Status — clear error messages
 // Heuristic #5: Error Prevention — validation and access control
@@ -332,7 +332,7 @@ export class GradebookService {
           role,
         );
         results.push({ studentId: gradeUpdate.studentId, success: true });
-      } catch (error) {
+      } catch (error: any) {
         results.push({ studentId: gradeUpdate.studentId, success: false, error: error.message });
       }
     }
@@ -481,7 +481,7 @@ export class GradebookService {
       try {
         const grade = await this.calculateStudentGrade(courseId, enrollment.userId);
         results.push({ studentId: enrollment.userId, success: true });
-      } catch (error) {
+      } catch (error: any) {
         results.push({ studentId: enrollment.userId, success: false, error: error.message });
       }
     }
@@ -844,7 +844,7 @@ export class GradebookService {
 
       const chunks: Buffer[] = [];
 
-      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => {
         const buffer = Buffer.concat(chunks);
         resolve({

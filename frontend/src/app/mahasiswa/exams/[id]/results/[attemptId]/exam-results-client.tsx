@@ -374,7 +374,7 @@ export function ExamResultsClient({ examId, attemptId, token }: ExamResultsClien
             <a href="/mahasiswa/courses">Kembali ke Courses</a>
           </Button>
         </div>
-      </div>
-    </div>
+        </div>
+    </main>
   );
 }

@@ -4,7 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { QuestionBanksService } from './question-banks.service';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 interface RequestWithUser extends Request {
   user: {

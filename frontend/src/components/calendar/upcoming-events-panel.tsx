@@ -37,7 +37,7 @@ export function UpcomingEventsPanel({ events, days = 7, onEventClick }: Upcoming
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${event.bgClass || catInfo.bgClass}`}
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${catInfo.bgClass}`}
                 />
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">{event.title}</p>

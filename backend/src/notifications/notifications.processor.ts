@@ -1,4 +1,4 @@
-import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bullmq';
+import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
@@ -12,7 +12,6 @@ export class NotificationsProcessor {
 
   constructor(private notificationsService: NotificationsService) {}
 
-  @Process('create-notification')
   async handleCreateNotification(job: Job) {
     this.logger.log(`Processing notification job ${job.id}: ${job.data.title}`);
     
@@ -25,7 +24,6 @@ export class NotificationsProcessor {
     });
   }
 
-  @Process('create-bulk-notifications')
   async handleCreateBulkNotifications(job: Job) {
     this.logger.log(`Processing bulk notification job ${job.id} for ${job.data.userIds.length} users`);
     
@@ -38,7 +36,6 @@ export class NotificationsProcessor {
     });
   }
 
-  @Process('deadline-reminder')
   async handleDeadlineReminder(job: Job) {
     this.logger.log(`Processing deadline reminder job ${job.id}`);
     
@@ -50,7 +47,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('exam-reminder')
   async handleExamReminder(job: Job) {
     this.logger.log(`Processing exam reminder job ${job.id}`);
     
@@ -62,7 +58,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('grade-released')
   async handleGradeReleased(job: Job) {
     this.logger.log(`Processing grade released job ${job.id}`);
     
@@ -74,7 +69,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('forum-reply')
   async handleForumReply(job: Job) {
     this.logger.log(`Processing forum reply job ${job.id}`);
     
@@ -85,7 +79,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('material-published')
   async handleMaterialPublished(job: Job) {
     this.logger.log(`Processing material published job ${job.id}`);
     
@@ -96,7 +89,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('assignment-created')
   async handleAssignmentCreated(job: Job) {
     this.logger.log(`Processing assignment created job ${job.id}`);
     
@@ -108,7 +100,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('quiz-created')
   async handleQuizCreated(job: Job) {
     this.logger.log(`Processing quiz created job ${job.id}`);
     
@@ -120,7 +111,6 @@ export class NotificationsProcessor {
     );
   }
 
-  @Process('exam-created')
   async handleExamCreated(job: Job) {
     this.logger.log(`Processing exam created job ${job.id}`);
     
@@ -130,20 +120,5 @@ export class NotificationsProcessor {
       job.data.courseName,
       new Date(job.data.startTime),
     );
-  }
-
-  @OnQueueActive()
-  onActive(job: Job) {
-    this.logger.log(`Processing job ${job.id} of type ${job.name}`);
-  }
-
-  @OnQueueCompleted()
-  onCompleted(job: Job) {
-    this.logger.log(`Completed job ${job.id} of type ${job.name}`);
-  }
-
-  @OnQueueFailed()
-  onFailed(job: Job, error: Error) {
-    this.logger.error(`Failed job ${job.id} of type ${job.name}: ${error.message}`);
   }
 }
