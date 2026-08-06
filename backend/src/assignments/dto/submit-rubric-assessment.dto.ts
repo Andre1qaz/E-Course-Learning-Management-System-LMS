@@ -5,7 +5,7 @@ import { Type } from 'class-transformer';
 
 class RubricCriterionAssessmentDto {
   @IsString()
-  rubricCriterionId: string;
+  rubricCriterionId!: string;
 
   @IsString()
   @IsOptional()
@@ -13,7 +13,7 @@ class RubricCriterionAssessmentDto {
 
   @IsNumber()
   @Min(0)
-  score: number;
+  score!: number;
 
   @IsString()
   @IsOptional()
@@ -25,5 +25,5 @@ export class SubmitRubricAssessmentDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RubricCriterionAssessmentDto)
-  assessments: RubricCriterionAssessmentDto[];
+  assessments!: RubricCriterionAssessmentDto[];
 }

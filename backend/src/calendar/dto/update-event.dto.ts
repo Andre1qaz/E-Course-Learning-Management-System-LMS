@@ -5,45 +5,13 @@ import {
   MaxLength, 
   IsEnum, 
   IsBoolean, 
-  IsObject,
-  ValidatorConstraint, 
-  ValidatorConstraintInterface,
-  ValidationArguments,
-  registerDecorator,
-  ValidationOptions
+  IsObject
 } from 'class-validator';
 import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType } from '@prisma/client';
+import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 
 // Heuristic #5: Error Prevention — validate event data before update
 // Heuristic #6: Recognition Rather Than Recall — clear event types
-
-// Custom validator for optional UUID fields
-@ValidatorConstraint({ name: 'isOptionalUUID', async: false })
-export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
-  validate(value: any, args: ValidationArguments) {
-    if (value === undefined || value === null || value === '') {
-      return true;
-    }
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
-  }
-
-  defaultMessage(args: ValidationArguments) {
-    return '${property} must be a valid UUID';
-  }
-}
-
-export function IsOptionalUUID(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
-    registerDecorator({
-      target: object.constructor,
-      propertyName: propertyName,
-      options: validationOptions,
-      constraints: [],
-      validator: IsOptionalUUIDConstraint,
-    });
-  };
-}
 
 export class UpdateEventDto {
   @IsString()

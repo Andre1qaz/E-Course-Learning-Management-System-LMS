@@ -7,7 +7,7 @@ export class CreateModuleDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @IsString()
   @IsOptional()
@@ -27,17 +27,17 @@ export class CreateModuleDto {
 export class CreateModuleFileDto {
   @IsString()
   @IsNotEmpty()
-  fileName: string;
+  fileName!: string;
 
   @IsString()
   @IsNotEmpty()
-  fileType: string;
+  fileType!: string;
 
   @IsNumber()
   @IsNotEmpty()
-  fileSize: number;
+  fileSize!: number;
 
   @IsString()
   @IsNotEmpty()
-  fileUrl: string;
+  fileUrl!: string;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { WeeksService } from './weeks.service';
 import { CreateWeekDto } from './dto/create-week.dto';
@@ -20,7 +20,7 @@ export class WeeksController {
   @ApiOperation({ summary: 'Get all weeks for a course' })
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   findAll(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -32,7 +32,7 @@ export class WeeksController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   @ApiParam({ name: 'id', description: 'Week ID' })
   findOne(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -44,7 +44,7 @@ export class WeeksController {
   @ApiOperation({ summary: 'Create a new week (Admin/Dosen only)' })
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   create(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: CreateWeekDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -58,7 +58,7 @@ export class WeeksController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   @ApiParam({ name: 'id', description: 'Week ID' })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateWeekDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -72,7 +72,7 @@ export class WeeksController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   @ApiParam({ name: 'id', description: 'Week ID' })
   remove(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -84,7 +84,7 @@ export class WeeksController {
   @ApiOperation({ summary: 'Reorder weeks (Admin/Dosen only)' })
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   reorder(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() body: { weekOrders: { id: string; order: number }[] },
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

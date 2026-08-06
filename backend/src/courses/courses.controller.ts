@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -50,7 +50,7 @@ export class CoursesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get course by ID' })
   async findOne(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -71,7 +71,7 @@ export class CoursesController {
   @Put(':id')
   @ApiOperation({ summary: 'Update course (Admin/instructor only)' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCourseDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -82,7 +82,7 @@ export class CoursesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete course (Admin/instructor only)' })
   async remove(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -103,7 +103,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Unenroll from course (Students only)' })
   @Roles(Role.MAHASISWA)
   async unenroll(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.coursesService.unenroll(userId, courseId);
@@ -113,7 +113,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Direct enrollment by Admin/Lecturer' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async directEnroll(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: DirectEnrollDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -125,7 +125,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Update enrollment key (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateEnrollmentKey(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: UpdateEnrollmentKeyDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -137,7 +137,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get course participants (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getParticipants(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -148,8 +148,8 @@ export class CoursesController {
   @ApiOperation({ summary: 'Remove participant from course (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async removeParticipant(
-    @Param('courseId') courseId: string,
-    @Param('participantId') participantId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('participantId', ParseUUIDPipe) participantId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {

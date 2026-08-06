@@ -7,7 +7,7 @@ export class CreateAssignmentDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @IsString()
   @IsOptional()
@@ -16,9 +16,9 @@ export class CreateAssignmentDto {
 
   @IsDateString()
   @IsNotEmpty()
-  deadline: string;
+  deadline!: string;
 
   @IsNumber()
   @IsNotEmpty()
-  maxScore: number;
+  maxScore!: number;
 }

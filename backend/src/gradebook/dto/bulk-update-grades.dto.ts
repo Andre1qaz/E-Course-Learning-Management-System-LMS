@@ -6,7 +6,7 @@ export class BulkUpdateGradeItemDto {
   @ApiProperty({ description: 'Student ID' })
   @IsString()
   @IsNotEmpty()
-  studentId: string;
+  studentId!: string;
 
   @ApiProperty({ description: 'Assignment score (0-100)', required: false })
   @Type(() => Number)
@@ -34,7 +34,7 @@ export class BulkUpdateGradesDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BulkUpdateGradeItemDto)
-  grades: BulkUpdateGradeItemDto[];
+  grades!: BulkUpdateGradeItemDto[];
 
   @ApiProperty({ description: 'Reason for bulk grade change', required: false })
   @IsString()

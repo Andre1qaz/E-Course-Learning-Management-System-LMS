@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -39,7 +40,7 @@ export class CourseProgressController {
   @Roles(Role.MAHASISWA)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getStudentCourseProgress(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return {
@@ -56,7 +57,7 @@ export class CourseProgressController {
   @ApiOperation({ summary: 'Get progress for all students in a course (lecturer view)' })
   @Roles(Role.DOSEN, Role.ADMIN)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
-  async getCourseStudentsProgress(@Param('courseId') courseId: string) {
+  async getCourseStudentsProgress(@Param('courseId', ParseUUIDPipe) courseId: string) {
     return {
       success: true,
       data: await this.courseProgressService.getCourseStudentsProgress(courseId),
@@ -70,8 +71,8 @@ export class CourseProgressController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   @ApiParam({ name: 'studentId', description: 'Student ID' })
   async getStudentProgressInCourse(
-    @Param('courseId') courseId: string,
-    @Param('studentId') studentId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
   ) {
     return {
       success: true,

@@ -7,7 +7,7 @@ export class CreateExamDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @IsString()
   @IsOptional()
@@ -16,15 +16,15 @@ export class CreateExamDto {
 
   @IsDateString()
   @IsNotEmpty()
-  startTime: string;
+  startTime!: string;
 
   @IsDateString()
   @IsNotEmpty()
-  deadline: string;
+  deadline!: string;
 
   @IsNumber()
   @IsNotEmpty()
-  duration: number; // in minutes
+  duration!: number; // in minutes
 
   @IsBoolean()
   @IsOptional()

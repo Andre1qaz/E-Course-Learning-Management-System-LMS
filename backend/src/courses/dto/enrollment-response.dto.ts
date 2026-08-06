@@ -5,34 +5,34 @@ import { EnrollmentRole } from '@prisma/client';
 
 export class EnrollmentResponseDto {
   @ApiProperty()
-  id: string;
+  id!: string;
 
   @ApiProperty()
-  userId: string;
+  userId!: string;
 
   @ApiProperty()
-  userName: string;
+  userName!: string;
 
   @ApiProperty()
-  userEmail: string;
+  userEmail!: string;
 
   @ApiProperty({ enum: EnrollmentRole })
-  role: EnrollmentRole;
+  role!: EnrollmentRole;
 
   @ApiProperty()
-  joinedAt: Date;
+  joinedAt!: Date;
 }
 
 export class ParticipantListResponseDto {
   @ApiProperty()
-  courseId: string;
+  courseId!: string;
 
   @ApiProperty()
-  courseName: string;
+  courseName!: string;
 
   @ApiProperty()
-  totalParticipants: number;
+  totalParticipants!: number;
 
   @ApiProperty({ type: [EnrollmentResponseDto] })
-  participants: EnrollmentResponseDto[];
+  participants!: EnrollmentResponseDto[];
 }

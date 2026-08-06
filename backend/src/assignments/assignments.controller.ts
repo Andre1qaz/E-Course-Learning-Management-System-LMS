@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +26,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Create new assignment (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async create(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: CreateAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -37,7 +37,7 @@ export class AssignmentsController {
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get all assignments for a course' })
   async findByCourse(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -48,7 +48,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Get gradebook for a course (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getGradebook(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -58,7 +58,7 @@ export class AssignmentsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get assignment by ID' })
   async findOne(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -68,7 +68,7 @@ export class AssignmentsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update assignment (Admin/instructor only)' })
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -79,7 +79,7 @@ export class AssignmentsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete assignment (Admin/instructor only)' })
   async remove(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -90,7 +90,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Submit assignment (Students only)' })
   @Roles(Role.MAHASISWA)
   async submit(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SubmitAssignmentDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -101,7 +101,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Get all submissions for an assignment (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getSubmissions(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -111,7 +111,7 @@ export class AssignmentsController {
   @Get(':id/my-submission')
   @ApiOperation({ summary: 'Get student\'s submission for an assignment' })
   async getStudentSubmission(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.assignmentsService.getStudentSubmission(id, userId);
@@ -121,7 +121,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Grade assignment submission (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async grade(
-    @Param('submissionId') submissionId: string,
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
     @Body() dto: GradeAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

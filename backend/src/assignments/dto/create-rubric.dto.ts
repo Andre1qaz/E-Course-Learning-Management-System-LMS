@@ -6,25 +6,25 @@ import { Type } from 'class-transformer';
 class RubricCriterionLevelDto {
   @IsString()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @IsString()
   @MaxLength(500)
-  description: string;
+  description!: string;
 
   @IsNumber()
   @Min(0)
-  points: number;
+  points!: number;
 
   @IsNumber()
   @Min(0)
-  order: number;
+  order!: number;
 }
 
 class RubricCriterionDto {
   @IsString()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()
@@ -33,22 +33,22 @@ class RubricCriterionDto {
 
   @IsNumber()
   @Min(0)
-  maxPoints: number;
+  maxPoints!: number;
 
   @IsNumber()
   @Min(0)
-  order: number;
+  order!: number;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RubricCriterionLevelDto)
-  levels: RubricCriterionLevelDto[];
+  levels!: RubricCriterionLevelDto[];
 }
 
 export class CreateRubricDto {
   @IsString()
   @MaxLength(200)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()
@@ -57,10 +57,10 @@ export class CreateRubricDto {
 
   @IsNumber()
   @Min(0)
-  totalPoints: number;
+  totalPoints!: number;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RubricCriterionDto)
-  criteria: RubricCriterionDto[];
+  criteria!: RubricCriterionDto[];
 }

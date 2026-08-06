@@ -2,82 +2,82 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class ProgressBreakdown {
   @ApiProperty()
-  materialsCompleted: number;
+  materialsCompleted!: number;
 
   @ApiProperty()
-  materialsTotal: number;
+  materialsTotal!: number;
 
   @ApiProperty()
-  assignmentsCompleted: number;
+  assignmentsCompleted!: number;
 
   @ApiProperty()
-  assignmentsTotal: number;
+  assignmentsTotal!: number;
 
   @ApiProperty()
-  quizzesCompleted: number;
+  quizzesCompleted!: number;
 
   @ApiProperty()
-  quizzesTotal: number;
+  quizzesTotal!: number;
 
   @ApiProperty()
-  examsCompleted: number;
+  examsCompleted!: number;
 
   @ApiProperty()
-  examsTotal: number;
+  examsTotal!: number;
 
   @ApiProperty()
-  activitiesCompleted: number;
+  activitiesCompleted!: number;
 
   @ApiProperty()
-  activitiesTotal: number;
+  activitiesTotal!: number;
 }
 
 export class CourseProgressResponse {
   @ApiProperty()
-  courseId: string;
+  courseId!: string;
 
   @ApiProperty()
-  courseName: string;
+  courseName!: string;
 
   @ApiProperty()
-  courseCode: string;
+  courseCode!: string;
 
   @ApiProperty()
-  studentId: string;
+  studentId!: string;
 
   @ApiProperty()
-  studentName: string;
+  studentName!: string;
 
   @ApiProperty()
-  overallProgress: number;
+  overallProgress!: number;
 
   @ApiProperty()
-  breakdown: ProgressBreakdown;
+  breakdown!: ProgressBreakdown;
 
   @ApiProperty()
-  lastUpdated: Date;
+  lastUpdated!: Date;
 }
 
 export class StudentProgressListResponse {
   @ApiProperty()
-  courseId: string;
+  courseId!: string;
 
   @ApiProperty()
-  courseName: string;
+  courseName!: string;
 
   @ApiProperty()
-  students: CourseProgressResponse[];
+  students!: CourseProgressResponse[];
 
   @ApiProperty()
-  averageProgress: number;
+  averageProgress!: number;
 
   @ApiProperty()
-  atRiskStudents: number;
+  atRiskStudents!: number;
 }
 
 export class RecalculateProgressDto {
   @ApiProperty()
-  courseId: string;
+  courseId!: string;
 
   @ApiProperty({ required: false })
   studentId?: string;

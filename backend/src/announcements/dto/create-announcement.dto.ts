@@ -4,60 +4,28 @@ import {
   IsBoolean, 
   IsDateString, 
   IsArray, 
-  ValidateNested,
-  ValidatorConstraint, 
-  ValidatorConstraintInterface,
-  ValidationArguments,
-  registerDecorator,
-  ValidationOptions
+  ValidateNested
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-// Custom validator for optional UUID fields
-@ValidatorConstraint({ name: 'isOptionalUUID', async: false })
-export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
-  validate(value: any, args: ValidationArguments) {
-    if (value === undefined || value === null || value === '') {
-      return true;
-    }
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
-  }
-
-  defaultMessage(args: ValidationArguments) {
-    return '${property} must be a valid UUID';
-  }
-}
-
-export function IsOptionalUUID(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
-    registerDecorator({
-      target: object.constructor,
-      propertyName: propertyName,
-      options: validationOptions,
-      constraints: [],
-      validator: IsOptionalUUIDConstraint,
-    });
-  };
-}
+import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 
 class AttachmentDto {
   @IsString()
-  fileName: string;
+  fileName!: string;
 
   @IsString()
-  fileUrl: string;
+  fileUrl!: string;
 
   @IsString()
-  fileSize: string;
+  fileSize!: string;
 }
 
 export class CreateAnnouncementDto {
   @IsString()
-  title: string;
+  title!: string;
 
   @IsString()
-  content: string;
+  content!: string;
 
   @IsOptional()
   @ValidateNested({ each: true })

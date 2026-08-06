@@ -10,23 +10,23 @@ import {
 export class LoginDto {
   @ApiProperty({ example: 'mahasiswa1@ecourse.ac.id' })
   @IsEmail({}, { message: 'Format email tidak valid' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'Password123!' })
   @IsString()
   @IsNotEmpty({ message: 'Password wajib diisi' })
-  password: string;
+  password!: string;
 }
 
 export class RegisterDto {
   @ApiProperty({ example: 'Budi Santoso' })
   @IsString()
   @IsNotEmpty({ message: 'Nama wajib diisi' })
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: 'budi@ecourse.ac.id' })
   @IsEmail({}, { message: 'Format email tidak valid' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'Password123!' })
   @IsString()
@@ -35,36 +35,36 @@ export class RegisterDto {
   @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
     message: 'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
   })
-  password: string;
+  password!: string;
 }
 
 export class ForgotPasswordDto {
   @ApiProperty({ example: 'budi@ecourse.ac.id' })
   @IsEmail({}, { message: 'Format email institusi tidak valid' })
-  email: string;
+  email!: string;
 }
 
 export class UpdateProfileDto {
   @ApiProperty({ example: 'https://example.com/avatar.jpg' })
   @IsString()
   @IsNotEmpty({ message: 'URL avatar wajib diisi' })
-  avatarUrl: string;
+  avatarUrl!: string;
 }
 
 export class ChangePasswordDto {
   @ApiProperty({ example: 'Password123!' })
   @IsString()
   @IsNotEmpty({ message: 'Password lama wajib diisi' })
-  oldPassword: string;
+  oldPassword!: string;
 
   @ApiProperty({ example: 'NewPassword456!' })
   @IsString()
   @IsNotEmpty({ message: 'Password baru wajib diisi' })
   @MinLength(8, { message: 'Password baru minimal 8 karakter' })
-  newPassword: string;
+  newPassword!: string;
 
   @ApiProperty({ example: 'NewPassword456!' })
   @IsString()
   @IsNotEmpty({ message: 'Konfirmasi password wajib diisi' })
-  confirmPassword: string;
+  confirmPassword!: string;
 }

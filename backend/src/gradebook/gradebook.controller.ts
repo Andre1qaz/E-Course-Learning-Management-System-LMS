@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, Query, UseGuards, HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,7 +27,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get gradebook for a course (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getCourseGradebook(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -38,8 +38,8 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get student grades in a course (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getStudentGrades(
-    @Param('courseId') courseId: string,
-    @Param('studentId') studentId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -50,7 +50,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get current user grades for a course (Students only)' })
   @Roles(Role.MAHASISWA)
   async getMyGrades(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.gradebookService.getMyGrades(courseId, userId);
@@ -67,8 +67,8 @@ export class GradebookController {
   @ApiOperation({ summary: 'Update student grade (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateGrade(
-    @Param('courseId') courseId: string,
-    @Param('studentId') studentId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
     @Body() dto: UpdateGradeDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -80,7 +80,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Bulk update grades (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async bulkUpdateGrades(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: BulkUpdateGradesDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -92,7 +92,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Update course grading settings (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateCourseSettings(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() dto: UpdateCourseSettingsDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -103,7 +103,7 @@ export class GradebookController {
   @Get('course/:courseId/settings')
   @ApiOperation({ summary: 'Get course grading settings' })
   async getCourseSettings(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -114,7 +114,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get grade statistics for a course (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getCourseStatistics(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -125,8 +125,8 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get grade change history for a student (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getGradeHistory(
-    @Param('courseId') courseId: string,
-    @Param('studentId') studentId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -137,7 +137,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Recalculate all grades for a course (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async recalculateGrades(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -149,7 +149,7 @@ export class GradebookController {
   @Roles(Role.ADMIN, Role.DOSEN)
   @ApiQuery({ name: 'format', required: false, enum: ['excel', 'csv'], description: 'Export format' })
   async exportGradebook(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Query('format') format: string = 'excel',
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -161,7 +161,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Export gradebook to PDF (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportGradebookPdf(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -172,7 +172,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Export gradebook via queue (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportGradebookQueue(
-    @Param('courseId') courseId: string,
+    @Param('courseId', ParseUUIDPipe) courseId: string,
     @Body() body: { format: 'excel' | 'csv' },
     @CurrentUser('sub') userId: string,
   ) {
@@ -206,7 +206,7 @@ export class GradebookController {
   @Get('queue/job/:jobId')
   @ApiOperation({ summary: 'Get job status (Admin only)' })
   @Roles(Role.ADMIN)
-  async getJobStatus(@Param('jobId') jobId: string) {
+  async getJobStatus(@Param('jobId', ParseUUIDPipe) jobId: string) {
     const status = await this.gradebookQueueService.getJobStatus(jobId);
     
     if (!status) {

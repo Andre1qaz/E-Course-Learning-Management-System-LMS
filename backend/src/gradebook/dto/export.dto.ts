@@ -5,17 +5,17 @@ export class ExportGradebookDto {
   @ApiProperty({ enum: ['excel', 'csv'], description: 'Export format' })
   @IsEnum(['excel', 'csv'])
   @IsNotEmpty()
-  format: 'excel' | 'csv';
+  format!: 'excel' | 'csv';
 }
 
 export class QueueExportDto extends ExportGradebookDto {
   @ApiProperty({ description: 'Course ID' })
   @IsNotEmpty()
-  courseId: string;
+  courseId!: string;
 }
 
 export class JobStatusDto {
   @ApiProperty({ description: 'Job ID' })
   @IsNotEmpty()
-  jobId: string;
+  jobId!: string;
 }
