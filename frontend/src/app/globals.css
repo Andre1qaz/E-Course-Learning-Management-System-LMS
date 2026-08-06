@@ -240,9 +240,11 @@ body {
 
 /* Z-Index Hierarchy — Prevents UI overlapping issues */
 .z-hierarchy-base { z-index: 1; }
-.z-hierarchy-dropdown { z-index: 40; }
-.z-hierarchy-modal { z-index: 50; }
-.z-hierarchy-modal-overlay { z-index: 49; }
-.z-hierarchy-toast { z-index: 60; }
-.z-hierarchy-tooltip { z-index: 70; }
+.z-hierarchy-sidebar { z-index: 30; }
+.z-hierarchy-navbar { z-index: 35; }
+.z-hierarchy-dropdown { z-index: 50; }
+.z-hierarchy-modal { z-index: 60; }
+.z-hierarchy-modal-overlay { z-index: 59; }
+.z-hierarchy-toast { z-index: 70; }
+.z-hierarchy-tooltip { z-index: 80; }
 .z-hierarchy-loading { z-index: 100; }

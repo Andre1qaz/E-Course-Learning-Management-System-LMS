@@ -54,7 +54,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
 
   return (
     <header
-      className="sticky top-0 z-hierarchy-dropdown border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      className="sticky top-0 z-hierarchy-navbar border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
       role="banner"
       onKeyDown={handleKeyDown}
     >

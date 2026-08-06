@@ -100,7 +100,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-full flex-col border-r border-border bg-card transition-all duration-300",
+        "fixed left-0 top-0 z-hierarchy-sidebar flex h-full flex-col border-r border-border bg-card transition-all duration-300",
         collapsed ? "w-[var(--sidebar-collapsed-width)]" : "w-[var(--sidebar-width)]",
       )}
       role="complementary"

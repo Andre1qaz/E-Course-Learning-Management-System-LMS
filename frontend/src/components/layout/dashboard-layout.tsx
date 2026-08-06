@@ -38,7 +38,7 @@ export function DashboardLayout({
 
       {/* Mobile drawer — Heuristic #14: Multiple Device Adaptation */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-hierarchy-modal lg:hidden">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileOpen(false)}
