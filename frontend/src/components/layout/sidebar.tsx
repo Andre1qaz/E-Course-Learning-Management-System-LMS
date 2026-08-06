@@ -52,6 +52,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Kalender", href: "/dosen/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/dosen/storage", icon: HardDrive },
     { label: "Forum", href: "/dosen/forum", icon: MessageSquare },
+    { label: "Pengaturan", href: "/dosen/settings", icon: Settings },
     { label: "Profil", href: "/dosen/profile", icon: User },
   ],
   MAHASISWA: [
@@ -62,6 +63,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Kalender", href: "/mahasiswa/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/mahasiswa/storage", icon: HardDrive },
     { label: "Forum", href: "/mahasiswa/forum", icon: MessageSquare },
+    { label: "Pengaturan", href: "/mahasiswa/settings", icon: Settings },
     { label: "Profil", href: "/mahasiswa/profile", icon: User },
   ],
 };
@@ -140,7 +142,7 @@ export function Sidebar({ role, collapsed, onToggle }: SidebarProps) {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 collapsed && "justify-center px-2",
               )}
-              aria-current={isActive ? "page" : undefined}
+              aria-current={isActive ? "page" : false}
             >
               <div className="relative">
                 <Icon className="icon-lg shrink-0" aria-hidden="true" />

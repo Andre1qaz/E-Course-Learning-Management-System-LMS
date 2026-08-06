@@ -1,4 +1,4 @@
-import { Processor } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { GradebookService } from './gradebook.service';
@@ -7,12 +7,30 @@ import { GradebookService } from './gradebook.service';
 // Heuristic #20: Feedback and Assessment — asynchronous gradebook operations
 
 @Processor('gradebook')
-export class GradebookProcessor {
+export class GradebookProcessor extends WorkerHost {
   private readonly logger = new Logger(GradebookProcessor.name);
 
-  constructor(private gradebookService: GradebookService) {}
+  constructor(private gradebookService: GradebookService) {
+    super();
+  }
 
-  async handleExportGradebook(job: Job) {
+  async process(job: Job): Promise<any> {
+    this.logger.log(`Processing gradebook job ${job.id} (${job.name})`);
+
+    switch (job.name) {
+      case 'export-gradebook':
+        return this.handleExportGradebook(job);
+
+      case 'recalculate-grades':
+        return this.handleRecalculateGrades(job);
+
+      default:
+        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new Error(`Unknown job name: ${job.name}`);
+    }
+  }
+
+  private async handleExportGradebook(job: Job) {
     this.logger.log(`Processing gradebook export job ${job.id} for course ${job.data.courseId}`);
     
     // Update progress
@@ -34,7 +52,7 @@ export class GradebookProcessor {
     }
   }
 
-  async handleRecalculateGrades(job: Job) {
+  private async handleRecalculateGrades(job: Job) {
     this.logger.log(`Processing grade recalculation job ${job.id} for course ${job.data.courseId}`);
     
     // Update progress

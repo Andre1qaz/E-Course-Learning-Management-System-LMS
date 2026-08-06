@@ -237,3 +237,12 @@ body {
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius);
 }
+
+/* Z-Index Hierarchy — Prevents UI overlapping issues */
+.z-hierarchy-base { z-index: 1; }
+.z-hierarchy-dropdown { z-index: 40; }
+.z-hierarchy-modal { z-index: 50; }
+.z-hierarchy-modal-overlay { z-index: 49; }
+.z-hierarchy-toast { z-index: 60; }
+.z-hierarchy-tooltip { z-index: 70; }
+.z-hierarchy-loading { z-index: 100; }

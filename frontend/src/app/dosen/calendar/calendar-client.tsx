@@ -272,7 +272,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                 Buat Event
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-hierarchy-modal">
               <DialogHeader>
                 <DialogTitle>Buat Event Baru</DialogTitle>
               </DialogHeader>
@@ -434,7 +434,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
           {/* Edit Event Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-hierarchy-modal">
               <DialogHeader>
                 <DialogTitle>Edit Event</DialogTitle>
               </DialogHeader>

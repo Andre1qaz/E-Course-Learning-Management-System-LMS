@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/components/language-provider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,7 +32,16 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        <Providers>{children}</Providers>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LanguageProvider>
+            <Providers>{children}</Providers>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

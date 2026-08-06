@@ -32,18 +32,19 @@ interface CoursesClientProps {
   emptyStateMessage?: string;
 }
 
-export function CoursesClient({ 
-  token, 
-  role, 
-  basePath, 
-  title, 
+export function CoursesClient({
+  token,
+  role,
+  basePath,
+  title,
   subtitle,
-  emptyStateMessage 
+  emptyStateMessage
 }: CoursesClientProps) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -82,6 +83,47 @@ export function CoursesClient({
 
   const handleCourseCreated = () => {
     fetchCourses();
+  };
+
+  const handleCourseUpdated = () => {
+    fetchCourses();
+    setEditingCourse(null);
+  };
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus course ini? Tindakan ini tidak dapat dibatalkan.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Course berhasil dihapus");
+        fetchCourses();
+      } else {
+        toast.error(result.message || "Gagal menghapus course");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menghapus course");
+    }
+  };
+
+  const handleEditCourse = (courseId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      setEditingCourse(course);
+    }
   };
 
   const getCourseHref = (courseId: string) => {
@@ -168,6 +210,9 @@ export function CoursesClient({
                   exams: course._count.exams,
                   enrollments: course._count.enrollments,
                 }}
+                canEdit={true}
+                onDelete={handleDeleteCourse}
+                onEdit={handleEditCourse}
               />
             ))}
           </div>
@@ -180,6 +225,16 @@ export function CoursesClient({
         onOpenChange={setShowCreateDialog}
         onSuccess={handleCourseCreated}
       />
+
+      {/* Edit Course Dialog */}
+      {editingCourse && (
+        <CourseFormDialog
+          open={!!editingCourse}
+          onOpenChange={(open) => !open && setEditingCourse(null)}
+          course={editingCourse}
+          onSuccess={handleCourseUpdated}
+        />
+      )}
     </div>
   );
 }

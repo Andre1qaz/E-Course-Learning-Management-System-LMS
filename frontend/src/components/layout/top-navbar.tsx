@@ -54,7 +54,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
 
   return (
     <header
-      className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      className="sticky top-0 z-hierarchy-dropdown border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
       role="banner"
       onKeyDown={handleKeyDown}
     >
@@ -123,7 +123,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
 
             {isDropdownOpen && (
               <div
-                className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card py-1 shadow-lg"
+                className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border bg-card py-1 shadow-lg z-hierarchy-dropdown"
                 role="menu"
                 aria-label="Menu pengguna"
               >

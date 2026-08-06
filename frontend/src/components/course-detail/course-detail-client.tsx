@@ -11,6 +11,7 @@ import { WeekAccordion } from "./week-accordion";
 import { AddActivityDialog } from "./add-activity-dialog";
 import { CreateWeekDialog } from "./create-week-dialog";
 import { AnnouncementsList } from "@/components/announcements/announcements-list";
+import { CreateAnnouncementDialog } from "@/components/announcements/create-announcement-dialog";
 
 interface Week {
   id: string;
@@ -61,6 +62,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
   const [loading, setLoading] = useState(true);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showCreateWeek, setShowCreateWeek] = useState(false);
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
 
@@ -138,19 +140,56 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
 
   if (weeks.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-          <Calendar className="h-8 w-8 text-muted-foreground" />
+      <div className="space-y-6">
+        {/* Course Announcements */}
+        <div className="flex items-center justify-between">
+          <AnnouncementsList courseId={courseId} basePath="" limit={5} />
+          {canEdit && (
+            <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
+              <Plus className="h-4 w-4" />
+              Buat Pengumuman
+            </Button>
+          )}
         </div>
-        <h3 className="font-display text-lg font-semibold mb-2">Belum ada week</h3>
-        <p className="text-muted-foreground mb-4">
-          {canEdit ? "Mulai dengan membuat week pertama" : "Belum ada materi pembelajaran"}
-        </p>
-        {canEdit && (
-          <Button onClick={() => setShowCreateWeek(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat Week
-          </Button>
+
+        {/* Empty State */}
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+            <Calendar className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-display text-lg font-semibold mb-2">Belum ada week</h3>
+          <p className="text-muted-foreground mb-4">
+            {canEdit ? "Mulai dengan membuat week pertama" : "Belum ada materi pembelajaran"}
+          </p>
+          {canEdit && (
+            <Button onClick={() => setShowCreateWeek(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat Week
+            </Button>
+          )}
+        </div>
+
+        {showCreateWeek && (
+          <CreateWeekDialog
+            open={showCreateWeek}
+            onOpenChange={setShowCreateWeek}
+            courseId={courseId}
+            token={token}
+            onSuccess={fetchWeeks}
+          />
+        )}
+
+        {showCreateAnnouncement && (
+          <CreateAnnouncementDialog
+            open={showCreateAnnouncement}
+            onOpenChange={setShowCreateAnnouncement}
+            token={token}
+            courseId={courseId}
+            onSuccess={() => {
+              setShowCreateAnnouncement(false);
+              window.location.reload();
+            }}
+          />
         )}
       </div>
     );
@@ -159,10 +198,27 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
   return (
     <div className="space-y-6">
       {/* Course Announcements */}
-      <AnnouncementsList courseId={courseId} basePath="" limit={5} />
+      <div className="flex items-center justify-between">
+        <AnnouncementsList courseId={courseId} basePath="" limit={5} />
+        {canEdit && (
+          <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
+            <Plus className="h-4 w-4" />
+            Buat Pengumuman
+          </Button>
+        )}
+      </div>
 
       {/* Course Content */}
       <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Materi Pembelajaran</h2>
+          {canEdit && (
+            <Button className="gap-2" onClick={() => setShowCreateWeek(true)}>
+              <Plus className="h-4 w-4" />
+              Buat Week
+            </Button>
+          )}
+        </div>
         {weeks.map((week) => (
           <WeekAccordion
             key={week.id}
@@ -197,6 +253,20 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
           courseId={courseId}
           token={token}
           onSuccess={fetchWeeks}
+        />
+      )}
+
+      {showCreateAnnouncement && (
+        <CreateAnnouncementDialog
+          open={showCreateAnnouncement}
+          onOpenChange={setShowCreateAnnouncement}
+          token={token}
+          courseId={courseId}
+          onSuccess={() => {
+            setShowCreateAnnouncement(false);
+            // Refresh announcements by reloading the component
+            window.location.reload();
+          }}
         />
       )}
     </div>

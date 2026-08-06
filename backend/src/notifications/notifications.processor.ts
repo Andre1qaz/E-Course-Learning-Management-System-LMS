@@ -1,4 +1,4 @@
-import { Processor } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
@@ -7,14 +7,54 @@ import { NotificationsService } from './notifications.service';
 // Heuristic #20: Feedback and Assessment — automated notifications
 
 @Processor('notifications')
-export class NotificationsProcessor {
+export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
-  constructor(private notificationsService: NotificationsService) {}
+  constructor(private notificationsService: NotificationsService) {
+    super();
+  }
 
-  async handleCreateNotification(job: Job) {
-    this.logger.log(`Processing notification job ${job.id}: ${job.data.title}`);
-    
+  async process(job: Job): Promise<any> {
+    this.logger.log(`Processing notification job ${job.id} (${job.name})`);
+
+    switch (job.name) {
+      case 'create-notification':
+        return this.handleCreateNotification(job);
+
+      case 'create-bulk-notifications':
+        return this.handleCreateBulkNotifications(job);
+
+      case 'deadline-reminder':
+        return this.handleDeadlineReminder(job);
+
+      case 'exam-reminder':
+        return this.handleExamReminder(job);
+
+      case 'grade-released':
+        return this.handleGradeReleased(job);
+
+      case 'forum-reply':
+        return this.handleForumReply(job);
+
+      case 'material-published':
+        return this.handleMaterialPublished(job);
+
+      case 'assignment-created':
+        return this.handleAssignmentCreated(job);
+
+      case 'quiz-created':
+        return this.handleQuizCreated(job);
+
+      case 'exam-created':
+        return this.handleExamCreated(job);
+
+      default:
+        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new Error(`Unknown job name: ${job.name}`);
+    }
+  }
+
+  private async handleCreateNotification(job: Job) {
     return await this.notificationsService.createNotification({
       userId: job.data.userId,
       type: job.data.type,
@@ -24,9 +64,7 @@ export class NotificationsProcessor {
     });
   }
 
-  async handleCreateBulkNotifications(job: Job) {
-    this.logger.log(`Processing bulk notification job ${job.id} for ${job.data.userIds.length} users`);
-    
+  private async handleCreateBulkNotifications(job: Job) {
     return await this.notificationsService.createBulkNotifications({
       userIds: job.data.userIds,
       type: job.data.type,
@@ -36,9 +74,7 @@ export class NotificationsProcessor {
     });
   }
 
-  async handleDeadlineReminder(job: Job) {
-    this.logger.log(`Processing deadline reminder job ${job.id}`);
-    
+  private async handleDeadlineReminder(job: Job) {
     return await this.notificationsService.createDeadlineReminder(
       job.data.userId,
       job.data.assignmentTitle,
@@ -47,9 +83,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleExamReminder(job: Job) {
-    this.logger.log(`Processing exam reminder job ${job.id}`);
-    
+  private async handleExamReminder(job: Job) {
     return await this.notificationsService.createExamReminder(
       job.data.userId,
       job.data.examTitle,
@@ -58,9 +92,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleGradeReleased(job: Job) {
-    this.logger.log(`Processing grade released job ${job.id}`);
-    
+  private async handleGradeReleased(job: Job) {
     return await this.notificationsService.createGradeReleased(
       job.data.userId,
       job.data.itemType,
@@ -69,9 +101,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleForumReply(job: Job) {
-    this.logger.log(`Processing forum reply job ${job.id}`);
-    
+  private async handleForumReply(job: Job) {
     return await this.notificationsService.createForumReplyNotification(
       job.data.userId,
       job.data.threadTitle,
@@ -79,9 +109,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleMaterialPublished(job: Job) {
-    this.logger.log(`Processing material published job ${job.id}`);
-    
+  private async handleMaterialPublished(job: Job) {
     return await this.notificationsService.createMaterialPublishedNotification(
       job.data.userId,
       job.data.materialTitle,
@@ -89,9 +117,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleAssignmentCreated(job: Job) {
-    this.logger.log(`Processing assignment created job ${job.id}`);
-    
+  private async handleAssignmentCreated(job: Job) {
     return await this.notificationsService.createAssignmentCreatedNotification(
       job.data.userId,
       job.data.assignmentTitle,
@@ -100,9 +126,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleQuizCreated(job: Job) {
-    this.logger.log(`Processing quiz created job ${job.id}`);
-    
+  private async handleQuizCreated(job: Job) {
     return await this.notificationsService.createQuizCreatedNotification(
       job.data.userId,
       job.data.quizTitle,
@@ -111,9 +135,7 @@ export class NotificationsProcessor {
     );
   }
 
-  async handleExamCreated(job: Job) {
-    this.logger.log(`Processing exam created job ${job.id}`);
-    
+  private async handleExamCreated(job: Job) {
     return await this.notificationsService.createExamCreatedNotification(
       job.data.userId,
       job.data.examTitle,
