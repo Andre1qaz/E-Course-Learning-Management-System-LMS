@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { AnnouncementsList } from "@/components/announcements/announcements-list";
 import { CreateAnnouncementDialog } from "@/components/announcements/create-announcement-dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ interface AdminAnnouncementsClientProps {
 }
 
 export function AdminAnnouncementsClient({ token }: AdminAnnouncementsClientProps) {
+  const { data: session } = useSession();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleSuccess = () => {
@@ -39,6 +41,7 @@ export function AdminAnnouncementsClient({ token }: AdminAnnouncementsClientProp
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
           token={token}
+          userRole={session?.user?.role}
           onSuccess={handleSuccess}
         />
       )}

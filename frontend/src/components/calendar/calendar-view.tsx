@@ -155,7 +155,7 @@ export function CalendarView({
         description,
         startDate,
         type: eventType,
-        courseId: eventCourseId || undefined,
+        courseId: eventCourseId && eventCourseId.trim() !== '' ? eventCourseId : undefined,
       });
       setIsCreateDialogOpen(false);
       toast.success("Event berhasil dibuat");
@@ -275,6 +275,7 @@ export function CalendarView({
               <DialogContent className="max-w-md w-[95%]">
                 <DialogHeader>
                   <DialogTitle className="text-base md:text-lg">Buat Event Baru</DialogTitle>
+                  <p className="text-sm text-muted-foreground">Event ini akan otomatis ditampilkan di kalender dan pengumuman</p>
                 </DialogHeader>
                 <form onSubmit={handleCreateEvent} className="space-y-4">
                   <div>

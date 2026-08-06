@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
-import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent, toggleEventPublish, getUpcomingEvents, EventCategory, EventTargetAudience, getCourses } from "@/lib/api";
+import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent, toggleEventPublish, getUpcomingEvents, EventCategory, EventTargetAudience, getCourses, createAnnouncement } from "@/lib/api";
 import { getCategoryInfo, EVENT_CATEGORIES } from "@/lib/calendar-constants";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, Clock, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
@@ -122,39 +122,61 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   };
 
   const handleCreateNewEvent = async () => {
-    await createCalendarEvent(token, {
-      ...newEvent,
-      startDate: newEvent.startDate,
-      endDate: newEvent.endDate || undefined,
-      startTime: newEvent.startTime || undefined,
-      endTime: newEvent.endTime || undefined,
-      isPublished: true,
-      attachments: newEvent.attachments ? (() => {
+    try {
+      // Parse attachments once
+      const parsedAttachments = newEvent.attachments ? (() => {
         try {
           return JSON.parse(newEvent.attachments);
         } catch (e) {
           toast.error("Format JSON tidak valid untuk lampiran");
           return undefined;
         }
-      })() : undefined,
-    });
-    setIsCreateDialogOpen(false);
-    setNewEvent({
-      title: "",
-      description: "",
-      startDate: "",
-      startTime: "",
-      endDate: "",
-      endTime: "",
-      location: "",
-      isOnline: false,
-      meetingLink: "",
-      category: "PERKULIAHAN",
-      courseId: "",
-      targetAudience: "COURSE_STUDENTS",
-      attachments: "",
-    });
-    await fetchEvents();
+      })() : undefined;
+
+      // Create calendar event
+      await createCalendarEvent(token, {
+        ...newEvent,
+        startDate: newEvent.startDate,
+        endDate: newEvent.endDate || undefined,
+        startTime: newEvent.startTime || undefined,
+        endTime: newEvent.endTime || undefined,
+        isPublished: true,
+        attachments: parsedAttachments,
+      });
+
+      // Create announcement with the same data
+      await createAnnouncement(token, {
+        title: newEvent.title,
+        content: newEvent.description,
+        priority: "NORMAL",
+        isPublished: true,
+        validFrom: newEvent.startDate,
+        validUntil: newEvent.endDate || undefined,
+        courseId: newEvent.courseId || undefined,
+        attachments: parsedAttachments,
+      });
+
+      toast.success("Event dan pengumuman berhasil dibuat");
+      setIsCreateDialogOpen(false);
+      setNewEvent({
+        title: "",
+        description: "",
+        startDate: "",
+        startTime: "",
+        endDate: "",
+        endTime: "",
+        location: "",
+        isOnline: false,
+        meetingLink: "",
+        category: "PERKULIAHAN",
+        courseId: "",
+        targetAudience: "COURSE_STUDENTS",
+        attachments: "",
+      });
+      await fetchEvents();
+    } catch (error) {
+      toast.error("Gagal membuat event dan pengumuman");
+    }
   };
 
   const handleUpdateExistingEvent = async () => {
@@ -269,12 +291,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Buat Event
+                Buat Event & Pengumuman
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-hierarchy-modal">
               <DialogHeader>
                 <DialogTitle>Buat Event Baru</DialogTitle>
+                <p className="text-sm text-muted-foreground">Event ini akan otomatis ditampilkan di kalender dan pengumuman</p>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

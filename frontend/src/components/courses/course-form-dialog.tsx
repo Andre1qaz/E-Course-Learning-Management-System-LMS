@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 interface CourseFormDialogProps {
   open: boolean;
@@ -33,6 +34,9 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryLoading, setNewCategoryLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: course?.name || "",
     code: course?.code || "",
@@ -101,10 +105,6 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
       toast.error("Kode course wajib diisi");
       return;
     }
-    if (!formData.categoryId) {
-      toast.error("Kategori wajib dipilih");
-      return;
-    }
 
     setLoading(true);
 
@@ -113,13 +113,19 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
         ? `${process.env.NEXT_PUBLIC_API_URL}/courses/${course.id}`
         : `${process.env.NEXT_PUBLIC_API_URL}/courses`;
 
+      // Remove categoryId if empty to avoid UUID validation error
+      const payload = {
+        ...formData,
+        categoryId: formData.categoryId || undefined,
+      };
+
       const response = await fetch(url, {
         method: course ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.accessToken}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -150,6 +156,48 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
     }
   };
 
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newCategoryName.trim()) {
+      toast.error("Nama kategori wajib diisi");
+      return;
+    }
+
+    setNewCategoryLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/course-categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+        body: JSON.stringify({
+          name: newCategoryName.trim(),
+          isActive: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || result.id) {
+        toast.success("Kategori berhasil dibuat");
+        const newCategory = result.data || result;
+        setCategories([...categories, newCategory]);
+        setFormData({ ...formData, categoryId: newCategory.id });
+        setNewCategoryName("");
+        setCategoryDialogOpen(false);
+      } else {
+        toast.error(result.message || "Gagal membuat kategori");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat membuat kategori");
+    } finally {
+      setNewCategoryLoading(false);
+    }
+  };
+
   // `value` = hex color sent to the backend
   // `class` = Tailwind class used only for rendering the swatch
   const colorOptions = [
@@ -162,6 +210,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
   ];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
@@ -204,7 +253,20 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="categoryId">Kategori *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="categoryId">Kategori *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCategoryDialogOpen(true)}
+                disabled={loading}
+                className="h-6 text-xs"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Kategori Baru
+              </Button>
+            </div>
             <select
               id="categoryId"
               value={formData.categoryId}
@@ -224,7 +286,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
             </select>
             {!categoriesLoading && categories.length === 0 && (
               <p className="text-xs text-destructive">
-                Belum ada kategori. Buat kategori terlebih dahulu sebelum membuat course.
+                Belum ada kategori. Klik "Kategori Baru" untuk membuat kategori terlebih dahulu.
               </p>
             )}
           </div>
@@ -300,5 +362,45 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Dialog untuk membuat kategori baru */}
+    <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Buat Kategori Baru</DialogTitle>
+          <DialogDescription>
+            Tambahkan kategori baru untuk course
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleCreateCategory} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="newCategoryName">Nama Kategori *</Label>
+            <Input
+              id="newCategoryName"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Contoh: Teknologi Informasi"
+              disabled={newCategoryLoading}
+              maxLength={100}
+              aria-required="true"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCategoryDialogOpen(false)}
+              disabled={newCategoryLoading}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={newCategoryLoading}>
+              {newCategoryLoading ? "Menyimpan..." : "Buat Kategori"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }

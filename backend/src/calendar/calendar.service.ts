@@ -171,10 +171,14 @@ export class CalendarService {
     attachments?: any;
     courseId?: string;
   }) {
+    // Filter out empty strings for optional UUID fields
+    const courseId = data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined;
+    const relatedActivityId = data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : undefined;
+    
     // If courseId is provided, verify user has permission
-    if (data.courseId) {
+    if (courseId) {
       const course = await this.prisma.course.findUnique({
-        where: { id: data.courseId },
+        where: { id: courseId },
       });
 
       if (!course) {
@@ -203,11 +207,11 @@ export class CalendarService {
         type: data.type || CalendarEventType.ANNOUNCEMENT,
         targetAudience: data.targetAudience || EventTargetAudience.COURSE_STUDENTS,
         relatedActivityType: data.relatedActivityType || RelatedActivityType.NONE,
-        relatedActivityId: data.relatedActivityId,
+        relatedActivityId,
         isPublished: data.isPublished !== undefined ? data.isPublished : true,
         attachments: data.attachments,
-        userId: data.courseId ? null : userId, // Personal notes have userId, course events don't
-        courseId: data.courseId,
+        userId: courseId ? null : userId, // Personal notes have userId, course events don't
+        courseId,
       },
       include: {
         course: {
@@ -295,9 +299,15 @@ export class CalendarService {
       }
     }
 
+    // Filter out empty strings for optional UUID fields
+    const relatedActivityId = data.relatedActivityId !== undefined ? (data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : null) : undefined;
+
     const updatedEvent = await this.prisma.calendarEvent.update({
       where: { id: eventId },
-      data,
+      data: {
+        ...data,
+        relatedActivityId,
+      },
       include: {
         course: {
           select: {

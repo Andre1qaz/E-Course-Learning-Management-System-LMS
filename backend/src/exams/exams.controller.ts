@@ -44,6 +44,15 @@ export class ExamsController {
     return this.examsService.findByCourse(courseId, userId, role);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get all exams for current user based on role' })
+  async findAll(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.examsService.findAll(userId, role);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get exam by ID' })
   async findOne(

@@ -154,9 +154,16 @@ export async function createCalendarEvent(
     courseId?: string;
   },
 ) {
+  // Filter out empty strings for optional UUID fields
+  const cleanedData = {
+    ...data,
+    courseId: data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined,
+    relatedActivityId: data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : undefined,
+  };
+  
   return apiFetch<CalendarEvent>("/calendar", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(cleanedData),
   }, token);
 }
 
@@ -183,9 +190,15 @@ export async function updateCalendarEvent(
     attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   },
 ) {
+  // Filter out empty strings for optional UUID fields
+  const cleanedData = {
+    ...data,
+    relatedActivityId: data.relatedActivityId !== undefined ? (data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : null) : undefined,
+  };
+  
   return apiFetch<CalendarEvent>(`/calendar/${eventId}`, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: JSON.stringify(cleanedData),
   }, token);
 }
 
@@ -204,6 +217,116 @@ export async function toggleEventPublish(token: string, eventId: string) {
 // Legacy function for backward compatibility
 export async function getUpcomingDeadlines(token: string) {
   return getUpcomingEvents(token, 7);
+}
+
+// Announcements API functions
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: string;
+  isPublished: boolean;
+  validFrom: string | null;
+  validUntil: string | null;
+  courseId: string | null;
+  authorId: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  course?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  attachments?: Array<{ fileName: string; fileUrl: string; fileSize: string }>;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    reads: number;
+  };
+}
+
+export async function getAnnouncements(
+  token: string,
+  filters?: {
+    courseId?: string;
+    unreadOnly?: boolean;
+  }
+) {
+  const params = new URLSearchParams();
+  if (filters?.courseId) params.append("courseId", filters.courseId);
+  if (filters?.unreadOnly) params.append("unreadOnly", filters.unreadOnly.toString());
+  
+  const queryString = params.toString();
+  return apiFetch<Announcement[]>(`/announcements${queryString ? `?${queryString}` : ""}`, {}, token);
+}
+
+export async function createAnnouncement(
+  token: string,
+  data: {
+    title: string;
+    content: string;
+    priority?: string;
+    isPublished?: boolean;
+    validFrom?: string;
+    validUntil?: string;
+    courseId?: string;
+    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: string }>;
+  }
+) {
+  // Filter out empty strings for optional UUID fields
+  const cleanedData = {
+    ...data,
+    courseId: data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined,
+  };
+  
+  return apiFetch<Announcement>("/announcements", {
+    method: "POST",
+    body: JSON.stringify(cleanedData),
+  }, token);
+}
+
+export async function updateAnnouncement(
+  token: string,
+  announcementId: string,
+  data: {
+    title?: string;
+    content?: string;
+    priority?: string;
+    isPublished?: boolean;
+    validFrom?: string;
+    validUntil?: string;
+    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: string }>;
+  }
+) {
+  return apiFetch<Announcement>(`/announcements/${announcementId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }, token);
+}
+
+export async function deleteAnnouncement(token: string, announcementId: string) {
+  return apiFetch<null>(`/announcements/${announcementId}`, {
+    method: "DELETE",
+  }, token);
+}
+
+export async function markAnnouncementAsRead(token: string, announcementId: string) {
+  return apiFetch<null>(`/announcements/${announcementId}/read`, {
+    method: "POST",
+  }, token);
+}
+
+export async function markAllAnnouncementsAsRead(token: string) {
+  return apiFetch<null>("/announcements/mark-all-read", {
+    method: "POST",
+  }, token);
+}
+
+export async function getUnreadAnnouncementCount(token: string) {
+  return apiFetch<{ count: number }>("/announcements/unread-count", {}, token);
 }
 
 // Forum API functions

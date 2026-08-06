@@ -33,10 +33,12 @@ export class CoursesService {
       throw new ConflictException('Course code already exists');
     }
 
-    // Validate category if provided
-    if (dto.categoryId) {
+    // Validate category if provided (filter out empty strings)
+    const categoryId = dto.categoryId && dto.categoryId.trim() !== '' ? dto.categoryId : undefined;
+    
+    if (categoryId) {
       const category = await this.prisma.courseCategory.findUnique({
-        where: { id: dto.categoryId },
+        where: { id: categoryId },
       });
 
       if (!category) {
@@ -50,6 +52,7 @@ export class CoursesService {
     const course = await this.prisma.course.create({
       data: {
         ...dto,
+        categoryId,
         enrollmentCode,
         instructorId: userId,
       },
@@ -145,10 +148,12 @@ export class CoursesService {
       throw new ForbiddenException('Only Admin and course instructor can update this course');
     }
 
-    // Validate category if provided
-    if (dto.categoryId) {
+    // Validate category if provided (filter out empty strings)
+    const categoryId = dto.categoryId !== undefined ? (dto.categoryId && dto.categoryId.trim() !== '' ? dto.categoryId : null) : undefined;
+    
+    if (categoryId) {
       const category = await this.prisma.courseCategory.findUnique({
-        where: { id: dto.categoryId },
+        where: { id: categoryId },
       });
 
       if (!category) {
@@ -169,7 +174,10 @@ export class CoursesService {
 
     const updatedCourse = await this.prisma.course.update({
       where: { id },
-      data: dto,
+      data: {
+        ...dto,
+        categoryId,
+      },
       include: {
         category: true,
         instructor: { select: { id: true, name: true } },

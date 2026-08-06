@@ -185,6 +185,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
             onOpenChange={setShowCreateAnnouncement}
             token={token}
             courseId={courseId}
+            userRole={userRole}
             onSuccess={() => {
               setShowCreateAnnouncement(false);
               window.location.reload();
@@ -262,6 +263,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
           onOpenChange={setShowCreateAnnouncement}
           token={token}
           courseId={courseId}
+          userRole={userRole}
           onSuccess={() => {
             setShowCreateAnnouncement(false);
             // Refresh announcements by reloading the component

@@ -12,7 +12,9 @@ export class WeeksService {
     // Check if user has access to the course
     await this.checkCourseAccess(courseId, userId, userRole);
 
-    return this.prisma.week.findMany({
+    const canSeeUnpublished = userRole === Role.ADMIN || userRole === Role.DOSEN;
+
+    const weeks = await this.prisma.week.findMany({
       where: { courseId },
       orderBy: { order: 'asc' },
       include: {
@@ -21,6 +23,34 @@ export class WeeksService {
         },
       },
     });
+
+    // For each week, fetch associated exams
+    const weeksWithExams = await Promise.all(
+      weeks.map(async (week) => {
+        const exams = await this.prisma.exam.findMany({
+          where: { 
+            weekId: week.id,
+            ...(canSeeUnpublished ? {} : { isPublished: true })
+          },
+          include: {
+            _count: {
+              select: {
+                questions: true,
+                attempts: true,
+              },
+            },
+          },
+          orderBy: { startTime: 'asc' },
+        });
+
+        return {
+          ...week,
+          exams,
+        };
+      })
+    );
+
+    return weeksWithExams;
   }
 
   async findOne(id: string, userId: string, userRole: Role) {

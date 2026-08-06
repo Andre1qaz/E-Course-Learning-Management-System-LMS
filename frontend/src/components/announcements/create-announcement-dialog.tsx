@@ -15,11 +15,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface CreateAnnouncementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   token: string;
   courseId?: string;
+  userRole?: string;
   onSuccess: () => void;
 }
 
@@ -28,6 +35,7 @@ export function CreateAnnouncementDialog({
   onOpenChange,
   token,
   courseId,
+  userRole,
   onSuccess,
 }: CreateAnnouncementDialogProps) {
   const [formData, setFormData] = useState({
@@ -37,9 +45,35 @@ export function CreateAnnouncementDialog({
     validUntil: "",
     priority: "NORMAL",
     isPublished: true,
+    courseId: courseId || "",
   });
 
   const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
+  // Fetch courses when dialog opens (for lecturers)
+  useEffect(() => {
+    if (open && userRole === "DOSEN" && !courseId) {
+      fetchCourses();
+    }
+  }, [open, userRole, courseId]);
+
+  const fetchCourses = async () => {
+    if (!token) return;
+    
+    setLoadingCourses(true);
+    try {
+      const response = await apiFetch("/courses", {}, token);
+      if (response.success && Array.isArray(response.data)) {
+        setCourses(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch courses:", error);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -51,9 +85,10 @@ export function CreateAnnouncementDialog({
         validUntil: "",
         priority: "NORMAL",
         isPublished: true,
+        courseId: courseId || "",
       });
     }
-  }, [open]);
+  }, [open, courseId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +104,13 @@ export function CreateAnnouncementDialog({
       return;
     }
     
+    // For lecturers, if not provided courseId, they must select one for course-specific announcements
+    // or leave empty for global announcements (only admins can create global announcements)
+    if (userRole === "DOSEN" && !formData.courseId && !courseId) {
+      toast.error("Silakan pilih course untuk pengumuman");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -81,7 +123,8 @@ export function CreateAnnouncementDialog({
 
       if (formData.validFrom) payload.validFrom = formData.validFrom;
       if (formData.validUntil) payload.validUntil = formData.validUntil;
-      if (courseId) payload.courseId = courseId;
+      if (formData.courseId) payload.courseId = formData.courseId;
+      else if (courseId) payload.courseId = courseId;
 
       const response = await apiFetch("/announcements", {
         method: "POST",
@@ -99,6 +142,7 @@ export function CreateAnnouncementDialog({
           validUntil: "",
           priority: "NORMAL",
           isPublished: true,
+          courseId: courseId || "",
         });
       } else {
         toast.error(response.message || "Gagal membuat pengumuman");
@@ -147,6 +191,30 @@ export function CreateAnnouncementDialog({
               onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
             />
           </div>
+
+          {/* Course selector for lecturers when not already provided */}
+          {userRole === "DOSEN" && !courseId && (
+            <div className="space-y-2">
+              <Label htmlFor="course">Course</Label>
+              <select
+                id="course"
+                value={formData.courseId}
+                onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                disabled={loadingCourses}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+              >
+                <option value="">Pilih Course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} - {course.name}
+                  </option>
+                ))}
+              </select>
+              {loadingCourses && (
+                <p className="text-xs text-muted-foreground">Memuat courses...</p>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="validUntil">Valid Sampai</Label>
             <Input

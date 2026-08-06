@@ -25,7 +25,7 @@ interface Course {
 
 interface CoursesClientProps {
   token: string;
-  role: "ADMIN" | "DOSEN";
+  role: "ADMIN" | "DOSEN" | "MAHASISWA";
   basePath: string;
   title: string;
   subtitle: string;
@@ -45,6 +45,9 @@ export function CoursesClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+
+  const canEdit = role === "ADMIN" || role === "DOSEN";
+  const canCreate = role === "ADMIN" || role === "DOSEN";
 
   useEffect(() => {
     fetchCourses();
@@ -91,6 +94,8 @@ export function CoursesClient({
   };
 
   const handleDeleteCourse = async (courseId: string) => {
+    if (role === "MAHASISWA") return; // Students cannot delete courses
+    
     if (!confirm("Apakah Anda yakin ingin menghapus course ini? Tindakan ini tidak dapat dibatalkan.")) {
       return;
     }
@@ -120,6 +125,8 @@ export function CoursesClient({
   };
 
   const handleEditCourse = (courseId: string) => {
+    if (role === "MAHASISWA") return; // Students cannot edit courses
+    
     const course = courses.find(c => c.id === courseId);
     if (course) {
       setEditingCourse(course);
@@ -139,10 +146,12 @@ export function CoursesClient({
             <h1 className="font-display text-2xl font-bold">{title}</h1>
             <p className="text-muted-foreground">{subtitle}</p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat Course Baru
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat Course Baru
+            </Button>
+          )}
         </div>
 
         {/* Search and Filter */}
@@ -185,7 +194,7 @@ export function CoursesClient({
             <p className="text-muted-foreground mb-4">
               {searchQuery ? "Tidak ada course yang cocok dengan pencarian" : emptyStateMessage || "Mulai dengan membuat course pertama"}
             </p>
-            {!searchQuery && (
+            {!searchQuery && canCreate && (
               <Button onClick={() => setShowCreateDialog(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Buat Course Baru
@@ -210,7 +219,7 @@ export function CoursesClient({
                   exams: course._count.exams,
                   enrollments: course._count.enrollments,
                 }}
-                canEdit={true}
+                canEdit={canEdit}
                 onDelete={handleDeleteCourse}
                 onEdit={handleEditCourse}
               />

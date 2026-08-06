@@ -355,6 +355,61 @@ export class ExamsService {
   }
 
   /**
+   * Get all exams for current user based on role
+   */
+  async findAll(userId: string, userRole: Role) {
+    let where: any = {};
+
+    if (userRole === Role.ADMIN) {
+      // Admin sees all exams
+      where = {};
+    } else if (userRole === Role.DOSEN) {
+      // Dosen sees exams from their courses
+      const instructorCourses = await this.prisma.course.findMany({
+        where: { instructorId: userId },
+        select: { id: true },
+      });
+      where = { courseId: { in: instructorCourses.map((c) => c.id) } };
+    } else {
+      // Mahasiswa sees exams from enrolled courses
+      const enrollments = await this.prisma.enrollment.findMany({
+        where: { userId },
+        select: { courseId: true },
+      });
+      where = { 
+        courseId: { in: enrollments.map((e) => e.courseId) },
+        isPublished: true
+      };
+    }
+
+    const exams = await this.prisma.exam.findMany({
+      where,
+      include: {
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        _count: {
+          select: {
+            questions: true,
+            attempts: true,
+          },
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: exams,
+      message: 'Exams retrieved successfully',
+    };
+  }
+
+  /**
    * Add question to exam (Admin or course instructor only)
    */
   async addQuestion(examId: string, userId: string, userRole: Role, dto: CreateQuestionDto) {

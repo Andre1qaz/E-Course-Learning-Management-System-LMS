@@ -42,11 +42,31 @@ export class AnnouncementsService {
         select: { id: true },
       });
       const courseIds = coursesTaught.map((c) => c.id);
+      const now = new Date();
       return {
         OR: [
-          { courseId: { in: courseIds } },
-          { courseId: null },
+          // Published announcements from courses they teach
+          {
+            courseId: { in: courseIds },
+            isPublished: true,
+            validFrom: { lte: now },
+            OR: [
+              { validUntil: null },
+              { validUntil: { gte: now } },
+            ],
+          },
+          // Their own announcements (including drafts)
           { authorId: userId },
+          // Global published announcements
+          {
+            courseId: null,
+            isPublished: true,
+            validFrom: { lte: now },
+            OR: [
+              { validUntil: null },
+              { validUntil: { gte: now } },
+            ],
+          },
         ],
       };
     }
@@ -198,9 +218,12 @@ export class AnnouncementsService {
     priority?: string;
     courseId?: string;
   }) {
-    if (data.courseId) {
+    // Filter out empty strings for optional UUID fields
+    const courseId = data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined;
+    
+    if (courseId) {
       const course = await this.prisma.course.findUnique({
-        where: { id: data.courseId },
+        where: { id: courseId },
       });
 
       if (!course) {
@@ -223,8 +246,9 @@ export class AnnouncementsService {
         validUntil: data.validUntil,
         isPublished: data.isPublished !== undefined ? data.isPublished : true,
         priority: data.priority || 'normal',
-        courseId: data.courseId,
+        courseId,
         authorId: userId,
+        publishedAt: data.isPublished !== undefined ? data.isPublished ? new Date() : null : new Date(),
       },
       include: {
         author: {
