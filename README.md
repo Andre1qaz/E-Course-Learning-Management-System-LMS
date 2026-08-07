@@ -2,6 +2,26 @@
 
 Platform pembelajaran online full-stack yang dibangun dengan fokus pada **23 indikator heuristic evaluation** untuk e-Learning. Aplikasi ini dirancang khusus untuk kebutuhan akademik dengan UX yang modern dan konsisten.
 
+🔴 Critical (3 bugs):
+
+Forgot password tidak berfungsi (hanya placeholder)
+Excel import tidak berfungsi (hanya empty array)
+File upload configuration issue
+🟡 High Priority (4 bugs):
+
+Excessive usage of any types di backend (100+ instances)
+Excessive usage of any types di frontend (71+ instances)
+Console statements di production code
+Console error di frontend
+🟢 Medium Priority (3 bugs):
+
+Docker compose default credentials tidak aman
+Missing error handling di API calls
+TypeScript configuration inconsistency
+🔵 Low Priority (2 bugs):
+
+Inconsistent error handling pattern
+Missing type definitions untuk API responses
 ## Tech Stack
 
 | Layer | Teknologi |
