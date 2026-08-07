@@ -30,6 +30,7 @@ interface CoursesClientProps {
   title: string;
   subtitle: string;
   emptyStateMessage?: string;
+  hideHeader?: boolean;
 }
 
 export function CoursesClient({
@@ -38,7 +39,8 @@ export function CoursesClient({
   basePath,
   title,
   subtitle,
-  emptyStateMessage
+  emptyStateMessage,
+  hideHeader = false
 }: CoursesClientProps) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,18 +143,20 @@ export function CoursesClient({
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-8 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-display text-2xl font-bold">{title}</h1>
-            <p className="text-muted-foreground">{subtitle}</p>
+        {!hideHeader && (
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="font-display text-2xl font-bold">{title}</h1>
+              <p className="text-muted-foreground">{subtitle}</p>
+            </div>
+            {canCreate && (
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Buat Course Baru
+              </Button>
+            )}
           </div>
-          {canCreate && (
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Buat Course Baru
-            </Button>
-          )}
-        </div>
+        )}
 
         {/* Search and Filter */}
         <form onSubmit={handleSearch} className="flex gap-4 mb-6">

@@ -28,6 +28,22 @@ export class CoursesController {
     return this.coursesService.findAll(userId, role);
   }
 
+  @Get('available')
+  @ApiOperation({ summary: 'Get all available courses for students to enroll' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'categoryId', required: false })
+  @Roles(Role.MAHASISWA)
+  async getAvailableCourses(
+    @CurrentUser('sub') userId: string,
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.coursesService.getAvailableCourses(userId, {
+      search,
+      categoryId,
+    });
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all courses with filters' })
   @ApiQuery({ name: 'search', required: false })

@@ -49,7 +49,19 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     courseId: "",
     targetAudience: "COURSE_STUDENTS" as EventTargetAudience,
     attachments: "",
+    color: "#3B82F6",
   });
+
+  const colorOptions = [
+    { value: "#3B82F6", label: "Deep Navy" },
+    { value: "#22C55E", label: "Forest Green" },
+    { value: "#F97316", label: "Coral" },
+    { value: "#6366F1", label: "Steel Blue" },
+    { value: "#EF4444", label: "Red" },
+    { value: "#14B8A6", label: "Sky Blue" },
+    { value: "#F59E0B", label: "Amber" },
+    { value: "#8B5CF6", label: "Purple" },
+  ];
 
   const fetchEvents = async () => {
     try {
@@ -116,22 +128,20 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       category: event.category,
       courseId: event.courseId || "",
       targetAudience: event.targetAudience,
-      attachments: event.attachments ? JSON.stringify(event.attachments) : "",
+      attachments: event.attachments && Array.isArray(event.attachments) && event.attachments.length > 0
+        ? event.attachments[0].fileUrl
+        : "",
+      color: event.color || "#3B82F6",
     });
     setIsEditDialogOpen(true);
   };
 
   const handleCreateNewEvent = async () => {
     try {
-      // Parse attachments once
-      const parsedAttachments = newEvent.attachments ? (() => {
-        try {
-          return JSON.parse(newEvent.attachments);
-        } catch (e) {
-          toast.error("Format JSON tidak valid untuk lampiran");
-          return undefined;
-        }
-      })() : undefined;
+      // Handle attachments as URL string
+      const attachments = newEvent.attachments && newEvent.attachments.trim() !== '' 
+        ? { url: newEvent.attachments.trim() } 
+        : undefined;
 
       // Create calendar event
       await createCalendarEvent(token, {
@@ -141,7 +151,8 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         startTime: newEvent.startTime || undefined,
         endTime: newEvent.endTime || undefined,
         isPublished: true,
-        attachments: parsedAttachments,
+        attachments: attachments,
+        color: newEvent.color,
       });
 
       // Create announcement with the same data
@@ -153,7 +164,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         validFrom: newEvent.startDate,
         validUntil: newEvent.endDate || undefined,
         courseId: newEvent.courseId || undefined,
-        attachments: parsedAttachments,
+        attachments: attachments,
       });
 
       toast.success("Event dan pengumuman berhasil dibuat");
@@ -172,6 +183,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         courseId: "",
         targetAudience: "COURSE_STUDENTS",
         attachments: "",
+        color: "#3B82F6",
       });
       await fetchEvents();
     } catch (error) {
@@ -181,20 +193,19 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
   const handleUpdateExistingEvent = async () => {
     if (!editingEvent) return;
+    
+    // Handle attachments as URL string
+    const attachments = newEvent.attachments && newEvent.attachments.trim() !== '' 
+      ? { url: newEvent.attachments.trim() } 
+      : undefined;
+    
     await updateCalendarEvent(token, editingEvent.id, {
       ...newEvent,
       startDate: newEvent.startDate,
       endDate: newEvent.endDate || undefined,
       startTime: newEvent.startTime || undefined,
       endTime: newEvent.endTime || undefined,
-      attachments: newEvent.attachments ? (() => {
-        try {
-          return JSON.parse(newEvent.attachments);
-        } catch (e) {
-          toast.error("Format JSON tidak valid untuk lampiran");
-          return undefined;
-        }
-      })() : undefined,
+      attachments: attachments,
     });
     setIsEditDialogOpen(false);
     setEditingEvent(null);
@@ -212,6 +223,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       courseId: "",
       targetAudience: "COURSE_STUDENTS",
       attachments: "",
+      color: "#3B82F6",
     });
     await fetchEvents();
   };
@@ -435,13 +447,40 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>Lampiran (Opsional - JSON format)</Label>
-                  <Textarea
-                    value={newEvent.attachments}
-                    onChange={(e) => setNewEvent({ ...newEvent, attachments: e.target.value })}
-                    placeholder='{"fileName": "document.pdf", "fileUrl": "https://..."}'
-                    rows={2}
-                  />
+                  <Label>Lampiran (Opsional)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      value={newEvent.attachments}
+                      onChange={(e) => setNewEvent({ ...newEvent, attachments: e.target.value })}
+                      placeholder="Masukkan URL lampiran (contoh: https://drive.google.com/...)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Masukkan URL untuk lampiran seperti Google Drive, Dropbox, atau link file lainnya
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Warna Event</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {colorOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setNewEvent({ ...newEvent, color: option.value })}
+                        className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                          newEvent.color === option.value
+                            ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
+                            : "border-border hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: option.value }}
+                        title={option.label}
+                        aria-label={`Pilih warna ${option.label}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Warna yang dipilih: {colorOptions.find(opt => opt.value === newEvent.color)?.label || 'Default'}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -597,13 +636,40 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>Lampiran (Opsional - JSON format)</Label>
-                  <Textarea
-                    value={newEvent.attachments}
-                    onChange={(e) => setNewEvent({ ...newEvent, attachments: e.target.value })}
-                    placeholder='{"fileName": "document.pdf", "fileUrl": "https://..."}'
-                    rows={2}
-                  />
+                  <Label>Lampiran (Opsional)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      value={newEvent.attachments}
+                      onChange={(e) => setNewEvent({ ...newEvent, attachments: e.target.value })}
+                      placeholder="Masukkan URL lampiran (contoh: https://drive.google.com/...)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Masukkan URL untuk lampiran seperti Google Drive, Dropbox, atau link file lainnya
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Warna Event</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {colorOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setNewEvent({ ...newEvent, color: option.value })}
+                        className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                          newEvent.color === option.value
+                            ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
+                            : "border-border hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: option.value }}
+                        title={option.label}
+                        aria-label={`Pilih warna ${option.label}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Warna yang dipilih: {colorOptions.find(opt => opt.value === newEvent.color)?.label || 'Default'}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>

@@ -366,6 +366,60 @@ export class CoursesService {
   }
 
   /**
+   * Get available courses for students to enroll (courses they are not enrolled in)
+   * Heuristic #7: Flexibility and Efficiency of Use — search by course code
+   */
+  async getAvailableCourses(userId: string, filters?: {
+    search?: string;
+    categoryId?: string;
+  }) {
+    const where: any = {
+      isActive: true,
+      enrollmentEnabled: true,
+      // Exclude courses the user is already enrolled in
+      enrollments: {
+        none: { userId },
+      },
+    };
+
+    // Apply search filter (search by name or course code)
+    if (filters?.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { code: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Apply category filter
+    if (filters?.categoryId) {
+      where.categoryId = filters.categoryId;
+    }
+
+    const courses = await this.prisma.course.findMany({
+      where,
+      include: {
+        category: true,
+        instructor: { select: { id: true, name: true } },
+        _count: {
+          select: {
+            modules: true,
+            assignments: true,
+            exams: true,
+            enrollments: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: courses,
+      message: 'Available courses retrieved successfully',
+    };
+  }
+
+  /**
    * Generate unique enrollment code
    * Heuristic #5: Error Prevention — ensure uniqueness
    */

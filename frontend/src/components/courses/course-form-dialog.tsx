@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle2, Copy } from "lucide-react";
 
 interface CourseFormDialogProps {
   open: boolean;
@@ -37,6 +37,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryLoading, setNewCategoryLoading] = useState(false);
+  const [createdCourse, setCreatedCourse] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: course?.name || "",
     code: course?.code || "",
@@ -131,12 +132,17 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
       const result = await response.json();
 
       if (result.success) {
-        toast.success(course ? "Course berhasil diperbarui" : "Course berhasil dibuat");
-        onOpenChange(false);
-        onSuccess?.();
+        if (course) {
+          toast.success("Course berhasil diperbarui");
+          onOpenChange(false);
+          onSuccess?.();
+        } else {
+          // Show enrollment code for new course
+          setCreatedCourse(result.data);
+          toast.success("Course berhasil dibuat");
+          onSuccess?.();
 
-        // Reset form if creating new
-        if (!course) {
+          // Reset form
           setFormData({
             name: "",
             code: "",
@@ -211,7 +217,7 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open && !createdCourse} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
           <DialogTitle>{course ? "Edit Course" : "Buat Course Baru"}</DialogTitle>
@@ -289,6 +295,9 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
                 Belum ada kategori. Klik "Kategori Baru" untuk membuat kategori terlebih dahulu.
               </p>
             )}
+            {categoriesLoading && (
+              <p className="text-xs text-muted-foreground">Memuat kategori...</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -334,15 +343,19 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
                   onClick={() => setFormData({ ...formData, thumbnailColor: option.value })}
                   className={`w-10 h-10 rounded-lg border-2 transition-all ${
                     formData.thumbnailColor === option.value
-                      ? "border-accent scale-110"
+                      ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
                       : "border-border hover:scale-105"
-                  } ${option.class}`}
+                  }`}
+                  style={{ backgroundColor: option.value }}
                   title={option.label}
                   aria-label={`Pilih warna ${option.label}`}
                   aria-pressed={formData.thumbnailColor === option.value}
                 />
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Warna yang dipilih: {colorOptions.find(opt => opt.value === formData.thumbnailColor)?.label || 'Default'}
+            </p>
           </div>
 
           <DialogFooter className="gap-2">
@@ -401,6 +414,56 @@ export function CourseFormDialog({ open, onOpenChange, course, onSuccess }: Cour
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Enrollment Code Success Dialog */}
+    {createdCourse && (
+      <Dialog open={!!createdCourse} onOpenChange={() => { setCreatedCourse(null); onOpenChange(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle2 className="h-8 w-8 text-success" />
+            </div>
+            <DialogTitle className="font-display text-2xl">Course Berhasil Dibuat!</DialogTitle>
+            <DialogDescription>
+              Berikut adalah kode enrollment untuk course ini
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-6 bg-muted rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-2">Kode Enrollment</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-3xl font-mono font-bold tracking-wider">{createdCourse?.enrollmentCode}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (createdCourse?.enrollmentCode) {
+                      navigator.clipboard.writeText(createdCourse.enrollmentCode);
+                      toast.success("Kode enrollment berhasil disalin!");
+                    }
+                  }}
+                  className="h-8 w-8"
+                  title="Salin kode"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-4 bg-primary/5 rounded-lg">
+              <p className="text-sm text-muted-foreground text-center">
+                Bagikan kode ini kepada mahasiswa untuk mengakses course
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => { setCreatedCourse(null); onOpenChange(false); }}>
+                Tutup
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
   </>
   );
 }
