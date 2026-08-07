@@ -46,6 +46,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     courseId: "",
     targetAudience: "COURSE_STUDENTS" as EventTargetAudience,
     attachments: "",
+    color: "#3B82F6",
   });
 
   const fetchEvents = async () => {
@@ -114,6 +115,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       courseId: event.courseId || "",
       targetAudience: event.targetAudience,
       attachments: event.attachments ? JSON.stringify(event.attachments) : "",
+      color: event.color || "#3B82F6",
     });
     setIsEditDialogOpen(true);
   };
@@ -140,6 +142,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         isPublished: true,
         attachments: parsedAttachments,
         courseId: newEvent.courseId && newEvent.courseId.trim() !== '' ? newEvent.courseId : undefined,
+        color: newEvent.color,
       });
 
       // Create announcement with the same data
@@ -170,6 +173,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         courseId: "",
         targetAudience: "COURSE_STUDENTS",
         attachments: "",
+        color: "#3B82F6",
       });
       await fetchEvents();
     } catch (error) {
@@ -210,6 +214,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       courseId: "",
       targetAudience: "COURSE_STUDENTS",
       attachments: "",
+      color: "#3B82F6",
     });
     await fetchEvents();
   };

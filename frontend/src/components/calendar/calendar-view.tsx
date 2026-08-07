@@ -55,6 +55,7 @@ export function CalendarView({
   const [eventType, setEventType] = useState<"DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT">("PERSONAL_NOTE");
   const [viewMode, setViewMode] = useState<"monthly" | "weekly" | "daily">("monthly");
   const [eventCourseId, setEventCourseId] = useState<string>("");
+  const [eventColor, setEventColor] = useState<string>("#3B82F6");
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -156,6 +157,7 @@ export function CalendarView({
         startDate,
         type: eventType,
         courseId: eventCourseId && eventCourseId.trim() !== '' ? eventCourseId : undefined,
+        color: eventColor,
       });
       setIsCreateDialogOpen(false);
       toast.success("Event berhasil dibuat");
@@ -184,7 +186,14 @@ export function CalendarView({
   ];
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-  const getEventTypeColor = (type: string) => {
+  const getEventTypeColor = (type: string, color?: string) => {
+    if (color) {
+      return {
+        backgroundColor: `${color}20`,
+        color: color,
+        borderColor: `${color}40`,
+      };
+    }
     switch (type) {
       case "DEADLINE":
         return "bg-semantic-red/10 text-semantic-red border-semantic-red/20";
@@ -333,6 +342,38 @@ export function CalendarView({
                       </Select>
                     </div>
                   )}
+                  <div>
+                    <Label htmlFor="color" className="text-sm">Warna Event</Label>
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {[
+                        { value: "#3B82F6", label: "Blue" },
+                        { value: "#22C55E", label: "Green" },
+                        { value: "#F97316", label: "Orange" },
+                        { value: "#6366F1", label: "Indigo" },
+                        { value: "#EF4444", label: "Red" },
+                        { value: "#14B8A6", label: "Teal" },
+                      ].map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => setEventColor(color.value)}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                            eventColor === color.value
+                              ? "border-ring scale-110"
+                              : "border-border hover:border-ring"
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                          title={color.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="text-sm">
                       Batal
@@ -400,8 +441,11 @@ export function CalendarView({
                           }}
                           className={cn(
                             "text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80",
-                            getEventTypeColor(event.type)
+                            typeof getEventTypeColor(event.type, event.color) === 'object' 
+                              ? '' 
+                              : getEventTypeColor(event.type, event.color)
                           )}
+                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
                         >
                           <div className="flex items-center gap-1">
                             {getEventTypeIcon(event.type)}
@@ -469,8 +513,11 @@ export function CalendarView({
                           }}
                           className={cn(
                             "text-xs p-2 rounded border cursor-pointer hover:opacity-80",
-                            getEventTypeColor(event.type)
+                            typeof getEventTypeColor(event.type, event.color) === 'object' 
+                              ? '' 
+                              : getEventTypeColor(event.type, event.color)
                           )}
+                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
                         >
                           <div className="flex items-center gap-1 mb-1">
                             {getEventTypeIcon(event.type)}
@@ -517,8 +564,11 @@ export function CalendarView({
                           onClick={() => handleEventClick(event)}
                           className={cn(
                             "p-3 md:p-4 rounded-xl border cursor-pointer transition-all hover:border-accent/50 mb-3",
-                            getEventTypeColor(event.type)
+                            typeof getEventTypeColor(event.type, event.color) === 'object' 
+                              ? '' 
+                              : getEventTypeColor(event.type, event.color)
                           )}
+                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
@@ -580,7 +630,15 @@ export function CalendarView({
               </div>
               <div>
                 <Label className="text-sm">Tipe</Label>
-                <Badge className={getEventTypeColor(selectedEvent.type) + " text-xs"}>
+                <Badge 
+                  className={cn(
+                    "text-xs",
+                    typeof getEventTypeColor(selectedEvent.type, selectedEvent.color) === 'object' 
+                      ? '' 
+                      : getEventTypeColor(selectedEvent.type, selectedEvent.color)
+                  )}
+                  style={typeof getEventTypeColor(selectedEvent.type, selectedEvent.color) === 'object' ? getEventTypeColor(selectedEvent.type, selectedEvent.color) : undefined}
+                >
                   {getEventTypeIcon(selectedEvent.type)}
                   <span className="ml-1">
                     {selectedEvent.type === "DEADLINE" && "Deadline"}

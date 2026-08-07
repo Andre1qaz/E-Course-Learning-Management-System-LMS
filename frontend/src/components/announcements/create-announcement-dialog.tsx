@@ -46,6 +46,7 @@ export function CreateAnnouncementDialog({
     priority: "NORMAL",
     isPublished: true,
     courseId: courseId || "",
+    color: "#3B82F6",
   });
 
   const [loading, setLoading] = useState(false);
@@ -86,6 +87,7 @@ export function CreateAnnouncementDialog({
         priority: "NORMAL",
         isPublished: true,
         courseId: courseId || "",
+        color: "#3B82F6",
       });
     }
   }, [open, courseId]);
@@ -119,6 +121,7 @@ export function CreateAnnouncementDialog({
         content: formData.content,
         priority: formData.priority,
         isPublished: formData.isPublished,
+        color: formData.color,
       };
 
       if (formData.validFrom) payload.validFrom = formData.validFrom;
@@ -143,6 +146,7 @@ export function CreateAnnouncementDialog({
           priority: "NORMAL",
           isPublished: true,
           courseId: courseId || "",
+          color: "#3B82F6",
         });
       } else {
         toast.error(response.message || "Gagal membuat pengumuman");
@@ -237,6 +241,32 @@ export function CreateAnnouncementDialog({
               <option value="HIGH">High</option>
               <option value="URGENT">Urgent</option>
             </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="color">Warna Badge</Label>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { value: "#3B82F6", label: "Blue" },
+                { value: "#22C55E", label: "Green" },
+                { value: "#F97316", label: "Orange" },
+                { value: "#6366F1", label: "Indigo" },
+                { value: "#EF4444", label: "Red" },
+                { value: "#14B8A6", label: "Teal" },
+              ].map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, color: color.value })}
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    formData.color === color.value
+                      ? "border-ring scale-110"
+                      : "border-border hover:border-ring"
+                  }`}
+                  style={{ backgroundColor: color.value }}
+                  title={color.label}
+                />
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button

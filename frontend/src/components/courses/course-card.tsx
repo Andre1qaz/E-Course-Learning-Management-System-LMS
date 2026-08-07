@@ -58,12 +58,15 @@ export function CourseCard({
           )}
         >
           <div
-            className={`h-20 md:h-24 px-4 md:px-5 py-3 md:py-4 text-white ${thumbnailColor}`}
+            className={`h-20 md:h-24 px-4 md:px-5 py-3 md:py-4 text-white ${thumbnailColor} relative`}
           >
-            <p className="text-xs font-medium opacity-80">{code}</p>
-            <h3 className="font-display mt-1 text-base md:text-lg font-bold leading-tight line-clamp-2">
-              {name}
-            </h3>
+            <div className="absolute inset-0 bg-black/20" />
+            <div className="relative z-10">
+              <p className="text-xs font-medium opacity-90 drop-shadow-md">{code}</p>
+              <h3 className="font-display mt-1 text-base md:text-lg font-bold leading-tight line-clamp-2 drop-shadow-md">
+                {name}
+              </h3>
+            </div>
           </div>
 
           <div className="p-3 md:p-4 space-y-2 md:space-y-3">

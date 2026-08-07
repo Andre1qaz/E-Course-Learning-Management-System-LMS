@@ -23,6 +23,7 @@ interface Announcement {
   validUntil?: string;
   priority: string;
   courseId?: string;
+  color?: string;
   author: {
     id: string;
     name: string;
@@ -88,7 +89,14 @@ export function AnnouncementCard({ announcement, onMarkAsRead, basePath }: Annou
               {priorityLabels[announcement.priority as keyof typeof priorityLabels]}
             </Badge>
             {announcement.course && (
-              <Badge variant="outline" className={announcement.course.thumbnailColor}>
+              <Badge 
+                variant="outline" 
+                style={{ 
+                  backgroundColor: announcement.color || announcement.course.thumbnailColor,
+                  color: 'white',
+                  borderColor: announcement.color || announcement.course.thumbnailColor
+                }}
+              >
                 {announcement.course.code}
               </Badge>
             )}
