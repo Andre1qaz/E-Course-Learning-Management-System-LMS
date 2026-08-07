@@ -35,7 +35,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added notification job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add notification job: ${error.message}`);
+      this.logger.error(`Failed to add notification job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -61,7 +61,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added bulk notification job ${job.id} for ${data.userIds.length} users`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add bulk notification job: ${error.message}`);
+      this.logger.error(`Failed to add bulk notification job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -87,7 +87,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added deadline reminder job ${job.id} for ${data.deadlineDate}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add deadline reminder job: ${error.message}`);
+      this.logger.error(`Failed to add deadline reminder job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -113,7 +113,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added exam reminder job ${job.id} for ${data.examDate}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add exam reminder job: ${error.message}`);
+      this.logger.error(`Failed to add exam reminder job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -138,7 +138,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added grade released job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add grade released job: ${error.message}`);
+      this.logger.error(`Failed to add grade released job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -162,7 +162,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added forum reply job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add forum reply job: ${error.message}`);
+      this.logger.error(`Failed to add forum reply job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -186,7 +186,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added material published job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add material published job: ${error.message}`);
+      this.logger.error(`Failed to add material published job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -211,7 +211,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added assignment created job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add assignment created job: ${error.message}`);
+      this.logger.error(`Failed to add assignment created job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -236,7 +236,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added quiz created job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add quiz created job: ${error.message}`);
+      this.logger.error(`Failed to add quiz created job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -261,7 +261,7 @@ export class NotificationsQueueService {
       this.logger.log(`Added exam created job ${job.id} for user ${data.userId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add exam created job: ${error.message}`);
+      this.logger.error(`Failed to add exam created job: ${(error as Error).message}`);
       throw error;
     }
   }

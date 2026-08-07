@@ -39,7 +39,7 @@ export class GradebookQueueService {
       this.logger.log(`Added gradebook export job ${job.id} for course ${data.courseId} as ${data.format}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add gradebook export job: ${error.message}`);
+      this.logger.error(`Failed to add gradebook export job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -62,7 +62,7 @@ export class GradebookQueueService {
       this.logger.log(`Added grade recalculation job ${job.id} for course ${data.courseId}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add grade recalculation job: ${error.message}`);
+      this.logger.error(`Failed to add grade recalculation job: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -108,7 +108,7 @@ export class GradebookQueueService {
         failedReason: job.failedReason,
       };
     } catch (error) {
-      this.logger.error(`Failed to get job status: ${error.message}`);
+      this.logger.error(`Failed to get job status: ${(error as Error).message}`);
       throw error;
     }
   }

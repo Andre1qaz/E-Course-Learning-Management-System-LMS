@@ -3,10 +3,8 @@ import {
   IsNotEmpty, 
   IsOptional, 
   IsHexColor, 
-  MaxLength, 
-  IsUUID
+  MaxLength
 } from 'class-validator';
-import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 
 // Heuristic #5: Error Prevention — validate course data before creation
 // Heuristic #9: Help Users Recognize, Diagnose, and Recover from Errors — clear validation messages
@@ -39,7 +37,7 @@ export class CreateCourseDto {
   @IsOptional()
   isLinear?: boolean;
 
+  @IsString()
   @IsOptional()
-  @IsOptionalUUID()
   categoryId?: string;
 }

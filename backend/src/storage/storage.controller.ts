@@ -50,7 +50,7 @@ export class StorageController {
       return {
         success: false,
         data: null,
-        message: error.message || 'Failed to generate upload URL',
+        message: (error as Error).message || 'Failed to generate upload URL',
       };
     }
   }
@@ -80,7 +80,7 @@ export class StorageController {
       return {
         success: false,
         data: null,
-        message: error.message || 'Failed to generate download URL',
+        message: (error as Error).message || 'Failed to generate download URL',
       };
     }
   }
@@ -101,7 +101,7 @@ export class StorageController {
       return {
         success: false,
         data: null,
-        message: error.message || 'Failed to delete file',
+        message: (error as Error).message || 'Failed to delete file',
       };
     }
   }
