@@ -1,8 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWeekDto } from './dto/create-week.dto';
 import { UpdateWeekDto } from './dto/update-week.dto';
 import { Role } from '@prisma/client';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class WeeksService {
@@ -74,18 +75,35 @@ export class WeeksService {
   }
 
   async create(courseId: string, dto: CreateWeekDto, userId: string, userRole: Role) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      weekNumber: { type: 'number', required: true, min: 1 },
+      startDate: { type: 'date', required: true },
+      endDate: { type: 'date', required: true },
+      order: { type: 'number', required: false, min: 1 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     // Only ADMIN and DOSEN can create weeks
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
       throw new ForbiddenException('Only Admin and Dosen can create weeks');
     }
 
     // Check if user has access to the course
-    await this.checkCourseAccess(courseId, userId, userRole);
+    await this.checkCourseAccess(validatedCourseId, userId, userRole);
 
+    // ✅ Create dengan data yang sudah divalidasi
     return this.prisma.week.create({
       data: {
-        courseId,
-        ...dto,
+        courseId: validatedCourseId,
+        ...result.sanitized,
       },
       include: {
         activities: true,
@@ -94,16 +112,33 @@ export class WeeksService {
   }
 
   async update(id: string, dto: UpdateWeekDto, userId: string, userRole: Role) {
+    // ✅ Auto-validation untuk field yang di-update
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: false, maxLength: 200 },
+      weekNumber: { type: 'number', required: false, min: 1 },
+      startDate: { type: 'date', required: false },
+      endDate: { type: 'date', required: false },
+      order: { type: 'number', required: false, min: 1 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate week ID
+    const validatedId = AutoValidator.validateUUID(id, 'Week ID');
+
     // Only ADMIN and DOSEN can update weeks
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
       throw new ForbiddenException('Only Admin and Dosen can update weeks');
     }
 
-    const week = await this.findOne(id, userId, userRole);
+    const week = await this.findOne(validatedId, userId, userRole);
 
+    // ✅ Update dengan data yang sudah divalidasi
     return this.prisma.week.update({
-      where: { id },
-      data: dto,
+      where: { id: validatedId },
+      data: result.sanitized,
       include: {
         activities: true,
       },

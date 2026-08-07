@@ -7,6 +7,7 @@ import { SubmitExamDto } from './dto/submit-exam.dto';
 import { Role, QuestionType, ExamAttemptStatus } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -24,11 +25,29 @@ export class ExamsService {
   /**
    * Create a new exam (Admin or course instructor only)
    * Heuristic #16: Instructional Assessment — require duration and maxScore
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async create(courseId: string, userId: string, userRole: Role, dto: CreateExamDto) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      startTime: { type: 'date', required: true },
+      deadline: { type: 'date', required: true },
+      duration: { type: 'number', required: true, min: 1, max: 480 },
+      isPublished: { type: 'boolean', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     // Check course access
     const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+      where: { id: validatedCourseId },
     });
 
     if (!course) {
@@ -40,23 +59,24 @@ export class ExamsService {
       throw new ForbiddenException('Only Admin and course instructor can create exams');
     }
 
-    // Validate dates
-    const startTime = new Date(dto.startTime);
-    const deadline = new Date(dto.deadline);
+    // ✅ Validate dates dengan data yang sudah di-parse
+    const startTime = result.sanitized.startTime;
+    const deadline = result.sanitized.deadline;
 
     if (startTime >= deadline) {
       throw new BadRequestException('Start time must be before deadline');
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const exam = await this.prisma.exam.create({
       data: {
-        courseId,
-        title: dto.title,
-        description: dto.description,
+        courseId: validatedCourseId,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
         startTime,
         deadline,
-        duration: dto.duration,
-        isPublished: dto.isPublished || false,
+        duration: result.sanitized.duration,
+        isPublished: result.sanitized.isPublished || false,
       },
       include: {
         course: {
@@ -74,7 +94,7 @@ export class ExamsService {
     // Send notifications to enrolled students if published via queue
     if (exam.isPublished) {
       const enrollments = await this.prisma.enrollment.findMany({
-        where: { courseId },
+        where: { courseId: validatedCourseId },
         select: { userId: true },
       });
 
@@ -84,7 +104,7 @@ export class ExamsService {
         type: 'EXAM_CREATED',
         title: 'Ujian Baru Dijadwalkan',
         message: `Ujian "${exam.title}" telah dijadwalkan di course "${course.name}". Mulai: ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
-        link: `/mahasiswa/courses/${courseId}/exams/${exam.id}`,
+        link: `/mahasiswa/courses/${validatedCourseId}/exams/${exam.id}`,
       });
     }
 
@@ -151,10 +171,28 @@ export class ExamsService {
 
   /**
    * Update exam (Admin or course instructor only)
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async update(id: string, userId: string, userRole: Role, dto: UpdateExamDto) {
+    // ✅ Auto-validation untuk field yang di-update
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: false, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      startTime: { type: 'date', required: false },
+      deadline: { type: 'date', required: false },
+      duration: { type: 'number', required: false, min: 1, max: 480 },
+      isPublished: { type: 'boolean', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate exam ID
+    const validatedId = AutoValidator.validateUUID(id, 'Exam ID');
+
     const exam = await this.prisma.exam.findUnique({
-      where: { id },
+      where: { id: validatedId },
       include: {
         course: true,
       },
@@ -171,16 +209,17 @@ export class ExamsService {
 
     // Prevent editing if exam has attempts
     const hasAttempts = await this.prisma.examAttempt.findFirst({
-      where: { examId: id, status: ExamAttemptStatus.SUBMITTED },
+      where: { examId: validatedId, status: ExamAttemptStatus.SUBMITTED },
     });
 
     if (hasAttempts) {
       throw new BadRequestException('Cannot update exam that has been taken by students');
     }
 
+    // ✅ Update dengan data yang sudah divalidasi
     const updatedExam = await this.prisma.exam.update({
-      where: { id },
-      data: dto,
+      where: { id: validatedId },
+      data: result.sanitized,
       include: {
         course: {
           select: {
@@ -193,7 +232,7 @@ export class ExamsService {
 
     await this.calendarService.createEventFromExam(updatedExam.id);
 
-    if (dto.startTime || dto.deadline) {
+    if (result.sanitized.startTime || result.sanitized.deadline) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { courseId: exam.courseId },
         select: { userId: true },
@@ -203,7 +242,7 @@ export class ExamsService {
         type: 'SCHEDULE_CHANGED',
         title: 'Perubahan Jadwal Ujian',
         message: `Jadwal ujian "${updatedExam.title}" telah diubah`,
-        link: `/mahasiswa/courses/${exam.courseId}/exams/${id}`,
+        link: `/mahasiswa/courses/${exam.courseId}/exams/${validatedId}`,
       });
     }
 

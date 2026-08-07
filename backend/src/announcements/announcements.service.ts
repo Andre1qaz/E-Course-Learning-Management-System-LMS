@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class AnnouncementsService {
@@ -218,12 +219,25 @@ export class AnnouncementsService {
     priority?: string;
     courseId?: string;
   }) {
-    // Filter out empty strings for optional UUID fields
-    const courseId = data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined;
-    
-    if (courseId) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      content: { type: 'string', required: true, maxLength: 5000 },
+      courseId: { type: 'uuid', required: false },
+      validFrom: { type: 'date', required: false },
+      validUntil: { type: 'date', required: false },
+      isPublished: { type: 'boolean', required: false },
+      priority: { type: 'string', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Gunakan result.sanitized.courseId (UUID sudah di-normalize)
+    if (result.sanitized.courseId) {
       const course = await this.prisma.course.findUnique({
-        where: { id: courseId },
+        where: { id: result.sanitized.courseId },
       });
 
       if (!course) {
@@ -237,15 +251,16 @@ export class AnnouncementsService {
       throw new ForbiddenException('Only admin can create global announcements');
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const announcement = await (this.prisma as any).announcement.create({
       data: {
-        title: data.title,
-        content: data.content,
+        title: result.sanitized.title,
+        content: result.sanitized.content,
         attachments: data.attachments,
-        validFrom: data.validFrom || new Date(),
-        validUntil: data.validUntil,
-        isPublished: data.isPublished !== undefined ? data.isPublished : true,
-        priority: data.priority || 'normal',
+        validFrom: result.sanitized.validFrom || new Date(),
+        validUntil: result.sanitized.validUntil,
+        isPublished: result.sanitized.isPublished !== undefined ? result.sanitized.isPublished : true,
+        priority: result.sanitized.priority || 'normal',
         courseId,
         authorId: userId,
         publishedAt: data.isPublished !== undefined ? data.isPublished ? new Date() : null : new Date(),

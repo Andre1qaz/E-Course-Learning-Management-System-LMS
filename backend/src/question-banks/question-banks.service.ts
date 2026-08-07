@@ -4,16 +4,31 @@ import { Role } from '@prisma/client';
 import { DifficultyLevel, QuestionType } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class QuestionBanksService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, userRole: Role, dto: any) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      topic: { type: 'string', required: false, maxLength: 100 },
+      courseId: { type: 'uuid', required: false },
+      difficulty: { type: 'string', required: false },
+      questionType: { type: 'string', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     // Check course access if courseId is provided
-    if (dto.courseId) {
+    if (result.sanitized.courseId) {
       const course = await this.prisma.course.findUnique({
-        where: { id: dto.courseId },
+        where: { id: result.sanitized.courseId },
       });
 
       if (!course) {
@@ -26,14 +41,15 @@ export class QuestionBanksService {
       }
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const questionBank = await this.prisma.questionBank.create({
       data: {
-        courseId: dto.courseId,
-        title: dto.title,
-        description: dto.description,
-        topic: dto.topic,
-        difficulty: dto.difficulty || DifficultyLevel.MEDIUM,
-        questionType: dto.questionType,
+        courseId: result.sanitized.courseId,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
+        topic: result.sanitized.topic,
+        difficulty: result.sanitized.difficulty || DifficultyLevel.MEDIUM,
+        questionType: result.sanitized.questionType,
       },
       include: {
         course: {

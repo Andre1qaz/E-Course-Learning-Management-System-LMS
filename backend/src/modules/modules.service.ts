@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -7,6 +7,7 @@ import { CreateModuleFileDto } from './dto/create-module.dto';
 import { Role, ModuleFileType } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -25,11 +26,27 @@ export class ModulesService {
   /**
    * Create a new module (Admin or course instructor only)
    * Heuristic #12: Clarity of Purpose and Objectives — learning objectives required
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async create(courseId: string, userId: string, userRole: Role, dto: CreateModuleDto) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      learningObjectives: { type: 'string', required: false, maxLength: 5000 },
+      order: { type: 'number', required: false, min: 1 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     // Check course access
     const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+      where: { id: validatedCourseId },
     });
 
     if (!course) {
@@ -42,22 +59,23 @@ export class ModulesService {
     }
 
     // Auto-generate order if not provided
-    let order = dto.order;
+    let order = result.sanitized.order;
     if (order === undefined) {
       const lastModule = await this.prisma.module.findFirst({
-        where: { courseId },
+        where: { courseId: validatedCourseId },
         orderBy: { order: 'desc' },
       });
       order = lastModule ? lastModule.order + 1 : 1;
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const module = await this.prisma.module.create({
       data: {
-        courseId,
-        title: dto.title,
-        description: dto.description,
-        learningObjectives: dto.learningObjectives,
-        order: dto.order ?? 0,
+        courseId: validatedCourseId,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
+        learningObjectives: result.sanitized.learningObjectives,
+        order: result.sanitized.order ?? 0,
       },
       include: {
         files: true,
@@ -69,7 +87,7 @@ export class ModulesService {
 
     // Send notifications to enrolled students via queue
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { courseId },
+      where: { courseId: validatedCourseId },
       select: { userId: true },
     });
 

@@ -21,3 +21,4 @@ export {
   LearningObjectivesField,
   IsOptionalUUID,
 } from './dto.decorators';
+export { AutoValidator } from './validation-guide';

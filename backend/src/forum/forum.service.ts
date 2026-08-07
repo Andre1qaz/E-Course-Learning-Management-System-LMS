@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, NotificationType } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear error messages for forum operations
 // Heuristic #5: Error Prevention — validate thread ownership before modification
@@ -325,15 +326,29 @@ export class ForumService {
 
   /**
    * Create a new forum thread
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async createThread(userId: string, courseId: string, data: {
     title: string;
     content: string;
     attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
   }) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      content: { type: 'string', required: true, maxLength: 10000 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     // First check if course exists
     const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+      where: { id: validatedCourseId },
     });
 
     if (!course) {
@@ -345,7 +360,7 @@ export class ForumService {
       where: {
         userId_courseId: {
           userId,
-          courseId,
+          courseId: validatedCourseId,
         },
       },
     });
@@ -354,12 +369,13 @@ export class ForumService {
       throw new ForbiddenException('You must be enrolled in this course to create a thread');
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const thread = await this.prisma.forumThread.create({
       data: {
-        courseId,
+        courseId: validatedCourseId,
         authorId: userId,
-        title: data.title,
-        content: data.content,
+        title: result.sanitized.title,
+        content: result.sanitized.content,
         attachments: data.attachments
           ? {
               create: data.attachments.map((att) => ({
@@ -820,6 +836,7 @@ export class ForumService {
 
   /**
    * Add a reply to a thread with attachments
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async createReply(
     userId: string,
@@ -829,8 +846,20 @@ export class ForumService {
       attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
     },
   ) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      content: { type: 'string', required: true, maxLength: 10000 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize threadId
+    const validatedThreadId = AutoValidator.validateUUID(threadId, 'Thread ID');
+
     const thread = await this.prisma.forumThread.findUnique({
-      where: { id: threadId },
+      where: { id: validatedThreadId },
       include: { course: true },
     });
 

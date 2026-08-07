@@ -12,6 +12,7 @@ import {
   NotificationType,
 } from '@prisma/client';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
 // Heuristic #5: Error Prevention — validate event ownership before modification
@@ -150,6 +151,7 @@ export class CalendarService {
    * Create a new calendar event
    * Admin and Lecturer can create course events
    * All users can create personal notes
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async createEvent(userId: string, userRole: Role, data: {
     title: string;
@@ -171,14 +173,30 @@ export class CalendarService {
     attachments?: any;
     courseId?: string;
   }) {
-    // Filter out empty strings for optional UUID fields
-    const courseId = data.courseId && data.courseId.trim() !== '' ? data.courseId : undefined;
-    const relatedActivityId = data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : undefined;
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      startDate: { type: 'date', required: true },
+      endDate: { type: 'date', required: false },
+      startTime: { type: 'string', required: false, maxLength: 10 },
+      endTime: { type: 'string', required: false, maxLength: 10 },
+      location: { type: 'string', required: false, maxLength: 200 },
+      isOnline: { type: 'boolean', required: false },
+      meetingLink: { type: 'string', required: false, maxLength: 500 },
+      courseId: { type: 'uuid', required: false },
+      relatedActivityId: { type: 'uuid', required: false },
+      isPublished: { type: 'boolean', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
     
     // If courseId is provided, verify user has permission
-    if (courseId) {
+    if (result.sanitized.courseId) {
       const course = await this.prisma.course.findUnique({
-        where: { id: courseId },
+        where: { id: result.sanitized.courseId },
       });
 
       if (!course) {
@@ -191,11 +209,12 @@ export class CalendarService {
       }
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const event = await this.prisma.calendarEvent.create({
       data: {
-        title: data.title,
-        description: data.description,
-        startDate: data.startDate,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
+        startDate: result.sanitized.startDate,
         endDate: data.endDate,
         startTime: data.startTime,
         endTime: data.endTime,

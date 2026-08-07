@@ -4,6 +4,7 @@ import { Role, ExamCategory } from '@prisma/client';
 import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './dto';
 import * as ExcelJS from 'exceljs';
 import PDFKit from 'pdfkit';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear error messages
 // Heuristic #5: Error Prevention — validation and access control
@@ -231,36 +232,70 @@ export class GradebookService {
     userId: string,
     role: Role,
   ) {
-    await this.checkCourseAccess(courseId, userId, role);
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      assignmentScore: { type: 'number', required: false, min: 0, max: 100 },
+      quizScore: { type: 'number', required: false, min: 0, max: 100 },
+      utsScore: { type: 'number', required: false, min: 0, max: 100 },
+      uasScore: { type: 'number', required: false, min: 0, max: 100 },
+      otherScore: { type: 'number', required: false, min: 0, max: 100 },
+      finalScore: { type: 'number', required: false, min: 0, max: 100 },
+      letterGrade: { type: 'string', required: false, maxLength: 2 },
+      feedback: { type: 'string', required: false, maxLength: 5000 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize IDs
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+
+    await this.checkCourseAccess(validatedCourseId, userId, role);
 
     const existingGrade = await this.prisma.grade.findUnique({
       where: {
         courseId_studentId: {
-          courseId,
-          studentId,
+          courseId: validatedCourseId,
+          studentId: validatedStudentId,
         },
       },
     });
 
     // Track changes
     const changes = [];
-    if (dto.assignmentScore !== undefined && existingGrade?.assignmentScore !== dto.assignmentScore) {
-      changes.push({ field: 'assignmentScore', old: existingGrade?.assignmentScore, new: dto.assignmentScore });
+    if (result.sanitized.assignmentScore !== undefined && existingGrade?.assignmentScore !== result.sanitized.assignmentScore) {
+      changes.push({ field: 'assignmentScore', old: existingGrade?.assignmentScore, new: result.sanitized.assignmentScore });
     }
-    if (dto.quizScore !== undefined && existingGrade?.quizScore !== dto.quizScore) {
-      changes.push({ field: 'quizScore', old: existingGrade?.quizScore, new: dto.quizScore });
+    if (result.sanitized.quizScore !== undefined && existingGrade?.quizScore !== result.sanitized.quizScore) {
+      changes.push({ field: 'quizScore', old: existingGrade?.quizScore, new: result.sanitized.quizScore });
     }
-    if (dto.utsScore !== undefined && existingGrade?.utsScore !== dto.utsScore) {
-      changes.push({ field: 'utsScore', old: existingGrade?.utsScore, new: dto.utsScore });
+    if (result.sanitized.utsScore !== undefined && existingGrade?.utsScore !== result.sanitized.utsScore) {
+      changes.push({ field: 'utsScore', old: existingGrade?.utsScore, new: result.sanitized.utsScore });
     }
-    if (dto.uasScore !== undefined && existingGrade?.uasScore !== dto.uasScore) {
-      changes.push({ field: 'uasScore', old: existingGrade?.uasScore, new: dto.uasScore });
+    if (result.sanitized.uasScore !== undefined && existingGrade?.uasScore !== result.sanitized.uasScore) {
+      changes.push({ field: 'uasScore', old: existingGrade?.uasScore, new: result.sanitized.uasScore });
     }
-    if (dto.otherScore !== undefined && existingGrade?.otherScore !== dto.otherScore) {
-      changes.push({ field: 'otherScore', old: existingGrade?.otherScore, new: dto.otherScore });
+    if (result.sanitized.otherScore !== undefined && existingGrade?.otherScore !== result.sanitized.otherScore) {
+      changes.push({ field: 'otherScore', old: existingGrade?.otherScore, new: result.sanitized.otherScore });
     }
 
+    // ✅ Update dengan data yang sudah divalidasi
     const grade = await this.prisma.grade.upsert({
+      where: {
+        courseId_studentId: {
+          courseId: validatedCourseId,
+          studentId: validatedStudentId,
+        },
+      },
+      create: {
+        courseId: validatedCourseId,
+        studentId: validatedStudentId,
+        ...result.sanitized,
+      },
+      update: result.sanitized,
+    });
       where: {
         courseId_studentId: {
           courseId,
@@ -350,7 +385,24 @@ export class GradebookService {
     userId: string,
     role: Role,
   ) {
-    await this.checkCourseAccess(courseId, userId, role);
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      assignmentWeight: { type: 'number', required: false, min: 0, max: 100 },
+      quizWeight: { type: 'number', required: false, min: 0, max: 100 },
+      utsWeight: { type: 'number', required: false, min: 0, max: 100 },
+      uasWeight: { type: 'number', required: false, min: 0, max: 100 },
+      otherWeight: { type: 'number', required: false, min: 0, max: 100 },
+      passingGrade: { type: 'number', required: false, min: 0, max: 100 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
+    await this.checkCourseAccess(validatedCourseId, userId, role);
 
     const settings = await this.prisma.courseSettings.upsert({
       where: { courseId },

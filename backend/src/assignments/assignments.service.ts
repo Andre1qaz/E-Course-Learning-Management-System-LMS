@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
@@ -6,6 +6,7 @@ import { GradeAssignmentDto } from './dto/grade-assignment.dto';
 import { Role, AssignmentSubmissionStatus } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -23,11 +24,27 @@ export class AssignmentsService {
   /**
    * Create a new assignment (Admin or course instructor only)
    * Heuristic #16: Instructional Assessment — require maxScore for grading
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async create(courseId: string, userId: string, userRole: Role, dto: CreateAssignmentDto) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      deadline: { type: 'date', required: true },
+      maxScore: { type: 'number', required: true, min: 0, max: 1000 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize courseId
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     // Check course access
     const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+      where: { id: validatedCourseId },
     });
 
     if (!course) {
@@ -39,13 +56,14 @@ export class AssignmentsService {
       throw new ForbiddenException('Only Admin and course instructor can create assignments');
     }
 
+    // ✅ Create dengan data yang sudah divalidasi
     const assignment = await this.prisma.assignment.create({
       data: {
-        courseId,
-        title: dto.title,
-        description: dto.description,
-        deadline: new Date(dto.deadline),
-        maxScore: dto.maxScore,
+        courseId: validatedCourseId,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
+        deadline: result.sanitized.deadline,
+        maxScore: result.sanitized.maxScore,
       },
       include: {
         course: {
@@ -62,7 +80,7 @@ export class AssignmentsService {
 
     // Send notifications to enrolled students via queue
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { courseId },
+      where: { courseId: validatedCourseId },
       select: { userId: true },
     });
 
@@ -71,8 +89,8 @@ export class AssignmentsService {
       userIds: studentIds,
       type: 'ASSIGNMENT_CREATED',
       title: 'Tugas Baru Ditambahkan',
-      message: `Tugas "${assignment.title}" telah ditambahkan di course "${course.name}". Deadline: ${new Date(dto.deadline).toLocaleDateString('id-ID')}`,
-      link: `/mahasiswa/courses/${courseId}/assignments/${assignment.id}`,
+      message: `Tugas "${assignment.title}" telah ditambahkan di course "${course.name}". Deadline: ${result.sanitized.deadline.toLocaleDateString('id-ID')}`,
+      link: `/mahasiswa/courses/${validatedCourseId}/assignments/${assignment.id}`,
     });
 
     return {
@@ -132,10 +150,26 @@ export class AssignmentsService {
 
   /**
    * Update assignment (Admin or course instructor only)
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async update(id: string, userId: string, userRole: Role, dto: UpdateAssignmentDto) {
+    // ✅ Auto-validation untuk field yang di-update
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: false, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      deadline: { type: 'date', required: false },
+      maxScore: { type: 'number', required: false, min: 0, max: 1000 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate assignment ID
+    const validatedId = AutoValidator.validateUUID(id, 'Assignment ID');
+
     const assignment = await this.prisma.assignment.findUnique({
-      where: { id },
+      where: { id: validatedId },
       include: {
         course: true,
       },
@@ -150,9 +184,10 @@ export class AssignmentsService {
       throw new ForbiddenException('Only Admin and course instructor can update this assignment');
     }
 
+    // ✅ Update dengan data yang sudah divalidasi
     const updatedAssignment = await this.prisma.assignment.update({
-      where: { id },
-      data: dto,
+      where: { id: validatedId },
+      data: result.sanitized,
       include: {
         course: {
           select: {
@@ -165,7 +200,7 @@ export class AssignmentsService {
 
     await this.calendarService.createEventFromAssignment(updatedAssignment.id);
 
-    if (dto.deadline) {
+    if (result.sanitized.deadline) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { courseId: assignment.courseId },
         select: { userId: true },
@@ -174,8 +209,8 @@ export class AssignmentsService {
         userIds: enrollments.map((e) => e.userId),
         type: 'SCHEDULE_CHANGED',
         title: 'Perubahan Deadline Tugas',
-        message: `Deadline tugas "${updatedAssignment.title}" diubah menjadi ${new Date(dto.deadline).toLocaleDateString('id-ID')}`,
-        link: `/mahasiswa/courses/${assignment.courseId}/assignments/${id}`,
+        message: `Deadline tugas "${updatedAssignment.title}" diubah menjadi ${result.sanitized.deadline.toLocaleDateString('id-ID')}`,
+        link: `/mahasiswa/courses/${assignment.courseId}/assignments/${validatedId}`,
       });
     }
 

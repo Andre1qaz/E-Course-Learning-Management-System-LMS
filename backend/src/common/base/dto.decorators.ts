@@ -19,21 +19,33 @@ import {
 /**
  * Custom decorators untuk DTO yang sering digunakan
  * Ini menyederhanakan pembuatan DTO dengan pattern yang konsisten
+ * SEMUA ERROR MESSAGE DALAM BAHASA INDONESIA!
  */
 
-// Custom validator untuk optional UUID
+// Custom validator untuk optional UUID dengan auto-format handling
 @ValidatorConstraint({ name: 'isOptionalUUID', async: false })
 export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
   validate(value: any, args: ValidationArguments) {
     if (value === undefined || value === null || value === '') {
       return true;
     }
+    
+    // Handle berbagai UUID format
+    const normalizedId = value.trim().toLowerCase();
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
+    
+    // Coba format dengan dashes
+    if (uuidRegex.test(normalizedId)) return true;
+    
+    // Coba format tanpa dashes (32 hex chars)
+    const noDashRegex = /^[0-9a-f]{32}$/i;
+    if (noDashRegex.test(normalizedId)) return true;
+    
+    return false;
   }
 
   defaultMessage(args: ValidationArguments) {
-    return '${property} must be a valid UUID or empty';
+    return '${property} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung';
   }
 }
 
@@ -45,6 +57,42 @@ export function IsOptionalUUID(validationOptions?: ValidationOptions) {
       options: validationOptions,
       constraints: [],
       validator: IsOptionalUUIDConstraint,
+    });
+  };
+}
+
+// Custom validator untuk required UUID dengan auto-format handling
+@ValidatorConstraint({ name: 'isUUID', async: false })
+export class IsUUIDConstraint implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments) {
+    if (!value || value.trim() === '') {
+      return false;
+    }
+    
+    const normalizedId = value.trim().toLowerCase();
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(normalizedId)) return true;
+    
+    const noDashRegex = /^[0-9a-f]{32}$/i;
+    if (noDashRegex.test(normalizedId)) return true;
+    
+    return false;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return '${property} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung';
+  }
+}
+
+export function IsUUID(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      constraints: [],
+      validator: IsUUIDConstraint,
     });
   };
 }

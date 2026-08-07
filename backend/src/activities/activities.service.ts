@@ -1,10 +1,11 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { Role, ActivityStatus, ActivityType } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class ActivitiesService {
@@ -60,6 +61,22 @@ export class ActivitiesService {
   }
 
   async create(weekId: string, dto: CreateActivityDto, userId: string, userRole: Role) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      title: { type: 'string', required: true, maxLength: 200 },
+      description: { type: 'string', required: false, maxLength: 2000 },
+      type: { type: 'string', required: false },
+      status: { type: 'string', required: false },
+      order: { type: 'number', required: false, min: 1 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate dan normalize weekId
+    const validatedWeekId = AutoValidator.validateUUID(weekId, 'Week ID');
+
     // Only ADMIN and DOSEN can create activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
       throw new ForbiddenException('Only Admin and Dosen can create activities');
@@ -67,7 +84,7 @@ export class ActivitiesService {
 
     // Check if week exists and user has access
     const week = await this.prisma.week.findUnique({
-      where: { id: weekId },
+      where: { id: validatedWeekId },
       include: { course: true },
     });
 
@@ -77,17 +94,18 @@ export class ActivitiesService {
 
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
+    // ✅ Create dengan data yang sudah divalidasi
     const activity = await this.prisma.activity.create({
       data: {
-        weekId,
-        ...dto,
-        publishedAt: dto.status === 'PUBLISHED' ? new Date() : null,
+        weekId: validatedWeekId,
+        ...result.sanitized,
+        publishedAt: result.sanitized.status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
     await this.calendarService.createEventFromActivity(activity.id);
 
-    if (dto.status === 'PUBLISHED') {
+    if (result.sanitized.status === 'PUBLISHED') {
       await this.notifyActivityPublished(activity.id);
     }
 

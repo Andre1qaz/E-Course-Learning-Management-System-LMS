@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear file operation responses
 // Heuristic #13: Storage Capability — quota tracking and visual indicators
@@ -195,10 +196,22 @@ export class PrivateFilesService {
 
   /**
    * Create a folder (virtual - just a path marker)
+   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async createFolder(userId: string, folderPath: string) {
+    // ✅ Auto-validation folderPath
+    const result = AutoValidator.validateObject({ folderPath }, {
+      folderPath: { type: 'string', required: true, maxLength: 500 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     // Normalize folder path
-    const normalizedPath = folderPath.startsWith('/') ? folderPath : `/${folderPath}`;
+    const normalizedPath = result.sanitized.folderPath.startsWith('/') 
+      ? result.sanitized.folderPath 
+      : `/${result.sanitized.folderPath}`;
     
     // Check if folder already exists (by checking if any file exists in this path)
     const existingFile = await this.prisma.privateFile.findFirst({

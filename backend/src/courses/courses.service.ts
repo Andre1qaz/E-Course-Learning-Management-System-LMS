@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -6,6 +6,7 @@ import { EnrollCourseDto } from './dto/enroll-course.dto';
 import { DirectEnrollDto } from './dto/direct-enroll.dto';
 import { UpdateEnrollmentKeyDto } from './dto/update-enrollment-key.dto';
 import { Role, EnrollmentRole } from '@prisma/client';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -18,27 +19,42 @@ export class CoursesService {
   /**
    * Create a new course (Admin or Dosen only)
    * Heuristic #5: Error Prevention — validate instructor exists
+   * ✅ SEKARANG MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
   async create(userId: string, userRole: Role, dto: CreateCourseDto) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      name: { type: 'string', required: true, maxLength: 200 },
+      code: { type: 'string', required: true, maxLength: 20 },
+      description: { type: 'string', required: false, maxLength: 1000 },
+      learningObjectives: { type: 'string', required: false, maxLength: 2000 },
+      thumbnailColor: { type: 'string', required: false },
+      isLinear: { type: 'boolean', required: false },
+      categoryId: { type: 'uuid', required: false },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // Permission check
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
       throw new ForbiddenException('Only Admin and Dosen can create courses');
     }
 
     // Check if course code already exists
     const existingCourse = await this.prisma.course.findUnique({
-      where: { code: dto.code },
+      where: { code: result.sanitized.code },
     });
 
     if (existingCourse) {
       throw new ConflictException('Course code already exists');
     }
 
-    // Validate category if provided (filter out empty strings)
-    const categoryId = dto.categoryId && dto.categoryId.trim() !== '' ? dto.categoryId : undefined;
-    
-    if (categoryId) {
+    // ✅ Category validation dengan UUID yang sudah di-normalize
+    if (result.sanitized.categoryId) {
       const category = await this.prisma.courseCategory.findUnique({
-        where: { id: categoryId },
+        where: { id: result.sanitized.categoryId },
       });
 
       if (!category) {
@@ -49,10 +65,10 @@ export class CoursesService {
     // Generate unique enrollment code
     const enrollmentCode = this.generateEnrollmentCode();
 
+    // ✅ Create dengan data yang sudah divalidasi dan di-sanitize
     const course = await this.prisma.course.create({
       data: {
-        ...dto,
-        categoryId,
+        ...result.sanitized,
         enrollmentCode,
         instructorId: userId,
       },
