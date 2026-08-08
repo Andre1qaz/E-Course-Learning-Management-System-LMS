@@ -5,10 +5,11 @@ import {
   MaxLength, 
   IsEnum, 
   IsBoolean, 
-  IsObject
+  IsArray
 } from 'class-validator';
 import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType } from '@prisma/client';
 import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
+import { CalendarEventAttachment } from './calendar.types';
 
 // Heuristic #5: Error Prevention — validate event data before update
 // Heuristic #6: Recognition Rather Than Recall — clear event types
@@ -85,7 +86,7 @@ export class UpdateEventDto {
   @IsOptional()
   isPublished?: boolean;
 
-  @IsObject()
+  @IsArray()
   @IsOptional()
-  attachments?: any;
+  attachments?: CalendarEventAttachment[];
 }

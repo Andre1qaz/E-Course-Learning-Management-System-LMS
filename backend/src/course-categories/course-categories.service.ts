@@ -63,7 +63,7 @@ export class CourseCategoriesService {
    * Heuristic #7: Flexibility and Efficiency of Use — filter by active status
    */
   async findAll(userId: string, userRole: Role, filters?: { isActive?: boolean }) {
-    const where: any = {};
+    const where: { isActive?: boolean } = {};
 
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;

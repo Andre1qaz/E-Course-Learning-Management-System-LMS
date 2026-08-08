@@ -5,12 +5,21 @@ import { DifficultyLevel, QuestionType } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
 import { AutoValidator } from '../common/base/validation-guide';
+import {
+  CreateQuestionBankDto,
+  UpdateQuestionBankDto,
+  AddQuestionDto,
+  QuestionBankWithQuestions,
+  JsonQuestionBankImport,
+  CsvQuestionImport,
+  ExcelQuestionImport
+} from './dto/question-bank.dto';
 
 @Injectable()
 export class QuestionBanksService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, userRole: Role, dto: any) {
+  async create(userId: string, userRole: Role, dto: CreateQuestionBankDto) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -135,7 +144,7 @@ export class QuestionBanksService {
     };
   }
 
-  async update(id: string, userId: string, userRole: Role, dto: any) {
+  async update(id: string, userId: string, userRole: Role, dto: UpdateQuestionBankDto) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id },
       include: {
@@ -205,7 +214,7 @@ export class QuestionBanksService {
     };
   }
 
-  async addQuestion(questionBankId: string, userId: string, userRole: Role, dto: any) {
+  async addQuestion(questionBankId: string, userId: string, userRole: Role, dto: AddQuestionDto) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id: questionBankId },
       include: {
@@ -420,7 +429,7 @@ export class QuestionBanksService {
     }
   }
 
-  private async exportAsJson(questionBank: any, fileName: string, res: Response) {
+  private async exportAsJson(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
     const exportData = {
       metadata: {
         title: questionBank.title,
@@ -431,12 +440,12 @@ export class QuestionBanksService {
         course: questionBank.course,
         exportedAt: new Date().toISOString(),
       },
-      questions: questionBank.questions.map((q: any) => ({
+      questions: questionBank.questions.map((q) => ({
         type: q.type,
         questionText: q.questionText,
         points: q.points,
         explanation: q.explanation,
-        options: q.options?.map((o: any) => ({
+        options: q.options?.map((o) => ({
           optionText: o.optionText,
           isCorrect: o.isCorrect,
         })),
@@ -448,7 +457,7 @@ export class QuestionBanksService {
     res.status(HttpStatus.OK).json(exportData);
   }
 
-  private async exportAsCsv(questionBank: any, fileName: string, res: Response) {
+  private async exportAsCsv(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Questions');
 
@@ -464,9 +473,9 @@ export class QuestionBanksService {
     ];
 
     // Add questions
-    questionBank.questions.forEach((q: any) => {
-      const optionsText = q.options?.map((o: any) => o.optionText).join(' | ') || '';
-      const correctAnswer = q.options?.filter((o: any) => o.isCorrect).map((o: any) => o.optionText).join(' | ') || '';
+    questionBank.questions.forEach((q) => {
+      const optionsText = q.options?.map((o) => o.optionText).join(' | ') || '';
+      const correctAnswer = q.options?.filter((o) => o.isCorrect).map((o) => o.optionText).join(' | ') || '';
 
       worksheet.addRow({
         id: q.id,
@@ -486,7 +495,7 @@ export class QuestionBanksService {
     res.status(HttpStatus.OK).send(buffer);
   }
 
-  private async exportAsExcel(questionBank: any, fileName: string, res: Response) {
+  private async exportAsExcel(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Questions');
 
@@ -524,9 +533,9 @@ export class QuestionBanksService {
     };
 
     // Add questions
-    questionBank.questions.forEach((q: any) => {
+    questionBank.questions.forEach((q) => {
       const options = q.options || [];
-      const correctAnswers = options.filter((o: any) => o.isCorrect).map((o: any, i: number) => `Option ${i + 1}`).join(', ');
+      const correctAnswers = options.filter((o) => o.isCorrect).map((o, i: number) => `Option ${i + 1}`).join(', ');
 
       worksheet.addRow({
         type: q.type,
@@ -548,7 +557,7 @@ export class QuestionBanksService {
     res.status(HttpStatus.OK).send(buffer);
   }
 
-  async importQuestionBank(format: string, data: any, userId: string, userRole: Role, courseId?: string) {
+  async importQuestionBank(format: string, data: JsonQuestionBankImport | CsvQuestionImport[] | ExcelQuestionImport[], userId: string, userRole: Role, courseId?: string) {
     // Check course access if courseId is provided
     if (courseId) {
       const course = await this.prisma.course.findUnique({
@@ -577,7 +586,7 @@ export class QuestionBanksService {
     }
   }
 
-  private async importFromJson(data: any, userId: string, userRole: Role, courseId?: string) {
+  private async importFromJson(data: JsonQuestionBankImport, userId: string, userRole: Role, courseId?: string) {
     const { metadata, questions } = data;
 
     if (!metadata || !questions) {
@@ -630,7 +639,7 @@ export class QuestionBanksService {
     };
   }
 
-  private async importFromCsv(data: any, userId: string, userRole: Role, courseId?: string) {
+  private async importFromCsv(data: CsvQuestionImport[], userId: string, userRole: Role, courseId?: string) {
     // For CSV import, data should be an array of objects
     if (!Array.isArray(data)) {
       throw new BadRequestException('Invalid CSV format. Expected array of question objects');
@@ -685,7 +694,7 @@ export class QuestionBanksService {
     };
   }
 
-  private async importFromExcel(data: any, userId: string, userRole: Role, courseId?: string) {
+  private async importFromExcel(data: ExcelQuestionImport[], userId: string, userRole: Role, courseId?: string) {
     // For Excel import, data should be an array of objects (rows)
     if (!Array.isArray(data)) {
       throw new BadRequestException('Invalid Excel format. Expected array of question objects');

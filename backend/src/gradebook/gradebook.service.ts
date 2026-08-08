@@ -5,6 +5,7 @@ import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './
 import * as ExcelJS from 'exceljs';
 import PDFKit from 'pdfkit';
 import { AutoValidator } from '../common/base/validation-guide';
+import { EnrollmentWithGrade, BulkGradeUpdateResult } from './dto/gradebook.types';
 
 // Heuristic #1: Visibility of System Status — clear error messages
 // Heuristic #5: Error Prevention — validation and access control
@@ -217,7 +218,7 @@ export class GradebookService {
     return {
       success: true,
       data: {
-        enrollments: enrollments.map((enrollment: any) => ({
+        enrollments: enrollments.map((enrollment): EnrollmentWithGrade => ({
           course: enrollment.course,
           grade: grades.find((g) => g.courseId === enrollment.courseId) || null,
         })),
@@ -352,7 +353,7 @@ export class GradebookService {
   ) {
     await this.checkCourseAccess(courseId, userId, role);
 
-    const results = [];
+    const results: BulkGradeUpdateResult[] = [];
 
     for (const gradeUpdate of dto.grades) {
       try {
@@ -367,8 +368,8 @@ export class GradebookService {
           role,
         );
         results.push({ studentId: gradeUpdate.studentId, success: true });
-      } catch (error: any) {
-        results.push({ studentId: gradeUpdate.studentId, success: false, error: error.message });
+      } catch (error) {
+        results.push({ studentId: gradeUpdate.studentId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 
@@ -527,14 +528,14 @@ export class GradebookService {
       where: { courseId, role: 'STUDENT' },
     });
 
-    const results = [];
+    const results: BulkGradeUpdateResult[] = [];
 
     for (const enrollment of enrollments) {
       try {
         const grade = await this.calculateStudentGrade(courseId, enrollment.userId);
         results.push({ studentId: enrollment.userId, success: true });
-      } catch (error: any) {
-        results.push({ studentId: enrollment.userId, success: false, error: error.message });
+      } catch (error) {
+        results.push({ studentId: enrollment.userId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 

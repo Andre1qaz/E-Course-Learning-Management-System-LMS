@@ -258,15 +258,32 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
       const headers = lines[0].split(',');
       return lines.slice(1).map(line => {
         const values = line.split(',');
-        const obj: any = {};
+        const obj: Record<string, string> = {};
         headers.forEach((header, index) => {
           obj[header.trim()] = values[index]?.trim() || '';
         });
         return obj;
       });
     } else if (format === 'excel' || format === 'xlsx') {
-      // For Excel, we'll need a library like xlsx
-      // For now, return empty array as placeholder
+      // Use xlsx library to parse Excel files
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // Convert to array of objects
+      if (jsonData.length > 0) {
+        const headers = jsonData[0] as string[];
+        return jsonData.slice(1).map((row: unknown) => {
+          const obj: Record<string, unknown> = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || '';
+          });
+          return obj;
+        });
+      }
       return [];
     }
     return null;

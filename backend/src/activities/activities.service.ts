@@ -121,7 +121,7 @@ export class ActivitiesService {
     const activity = await this.findOne(id, userId, userRole);
 
     // Update publishedAt if status is being changed to PUBLISHED
-    const updateData: any = { ...dto };
+    const updateData: UpdateActivityDto & { publishedAt?: string } = { ...dto };
     if (dto.status === 'PUBLISHED' && activity.status !== ActivityStatus.PUBLISHED) {
       updateData.publishedAt = new Date().toISOString();
     }

@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
-import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
 
 const SALT_ROUNDS = 12;
@@ -127,13 +127,83 @@ export class AuthService {
       };
     }
 
-    // In production: queue email via BullMQ
+    // Generate reset token
+    const resetToken = this.generateResetToken();
+    const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Store reset token in database
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken,
+        resetTokenExpires,
+      },
+    });
+
+    // In production: queue email via BullMQ with reset token
+    // For now, we'll return the token in the response for testing purposes
+    return {
+      success: true,
+      data: { resetToken }, // Only for development - remove in production
+      message:
+        `Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda. Token: ${resetToken}`,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<ApiResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { resetToken: dto.token },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Token reset tidak valid atau telah kadaluarsa.');
+    }
+
+    if (user.resetTokenExpires && user.resetTokenExpires < new Date()) {
+      throw new UnauthorizedException('Token reset telah kadaluarsa. Silakan minta token baru.');
+    }
+
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new UnauthorizedException('Password baru dan konfirmasi tidak sama.');
+    }
+
+    // Password validation: minimal 8 karakter dan kombinasi huruf dan angka
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(dto.newPassword)) {
+      throw new UnauthorizedException(
+        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpires: null,
+      },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        action: 'RESET_PASSWORD',
+        entity: 'User',
+        entityId: user.id,
+      },
+    });
+
     return {
       success: true,
       data: null,
-      message:
-        'Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda.',
+      message: 'Password berhasil direset. Silakan login dengan password baru.',
     };
+  }
+
+  private generateResetToken(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   async getProfile(userId: string): Promise<ApiResponse> {

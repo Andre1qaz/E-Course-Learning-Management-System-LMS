@@ -73,7 +73,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       setEvents(eventsData.data || []);
       setUpcomingEvents(upcomingData.data || []);
       setCourses(
-        (coursesData.data || []).map((c: any) => ({
+        (coursesData.data || []).map((c: { id: string; name: string; code: string }) => ({
           id: c.id,
           name: c.name,
           code: c.code,

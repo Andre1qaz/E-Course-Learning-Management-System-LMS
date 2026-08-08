@@ -68,3 +68,24 @@ export class ChangePasswordDto {
   @IsNotEmpty({ message: 'Konfirmasi password wajib diisi' })
   confirmPassword!: string;
 }
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'abc123xyz' })
+  @IsString()
+  @IsNotEmpty({ message: 'Token reset wajib diisi' })
+  token!: string;
+
+  @ApiProperty({ example: 'NewPassword456!' })
+  @IsString()
+  @IsNotEmpty({ message: 'Password baru wajib diisi' })
+  @MinLength(8, { message: 'Password baru minimal 8 karakter' })
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
+    message: 'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
+  })
+  newPassword!: string;
+
+  @ApiProperty({ example: 'NewPassword456!' })
+  @IsString()
+  @IsNotEmpty({ message: 'Konfirmasi password wajib diisi' })
+  confirmPassword!: string;
+}

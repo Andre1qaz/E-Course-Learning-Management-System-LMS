@@ -13,6 +13,13 @@ import {
 } from '@prisma/client';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 import { AutoValidator } from '../common/base/validation-guide';
+import {
+  CalendarEventWhere,
+  CalendarEventAttachment,
+  CreateCalendarEventDto,
+  UpdateCalendarEventDto,
+  CalendarEventWithTimeRemaining
+} from './dto/calendar.types';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
 // Heuristic #5: Error Prevention — validate event ownership before modification
@@ -25,7 +32,7 @@ export class CalendarService {
     private notificationsQueueService: NotificationsQueueService,
   ) {}
 
-  private async buildAccessWhere(userId: string, userRole: Role) {
+  private async buildAccessWhere(userId: string, userRole: Role): Promise<CalendarEventWhere> {
     if (userRole === Role.MAHASISWA) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { userId },
@@ -71,7 +78,7 @@ export class CalendarService {
     startDate?: Date;
     endDate?: Date;
   }) {
-    const where: any = await this.buildAccessWhere(userId, userRole);
+    const where: CalendarEventWhere = await this.buildAccessWhere(userId, userRole);
 
     if (filters?.courseId) {
       where.courseId = filters.courseId;
@@ -117,7 +124,7 @@ export class CalendarService {
     const endDate = new Date(year, month, 0);
 
     const accessWhere = await this.buildAccessWhere(userId, userRole);
-    const where: any = {
+    const where: CalendarEventWhere = {
       ...accessWhere,
       startDate: {
         gte: startDate,
@@ -170,7 +177,7 @@ export class CalendarService {
     relatedActivityType?: RelatedActivityType;
     relatedActivityId?: string;
     isPublished?: boolean;
-    attachments?: any;
+    attachments?: CalendarEventAttachment[];
     courseId?: string;
   }) {
     // ✅ Auto-validation semua field dengan AutoValidator
@@ -251,7 +258,7 @@ export class CalendarService {
         select: { userId: true },
       });
 
-      const studentIds = enrollments.map((e: any) => e.userId);
+      const studentIds = enrollments.map((e) => e.userId);
       await this.notificationsQueueService.addBulkNotificationJob({
         userIds: studentIds,
         type: NotificationType.EVENT_CREATED,
@@ -289,7 +296,7 @@ export class CalendarService {
     relatedActivityType?: RelatedActivityType;
     relatedActivityId?: string;
     isPublished?: boolean;
-    attachments?: any;
+    attachments?: CalendarEventAttachment[];
   }) {
     const event = await this.prisma.calendarEvent.findUnique({
       where: { id: eventId },
@@ -346,7 +353,7 @@ export class CalendarService {
         select: { userId: true },
       });
 
-      const studentIds = enrollments.map((e: any) => e.userId);
+      const studentIds = enrollments.map((e) => e.userId);
       await this.notificationsQueueService.addBulkNotificationJob({
         userIds: studentIds,
         type: NotificationType.SCHEDULE_CHANGED,
@@ -415,7 +422,7 @@ export class CalendarService {
     futureDate.setDate(today.getDate() + days);
 
     const accessWhere = await this.buildAccessWhere(userId, userRole);
-    const where: any = {
+    const where: CalendarEventWhere = {
       ...accessWhere,
       startDate: {
         gte: today,
@@ -439,7 +446,7 @@ export class CalendarService {
     });
 
     // Calculate time remaining for each event
-    const eventsWithTimeRemaining = events.map((event: any) => {
+    const eventsWithTimeRemaining = events.map((event: CalendarEventWithTimeRemaining) => {
       const now = new Date();
       const eventDate = new Date(event.startDate);
       const diffMs = eventDate.getTime() - now.getTime();

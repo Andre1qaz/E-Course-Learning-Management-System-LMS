@@ -137,6 +137,8 @@ model User {
   avatarUrl         String?
   storageQuotaUsed  BigInt   @default(0)
   storageQuotaLimit BigInt   @default(52428800) // 50MB default
+  resetToken        String?  @unique
+  resetTokenExpires DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
