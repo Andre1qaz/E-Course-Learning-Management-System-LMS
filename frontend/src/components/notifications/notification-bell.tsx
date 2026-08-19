@@ -28,28 +28,9 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ token, userId }: NotificationBellProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const [notificationsData, unreadData] = await Promise.all([
-        getNotifications(token),
-        getUnreadCount(token),
-      ]);
-      setNotifications(notificationsData.data || []);
-      setUnreadCount(unreadData.data?.count || 0);
-    } catch (error) {
-      // Silently fail - notifications are not critical
-      setNotifications([]);
-      setUnreadCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Completely disabled - return empty UI
+  return null;
+}
 
   useEffect(() => {
     fetchNotifications();

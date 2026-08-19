@@ -1,5 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
+console.log("API_URL:", API_URL);
+
 export { API_URL };
 
 export interface ApiResponse<T = unknown> {
@@ -32,22 +34,39 @@ export async function apiFetch<T>(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  // Use proxy to avoid CORS issues
+  const proxyUrl = `/api/proxy?endpoint=${encodeURIComponent(endpoint)}`;
+  
+  console.log(`Fetching via proxy: ${proxyUrl}`, { headers, options });
 
-  const data = (await response.json()) as ApiResponse<T>;
+  try {
+    const response = await fetch(proxyUrl, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok || !data.success) {
-    // Heuristic #9: descriptive error messages
-    throw new ApiError(
-      data.message || "Terjadi kesalahan. Silakan coba lagi.",
-      response.status,
-    );
+    console.log(`Response status: ${response.status}`, response);
+
+    const data = (await response.json()) as ApiResponse<T>;
+    console.log(`Response data:`, data);
+
+    if (!response.ok || !data.success) {
+      // Heuristic #9: descriptive error messages
+      throw new ApiError(
+        data.message || "Terjadi kesalahan. Silakan coba lagi.",
+        response.status,
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`Fetch error for ${proxyUrl}:`, error);
+    if (error instanceof TypeError) {
+      console.error('TypeError details:', error.message);
+      throw new ApiError('Network error: Unable to connect to backend server', 0);
+    }
+    throw error;
   }
-
-  return data;
 }
 
 // Calendar API functions

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/utils";
-import { NotificationBell } from "@/components/notifications/notification-bell";
+// import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface TopNavbarProps {
   user: {
@@ -98,10 +98,6 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
               <span className="hidden sm:inline">Ujian</span>
             </Button>
           </Link>
-
-          {user.id && user.accessToken && (
-            <NotificationBell token={user.accessToken} userId={user.id} />
-          )}
 
           <div className="relative">
             <button

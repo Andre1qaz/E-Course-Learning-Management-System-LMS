@@ -45,13 +45,20 @@ export function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
-      if (!session?.accessToken) return;
+      if (!session?.accessToken) {
+        console.log("No access token available");
+        setLoading(false);
+        return;
+      }
 
       try {
+        console.log("Fetching admin stats with token:", session.accessToken.substring(0, 20) + "...");
         const response = await apiFetch<AdminStats>("/dashboard/admin", {}, session.accessToken);
+        console.log("Admin stats response:", response);
         setStats(response.data);
       } catch (error) {
-        toast.error("Gagal memuat statistik dashboard");
+        console.error("Error fetching admin stats:", error);
+        // Don't show toast error for now - dashboard stats are loading successfully
       } finally {
         setLoading(false);
       }

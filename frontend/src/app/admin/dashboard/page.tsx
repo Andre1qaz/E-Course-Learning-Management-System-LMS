@@ -9,7 +9,7 @@ export default async function AdminDashboardPage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[{ label: "Dashboard" }]}
