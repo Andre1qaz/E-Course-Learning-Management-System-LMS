@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
 /**
@@ -60,7 +60,7 @@ export abstract class BaseService<T> {
     const hasAccess =
       userRole === Role.ADMIN ||
       course.instructorId === userId ||
-      course.enrollments.some((e) => e.userId === userId);
+      course.enrollments.some((e: any) => e.userId === userId);
 
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this course');
@@ -287,7 +287,7 @@ export abstract class BaseService<T> {
       select: { userId: true },
     });
 
-    return enrollments.map((e) => e.userId);
+    return enrollments.map((e: any) => e.userId);
   }
 
   /**
@@ -482,7 +482,7 @@ export abstract class BaseService<T> {
       } catch (error) {
         // Re-throw dengan context yang lebih jelas
         throw new BadRequestException(
-          `Error pada field "${key}": ${error.message}`
+          `Error pada field "${key}": ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -510,7 +510,7 @@ export abstract class BaseService<T> {
           try {
             sanitized[key] = this.validateAndNormalizeUUID(value, key);
           } catch (error) {
-            errors.push(`${key}: ${error.message}`);
+            errors.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
           }
         } 
         // Cek jika ini date
@@ -518,7 +518,7 @@ export abstract class BaseService<T> {
           try {
             sanitized[key] = this.parseDate(value, key);
           } catch (error) {
-            errors.push(`${key}: ${error.message}`);
+            errors.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
         // String biasa

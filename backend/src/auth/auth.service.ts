@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -9,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
+import { AutoValidator } from '../common/base/validation-guide';
 
 const SALT_ROUNDS = 12;
 
@@ -20,8 +22,27 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto): Promise<ApiResponse> {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      name: { type: 'string', required: true, maxLength: 100 },
+      email: { type: 'string', required: true, maxLength: 255 },
+      password: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate password format
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(result.sanitized.password)) {
+      throw new BadRequestException(
+        'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: result.sanitized.email },
     });
 
     if (existing) {
@@ -31,12 +52,12 @@ export class AuthService {
     }
 
     // Heuristic #5: Error Prevention — password hashing, never plain text
-    const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(result.sanitized.password, SALT_ROUNDS);
 
     const user = await this.prisma.user.create({
       data: {
-        name: dto.name,
-        email: dto.email,
+        name: result.sanitized.name,
+        email: result.sanitized.email,
         password: hashedPassword,
         role: Role.MAHASISWA,
       },
@@ -66,15 +87,25 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<ApiResponse> {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      email: { type: 'string', required: true, maxLength: 255 },
+      password: { type: 'string', required: true, maxLength: 100 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: result.sanitized.email },
     });
 
     if (!user) {
       throw new UnauthorizedException('Email atau password salah.');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(result.sanitized.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Email atau password salah.');
     }
@@ -114,8 +145,17 @@ export class AuthService {
 
   // Heuristic #2: Match Between System and the Real World — simple institutional email flow
   async forgotPassword(dto: ForgotPasswordDto): Promise<ApiResponse> {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      email: { type: 'string', required: true, maxLength: 255 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: result.sanitized.email },
     });
 
     if (!user) {
@@ -151,8 +191,32 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<ApiResponse> {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      token: { type: 'string', required: true, maxLength: 100 },
+      newPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+      confirmPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate password format
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(result.sanitized.newPassword)) {
+      throw new BadRequestException(
+        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
+    // ✅ Validate password confirmation
+    if (result.sanitized.newPassword !== result.sanitized.confirmPassword) {
+      throw new BadRequestException('Password baru dan konfirmasi tidak sama.');
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { resetToken: dto.token },
+      where: { resetToken: result.sanitized.token },
     });
 
     if (!user) {
@@ -163,19 +227,7 @@ export class AuthService {
       throw new UnauthorizedException('Token reset telah kadaluarsa. Silakan minta token baru.');
     }
 
-    if (dto.newPassword !== dto.confirmPassword) {
-      throw new UnauthorizedException('Password baru dan konfirmasi tidak sama.');
-    }
-
-    // Password validation: minimal 8 karakter dan kombinasi huruf dan angka
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(dto.newPassword)) {
-      throw new UnauthorizedException(
-        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(result.sanitized.newPassword, SALT_ROUNDS);
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -207,8 +259,11 @@ export class AuthService {
   }
 
   async getProfile(userId: string): Promise<ApiResponse> {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: validatedUserId },
       select: {
         id: true,
         name: true,
@@ -272,8 +327,20 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<ApiResponse> {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      avatarUrl: { type: 'string', required: true, maxLength: 500 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: validatedUserId },
     });
 
     if (!user) {
@@ -281,8 +348,8 @@ export class AuthService {
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: { avatarUrl: dto.avatarUrl },
+      where: { id: validatedUserId },
+      data: { avatarUrl: result.sanitized.avatarUrl },
       select: {
         id: true,
         name: true,
@@ -294,10 +361,10 @@ export class AuthService {
 
     await this.prisma.activityLog.create({
       data: {
-        userId: userId,
+        userId: validatedUserId,
         action: 'UPDATE_PROFILE',
         entity: 'User',
-        entityId: userId,
+        entityId: validatedUserId,
       },
     });
 
@@ -309,44 +376,59 @@ export class AuthService {
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<ApiResponse> {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      oldPassword: { type: 'string', required: true, maxLength: 100 },
+      newPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+      confirmPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate password format
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(result.sanitized.newPassword)) {
+      throw new BadRequestException(
+        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
+    // ✅ Validate password confirmation
+    if (result.sanitized.newPassword !== result.sanitized.confirmPassword) {
+      throw new BadRequestException('Password baru dan konfirmasi tidak sama.');
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: validatedUserId },
     });
 
     if (!user) {
       throw new UnauthorizedException('User tidak ditemukan.');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.oldPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(result.sanitized.oldPassword, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Password lama tidak sesuai.');
     }
 
-    if (dto.newPassword !== dto.confirmPassword) {
-      throw new UnauthorizedException('Password baru dan konfirmasi tidak sama.');
-    }
-
-    // Password validation: minimal 8 karakter dan kombinasi huruf dan angka
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(dto.newPassword)) {
-      throw new UnauthorizedException(
-        'Password baru harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(result.sanitized.newPassword, SALT_ROUNDS);
 
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: validatedUserId },
       data: { password: hashedPassword },
     });
 
     await this.prisma.activityLog.create({
       data: {
-        userId: userId,
+        userId: validatedUserId,
         action: 'CHANGE_PASSWORD',
         entity: 'User',
-        entityId: userId,
+        entityId: validatedUserId,
       },
     });
 

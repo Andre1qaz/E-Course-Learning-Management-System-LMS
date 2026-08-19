@@ -11,15 +11,31 @@ export interface EnrollmentWithCourse {
   };
 }
 
-export interface StudentGradeResult {
+export type StudentGradeResult = {
+  id: string;
   courseId: string;
   studentId: string;
-  assignmentScore: number;
-  quizScore: number;
-  utsScore: number;
-  uasScore: number;
-  finalGrade: number;
-  letterGrade: string;
+  assignmentScore: number | null;
+  quizScore: number | null;
+  utsScore: number | null;
+  uasScore: number | null;
+  otherScore: number | null;
+  finalScore: number | null;
+  passed: boolean | null;
+  completionPercentage: number;
+  calculatedAt: Date;
+  updatedAt: Date;
+  course?: {
+    id: string;
+    name: string;
+    code: string;
+    settings: any;
+  } | null;
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface EnrollmentWithGrade {

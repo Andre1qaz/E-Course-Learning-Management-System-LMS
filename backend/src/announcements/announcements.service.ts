@@ -261,7 +261,7 @@ export class AnnouncementsService {
         validUntil: result.sanitized.validUntil,
         isPublished: result.sanitized.isPublished !== undefined ? result.sanitized.isPublished : true,
         priority: result.sanitized.priority || 'normal',
-        courseId,
+        courseId: result.sanitized.courseId,
         authorId: userId,
         publishedAt: data.isPublished !== undefined ? data.isPublished ? new Date() : null : new Date(),
       },

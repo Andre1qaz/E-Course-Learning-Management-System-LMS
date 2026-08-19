@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CourseProgressResponse,
   ProgressBreakdown,
   StudentProgressListResponse,
 } from './dto/course-progress.dto';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class CourseProgressService {
@@ -23,9 +24,13 @@ export class CourseProgressService {
     courseId: string,
     studentId: string,
   ): Promise<CourseProgressResponse> {
+    // ✅ Validate UUIDs dengan AutoValidator
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+
     const [course, student] = await Promise.all([
       this.prisma.course.findUnique({
-        where: { id: courseId },
+        where: { id: validatedCourseId },
         select: {
           id: true,
           name: true,
@@ -33,7 +38,7 @@ export class CourseProgressService {
         },
       }),
       this.prisma.user.findUnique({
-        where: { id: studentId },
+        where: { id: validatedStudentId },
         select: {
           id: true,
           name: true,
@@ -48,13 +53,13 @@ export class CourseProgressService {
     // Get all course content
     const [modules, assignments, exams, activities] = await Promise.all([
       this.prisma.module.findMany({
-        where: { courseId },
+        where: { courseId: validatedCourseId },
         include: { files: true },
       }),
-      this.prisma.assignment.findMany({ where: { courseId } }),
-      this.prisma.exam.findMany({ where: { courseId } }),
+      this.prisma.assignment.findMany({ where: { courseId: validatedCourseId } }),
+      this.prisma.exam.findMany({ where: { courseId: validatedCourseId } }),
       this.prisma.activity.findMany({
-        where: { week: { courseId } },
+        where: { week: { courseId: validatedCourseId } },
       }),
     ]);
 
@@ -67,20 +72,20 @@ export class CourseProgressService {
       this.prisma.assignmentSubmission.findMany({
         where: {
           assignmentId: { in: assignments.map((a) => a.id) },
-          studentId,
+          studentId: validatedStudentId,
           status: { in: ['SUBMITTED', 'LATE', 'GRADED'] },
         },
       }),
       this.prisma.examAttempt.findMany({
         where: {
           examId: { in: exams.map((e) => e.id) },
-          studentId,
+          studentId: validatedStudentId,
           status: { in: ['SUBMITTED', 'GRADED'] },
         },
       }),
       this.prisma.activityLog.findMany({
         where: {
-          userId: studentId,
+          userId: validatedStudentId,
           entity: { in: ['Module', 'Activity'] },
           entityId: { in: [...modules.map((m) => m.id), ...activities.map((a) => a.id)] },
         },
@@ -116,7 +121,7 @@ export class CourseProgressService {
     const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
 
     // Update grade record with completion percentage
-    await this.updateGradeCompletion(courseId, studentId, overallProgress);
+    await this.updateGradeCompletion(validatedCourseId, validatedStudentId, overallProgress);
 
     return {
       courseId: course.id,
@@ -136,8 +141,11 @@ export class CourseProgressService {
   async getCourseStudentsProgress(
     courseId: string,
   ): Promise<StudentProgressListResponse> {
+    // ✅ Validate courseId dengan AutoValidator
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
+      where: { id: validatedCourseId },
       select: {
         id: true,
         name: true,
@@ -149,7 +157,7 @@ export class CourseProgressService {
     }
 
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { courseId, role: 'STUDENT' },
+      where: { courseId: validatedCourseId, role: 'STUDENT' },
       include: {
         user: {
           select: {
@@ -162,7 +170,7 @@ export class CourseProgressService {
 
     const studentsProgress = await Promise.all(
       enrollments.map((enrollment) =>
-        this.calculateStudentProgress(courseId, enrollment.user.id),
+        this.calculateStudentProgress(validatedCourseId, enrollment.user.id),
       ),
     );
 
@@ -190,8 +198,11 @@ export class CourseProgressService {
   async getStudentAllCoursesProgress(
     studentId: string,
   ): Promise<CourseProgressResponse[]> {
+    // ✅ Validate studentId dengan AutoValidator
+    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { userId: studentId, role: 'STUDENT' },
+      where: { userId: validatedStudentId, role: 'STUDENT' },
       select: { courseId: true },
     });
 
@@ -199,7 +210,7 @@ export class CourseProgressService {
 
     const progressList = await Promise.all(
       courseIds.map((courseId) =>
-        this.calculateStudentProgress(courseId, studentId),
+        this.calculateStudentProgress(courseId, validatedStudentId),
       ),
     );
 
@@ -213,8 +224,13 @@ export class CourseProgressService {
     courseId: string,
     studentId?: string,
   ): Promise<{ message: string; updated: number }> {
+    // ✅ Validate courseId dengan AutoValidator
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
     if (studentId) {
-      await this.calculateStudentProgress(courseId, studentId);
+      // ✅ Validate studentId dengan AutoValidator
+      const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+      await this.calculateStudentProgress(validatedCourseId, validatedStudentId);
       return {
         message: 'Progress recalculated for student',
         updated: 1,
@@ -222,13 +238,13 @@ export class CourseProgressService {
     }
 
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { courseId, role: 'STUDENT' },
+      where: { courseId: validatedCourseId, role: 'STUDENT' },
       select: { userId: true },
     });
 
     await Promise.all(
       enrollments.map((enrollment) =>
-        this.calculateStudentProgress(courseId, enrollment.userId),
+        this.calculateStudentProgress(validatedCourseId, enrollment.userId),
       ),
     );
 
@@ -351,11 +367,16 @@ export class CourseProgressService {
     studentId: string,
     completionPercentage: number,
   ): Promise<void> {
+    // ✅ Validate UUIDs dan number dengan AutoValidator
+    const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+    const validatedPercentage = AutoValidator.validateNumber(completionPercentage, 'Completion percentage', 0, 100);
+
     const grade = await this.prisma.grade.findUnique({
       where: {
         courseId_studentId: {
-          courseId,
-          studentId,
+          courseId: validatedCourseId,
+          studentId: validatedStudentId,
         },
       },
     });
@@ -364,16 +385,16 @@ export class CourseProgressService {
       await this.prisma.grade.update({
         where: { id: grade.id },
         data: {
-          completionPercentage,
+          completionPercentage: validatedPercentage,
           calculatedAt: new Date(),
         },
       });
     } else {
       await this.prisma.grade.create({
         data: {
-          courseId,
-          studentId,
-          completionPercentage,
+          courseId: validatedCourseId,
+          studentId: validatedStudentId,
+          completionPercentage: validatedPercentage,
           calculatedAt: new Date(),
         },
       });

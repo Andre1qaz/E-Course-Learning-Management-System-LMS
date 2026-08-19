@@ -297,29 +297,6 @@ export class GradebookService {
       },
       update: result.sanitized,
     });
-      where: {
-        courseId_studentId: {
-          courseId,
-          studentId,
-        },
-      },
-      create: {
-        courseId,
-        studentId,
-        assignmentScore: dto.assignmentScore ?? 0,
-        quizScore: dto.quizScore ?? 0,
-        utsScore: dto.utsScore ?? 0,
-        uasScore: dto.uasScore ?? 0,
-        otherScore: dto.otherScore ?? 0,
-      },
-      update: {
-        ...(dto.assignmentScore !== undefined && { assignmentScore: dto.assignmentScore }),
-        ...(dto.quizScore !== undefined && { quizScore: dto.quizScore }),
-        ...(dto.utsScore !== undefined && { utsScore: dto.utsScore }),
-        ...(dto.uasScore !== undefined && { uasScore: dto.uasScore }),
-        ...(dto.otherScore !== undefined && { otherScore: dto.otherScore }),
-      },
-    });
 
     // Create history records for changes
     for (const change of changes) {

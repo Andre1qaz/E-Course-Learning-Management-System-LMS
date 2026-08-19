@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
+import { AutoValidator } from '../common/base/validation-guide';
 
 // Heuristic #1: Visibility of System Status — clear notification creation and retrieval
 // Heuristic #20: Feedback and Assessment — automatic notifications for grades
@@ -14,7 +15,10 @@ export class NotificationsService {
    * Get all notifications for a user
    */
   async getUserNotifications(userId: string, unreadOnly = false) {
-    const where: any = { userId };
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
+    const where: any = { userId: validatedUserId };
     if (unreadOnly) {
       where.isRead = false;
     }
@@ -36,9 +40,12 @@ export class NotificationsService {
    * Get unread notification count
    */
   async getUnreadCount(userId: string) {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
     const count = await this.prisma.notification.count({
       where: {
-        userId,
+        userId: validatedUserId,
         isRead: false,
       },
     });
@@ -54,20 +61,24 @@ export class NotificationsService {
    * Mark notification as read
    */
   async markAsRead(userId: string, notificationId: string) {
+    // ✅ Validate UUIDs dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedNotificationId = AutoValidator.validateUUID(notificationId, 'Notification ID');
+
     const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
+      where: { id: validatedNotificationId },
     });
 
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
 
-    if (notification.userId !== userId) {
+    if (notification.userId !== validatedUserId) {
       throw new ForbiddenException('You can only mark your own notifications as read');
     }
 
     await this.prisma.notification.update({
-      where: { id: notificationId },
+      where: { id: validatedNotificationId },
       data: { isRead: true },
     });
 
@@ -82,9 +93,12 @@ export class NotificationsService {
    * Mark all notifications as read
    */
   async markAllAsRead(userId: string) {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
     await this.prisma.notification.updateMany({
       where: {
-        userId,
+        userId: validatedUserId,
         isRead: false,
       },
       data: { isRead: true },
@@ -101,20 +115,24 @@ export class NotificationsService {
    * Delete notification
    */
   async deleteNotification(userId: string, notificationId: string) {
+    // ✅ Validate UUIDs dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedNotificationId = AutoValidator.validateUUID(notificationId, 'Notification ID');
+
     const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
+      where: { id: validatedNotificationId },
     });
 
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
 
-    if (notification.userId !== userId) {
+    if (notification.userId !== validatedUserId) {
       throw new ForbiddenException('You can only delete your own notifications');
     }
 
     await this.prisma.notification.delete({
-      where: { id: notificationId },
+      where: { id: validatedNotificationId },
     });
 
     return {
@@ -134,8 +152,21 @@ export class NotificationsService {
     message: string;
     link?: string;
   }) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      userId: { type: 'uuid', required: true },
+      type: { type: 'string', required: true },
+      title: { type: 'string', required: true, maxLength: 200 },
+      message: { type: 'string', required: true, maxLength: 1000 },
+      link: { type: 'string', required: false, maxLength: 500 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
     const notification = await this.prisma.notification.create({
-      data,
+      data: result.sanitized,
     });
 
     return notification;
@@ -151,13 +182,31 @@ export class NotificationsService {
     message: string;
     link?: string;
   }) {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(data, {
+      userIds: { type: 'auto', required: true },
+      type: { type: 'string', required: true },
+      title: { type: 'string', required: true, maxLength: 200 },
+      message: { type: 'string', required: true, maxLength: 1000 },
+      link: { type: 'string', required: false, maxLength: 500 },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate semua userIds
+    const validatedUserIds = result.sanitized.userIds.map((userId: string) =>
+      AutoValidator.validateUUID(userId, 'User ID')
+    );
+
     const notifications = await this.prisma.notification.createMany({
-      data: data.userIds.map((userId) => ({
+      data: validatedUserIds.map((userId: string) => ({
         userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        link: data.link,
+        type: result.sanitized.type,
+        title: result.sanitized.title,
+        message: result.sanitized.message,
+        link: result.sanitized.link,
       })),
     });
 
@@ -168,11 +217,17 @@ export class NotificationsService {
    * Create deadline reminder notification
    */
   async createDeadlineReminder(userId: string, assignmentTitle: string, courseName: string, deadlineDate: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedAssignmentTitle = AutoValidator.validateString(assignmentTitle, 'Assignment title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedDeadline = AutoValidator.validateDate(deadlineDate, 'Deadline date');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.DEADLINE_REMINDER,
       title: 'Reminder Deadline Tugas',
-      message: `Tugas "${assignmentTitle}" di course "${courseName}" akan berakhir pada ${deadlineDate.toLocaleDateString('id-ID')}`,
+      message: `Tugas "${validatedAssignmentTitle}" di course "${validatedCourseName}" akan berakhir pada ${validatedDeadline.toLocaleDateString('id-ID')}`,
       link: '/mahasiswa/courses',
     });
   }
@@ -181,11 +236,17 @@ export class NotificationsService {
    * Create exam reminder notification
    */
   async createExamReminder(userId: string, examTitle: string, courseName: string, examDate: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedExamTitle = AutoValidator.validateString(examTitle, 'Exam title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedExamDate = AutoValidator.validateDate(examDate, 'Exam date');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.EXAM_REMINDER,
       title: 'Reminder Ujian',
-      message: `Ujian "${examTitle}" di course "${courseName}" akan dimulai pada ${examDate.toLocaleDateString('id-ID')}`,
+      message: `Ujian "${validatedExamTitle}" di course "${validatedCourseName}" akan dimulai pada ${validatedExamDate.toLocaleDateString('id-ID')}`,
       link: '/mahasiswa/exams',
     });
   }
@@ -194,11 +255,17 @@ export class NotificationsService {
    * Create grade released notification
    */
   async createGradeReleased(userId: string, itemType: string, itemName: string, courseName: string) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedItemType = AutoValidator.validateString(itemType, 'Item type', 50);
+    const validatedItemName = AutoValidator.validateString(itemName, 'Item name', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.GRADE_RELEASED,
       title: 'Nilai Telah Keluar',
-      message: `Nilai ${itemType} "${itemName}" di course "${courseName}" telah keluar`,
+      message: `Nilai ${validatedItemType} "${validatedItemName}" di course "${validatedCourseName}" telah keluar`,
       link: '/mahasiswa/courses',
     });
   }
@@ -207,11 +274,16 @@ export class NotificationsService {
    * Create forum reply notification
    */
   async createForumReplyNotification(userId: string, threadTitle: string, replierName: string) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedThreadTitle = AutoValidator.validateString(threadTitle, 'Thread title', 200);
+    const validatedReplierName = AutoValidator.validateString(replierName, 'Replier name', 100);
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.FORUM_REPLY,
       title: 'Balasan Baru di Forum',
-      message: `${replierName} membalas diskusi "${threadTitle}"`,
+      message: `${validatedReplierName} membalas diskusi "${validatedThreadTitle}"`,
       link: '/mahasiswa/forum',
     });
   }
@@ -220,11 +292,16 @@ export class NotificationsService {
    * Create course created notification
    */
   async createCourseCreatedNotification(userId: string, courseName: string, courseCode: string) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedCourseCode = AutoValidator.validateString(courseCode, 'Course code', 50);
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.COURSE_CREATED,
       title: 'Course Baru Dibuat',
-      message: `Course "${courseName}" (${courseCode}) telah dibuat`,
+      message: `Course "${validatedCourseName}" (${validatedCourseCode}) telah dibuat`,
       link: '/admin/courses',
     });
   }
@@ -233,11 +310,16 @@ export class NotificationsService {
    * Create material published notification
    */
   async createMaterialPublishedNotification(userId: string, materialTitle: string, courseName: string) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedMaterialTitle = AutoValidator.validateString(materialTitle, 'Material title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.MATERIAL_PUBLISHED,
       title: 'Materi Baru Tersedia',
-      message: `Materi "${materialTitle}" telah ditambahkan di course "${courseName}"`,
+      message: `Materi "${validatedMaterialTitle}" telah ditambahkan di course "${validatedCourseName}"`,
       link: '/mahasiswa/courses',
     });
   }
@@ -246,11 +328,17 @@ export class NotificationsService {
    * Create assignment created notification
    */
   async createAssignmentCreatedNotification(userId: string, assignmentTitle: string, courseName: string, deadline: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedAssignmentTitle = AutoValidator.validateString(assignmentTitle, 'Assignment title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedDeadline = AutoValidator.validateDate(deadline, 'Deadline');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.ASSIGNMENT_CREATED,
       title: 'Tugas Baru Ditambahkan',
-      message: `Tugas "${assignmentTitle}" di course "${courseName}". Deadline: ${deadline.toLocaleDateString('id-ID')}`,
+      message: `Tugas "${validatedAssignmentTitle}" di course "${validatedCourseName}". Deadline: ${validatedDeadline.toLocaleDateString('id-ID')}`,
       link: '/mahasiswa/courses',
     });
   }
@@ -259,11 +347,17 @@ export class NotificationsService {
    * Create quiz created notification
    */
   async createQuizCreatedNotification(userId: string, quizTitle: string, courseName: string, startTime: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedQuizTitle = AutoValidator.validateString(quizTitle, 'Quiz title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedStartTime = AutoValidator.validateDate(startTime, 'Start time');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.QUIZ_CREATED,
       title: 'Quiz Baru Dijadwalkan',
-      message: `Quiz "${quizTitle}" di course "${courseName}" akan dimulai pada ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
+      message: `Quiz "${validatedQuizTitle}" di course "${validatedCourseName}" akan dimulai pada ${validatedStartTime.toLocaleDateString('id-ID')} ${validatedStartTime.toLocaleTimeString('id-ID')}`,
       link: '/mahasiswa/courses',
     });
   }
@@ -272,11 +366,17 @@ export class NotificationsService {
    * Create exam created notification
    */
   async createExamCreatedNotification(userId: string, examTitle: string, courseName: string, startTime: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedExamTitle = AutoValidator.validateString(examTitle, 'Exam title', 200);
+    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedStartTime = AutoValidator.validateDate(startTime, 'Start time');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.EXAM_CREATED,
       title: 'Ujian Baru Dijadwalkan',
-      message: `Ujian "${examTitle}" di course "${courseName}" akan dimulai pada ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
+      message: `Ujian "${validatedExamTitle}" di course "${validatedCourseName}" akan dimulai pada ${validatedStartTime.toLocaleDateString('id-ID')} ${validatedStartTime.toLocaleTimeString('id-ID')}`,
       link: '/mahasiswa/courses',
     });
   }
@@ -285,11 +385,16 @@ export class NotificationsService {
    * Create event created notification
    */
   async createEventCreatedNotification(userId: string, eventTitle: string, eventDate: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedEventTitle = AutoValidator.validateString(eventTitle, 'Event title', 200);
+    const validatedEventDate = AutoValidator.validateDate(eventDate, 'Event date');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.EVENT_CREATED,
       title: 'Event Baru Ditambahkan',
-      message: `Event "${eventTitle}" telah dijadwalkan pada ${eventDate.toLocaleDateString('id-ID')}`,
+      message: `Event "${validatedEventTitle}" telah dijadwalkan pada ${validatedEventDate.toLocaleDateString('id-ID')}`,
       link: '/calendar',
     });
   }
@@ -298,11 +403,17 @@ export class NotificationsService {
    * Create schedule changed notification
    */
   async createScheduleChangedNotification(userId: string, itemType: string, itemName: string, newDate: Date) {
+    // ✅ Validate input dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+    const validatedItemType = AutoValidator.validateString(itemType, 'Item type', 50);
+    const validatedItemName = AutoValidator.validateString(itemName, 'Item name', 200);
+    const validatedNewDate = AutoValidator.validateDate(newDate, 'New date');
+
     return this.createNotification({
-      userId,
+      userId: validatedUserId,
       type: NotificationType.SCHEDULE_CHANGED,
       title: 'Perubahan Jadwal',
-      message: `Jadwal ${itemType} "${itemName}" telah diubah menjadi ${newDate.toLocaleDateString('id-ID')}`,
+      message: `Jadwal ${validatedItemType} "${validatedItemName}" telah diubah menjadi ${validatedNewDate.toLocaleDateString('id-ID')}`,
       link: '/calendar',
     });
   }

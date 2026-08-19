@@ -10,7 +10,8 @@
  * ts-node scripts/generate-resource.ts --name=Announcement --fields="title:string:required,content:text:required,courseId:string"
  */
 
-import { ResourceGenerator } from '../src/common/cli/generate-resource';
+// import { ResourceGenerator } from '../src/common/cli/generate-resource';
+// Resource generator temporarily disabled
 
 interface Args {
   name: string;
@@ -58,32 +59,36 @@ async function main() {
   const args = parseArgs();
   validateArgs(args);
 
-  const generator = new ResourceGenerator();
+  console.log('⚠️  Resource generator is temporarily disabled.');
+  console.log('Please create resources manually or enable the generator by uncommenting the import.');
+  process.exit(0);
 
-  // Build config
-  const config = {
-    name: args.name,
-    namePlural: '', // Will be calculated by generator
-    nameCamel: '', // Will be calculated by generator
-    nameKebab: '', // Will be calculated by generator
-    fields: args.fields ? generator.parseFields(args.fields) : [],
-    hasCourseRelation: args.hasCourse,
-    hasUserRelation: args.hasUser,
-  };
+  // const generator = new ResourceGenerator();
 
-  try {
-    await generator.generate(config);
-    console.log('\n✅ Resource generated successfully!');
-    console.log('\n📝 Next steps:');
-    console.log('1. Update prisma/schema.prisma with the new model');
-    console.log('2. Run: npx prisma generate');
-    console.log('3. Run: npx prisma migrate dev --name add_' + config.name.toLowerCase());
-    console.log('4. Import the module in app.module.ts');
-    console.log('5. Test the endpoints');
-  } catch (error) {
-    console.error('❌ Error generating resource:', error);
-    process.exit(1);
-  }
+  // // Build config
+  // const config = {
+  //   name: args.name,
+  //   namePlural: '', // Will be calculated by generator
+  //   nameCamel: '', // Will be calculated by generator
+  //   nameKebab: '', // Will be calculated by generator
+  //   fields: args.fields ? generator.parseFields(args.fields) : [],
+  //   hasCourseRelation: args.hasCourse,
+  //   hasUserRelation: args.hasUser,
+  // };
+
+  // try {
+  //   await generator.generate(config);
+  //   console.log('\n✅ Resource generated successfully!');
+  //   console.log('\n📝 Next steps:');
+  //   console.log('1. Update prisma/schema.prisma with the new model');
+  //   console.log('2. Run: npx prisma generate');
+  //   console.log('3. Run: npx prisma migrate dev --name add_' + config.name.toLowerCase());
+  //   console.log('4. Import the module in app.module.ts');
+  //   console.log('5. Test the endpoints');
+  // } catch (error) {
+  //   console.error('❌ Error generating resource:', error);
+  //   process.exit(1);
+  // }
 }
 
 main();

@@ -1,20 +1,20 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
   UseGuards,
   Request,
   HttpCode,
-  HttpStatus 
+  HttpStatus
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 /**
@@ -83,7 +83,7 @@ export abstract class BaseController {
    * Override method ini di child controller untuk custom logic
    */
   @Get()
-  async findAll(@Request() req, @Query() query?: any) {
+  async findAll(@Request() req: any, @Query() query?: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -93,7 +93,7 @@ export abstract class BaseController {
    * Override method ini di child controller untuk custom logic
    */
   @Get(':id')
-  async findOne(@Param('id') id: string, @Request() req) {
+  async findOne(@Param('id') id: string, @Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -104,7 +104,7 @@ export abstract class BaseController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: any, @Request() req) {
+  async create(@Body() dto: any, @Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -114,7 +114,7 @@ export abstract class BaseController {
    * Override method ini di child controller untuk custom logic
    */
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: any, @Request() req) {
+  async update(@Param('id') id: string, @Body() dto: any, @Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -125,7 +125,7 @@ export abstract class BaseController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string, @Request() req) {
+  async remove(@Param('id') id: string, @Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -135,7 +135,7 @@ export abstract class BaseController {
    */
   @Get()
   @Roles(Role.ADMIN)
-  async adminOnly(@Request() req) {
+  async adminOnly(@Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -145,7 +145,7 @@ export abstract class BaseController {
    */
   @Get()
   @Roles(Role.ADMIN, Role.DOSEN)
-  async instructorOnly(@Request() req) {
+  async instructorOnly(@Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }
@@ -155,7 +155,7 @@ export abstract class BaseController {
    */
   @Get()
   @Roles(Role.MAHASISWA)
-  async studentOnly(@Request() req) {
+  async studentOnly(@Request() req: any) {
     // Implementasi di child controller
     throw new Error('Method not implemented');
   }

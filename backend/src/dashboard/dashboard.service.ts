@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CourseProgressService } from '../course-progress/course-progress.service';
+import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class DashboardService {
@@ -87,8 +88,11 @@ export class DashboardService {
    * - Aktivitas terbaru pada course yang diajarkan
    */
   async getLecturerStats(userId: string) {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
     const lecturerCourses = await this.prisma.course.findMany({
-      where: { instructorId: userId },
+      where: { instructorId: validatedUserId },
       select: { id: true },
     });
 
@@ -185,8 +189,11 @@ export class DashboardService {
    * - Notifikasi aktivitas terbaru
    */
   async getStudentStats(userId: string) {
+    // ✅ Validate userId dengan AutoValidator
+    const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
+
     const studentEnrollments = await this.prisma.enrollment.findMany({
-      where: { userId },
+      where: { userId: validatedUserId },
       select: { courseId: true },
     });
 
@@ -199,10 +206,10 @@ export class DashboardService {
       unreadNotifications,
       courseProgressList,
     ] = await Promise.all([
-      this.prisma.enrollment.count({ where: { userId } }),
+      this.prisma.enrollment.count({ where: { userId: validatedUserId } }),
       this.prisma.assignmentSubmission.count({
         where: {
-          studentId: userId,
+          studentId: validatedUserId,
           assignment: {
             courseId: { in: courseIds },
             deadline: { gte: new Date() },
@@ -213,7 +220,7 @@ export class DashboardService {
       this.prisma.grade.findMany({
         where: {
           courseId: { in: courseIds },
-          studentId: userId,
+          studentId: validatedUserId,
         },
         select: {
           finalScore: true,
@@ -222,11 +229,11 @@ export class DashboardService {
       }),
       this.prisma.notification.count({
         where: {
-          userId,
+          userId: validatedUserId,
           isRead: false,
         },
       }),
-      this.courseProgressService.getStudentAllCoursesProgress(userId),
+      this.courseProgressService.getStudentAllCoursesProgress(validatedUserId),
     ]);
 
     // Calculate average grade

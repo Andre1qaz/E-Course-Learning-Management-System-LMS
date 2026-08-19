@@ -233,11 +233,11 @@ export class CalendarService {
         type: data.type || CalendarEventType.ANNOUNCEMENT,
         targetAudience: data.targetAudience || EventTargetAudience.COURSE_STUDENTS,
         relatedActivityType: data.relatedActivityType || RelatedActivityType.NONE,
-        relatedActivityId,
+        relatedActivityId: result.sanitized.relatedActivityId,
         isPublished: data.isPublished !== undefined ? data.isPublished : true,
-        attachments: data.attachments,
-        userId: courseId ? null : userId, // Personal notes have userId, course events don't
-        courseId,
+        attachments: data.attachments as any,
+        userId: result.sanitized.courseId ? null : userId, // Personal notes have userId, course events don't
+        courseId: result.sanitized.courseId,
       },
       include: {
         course: {
@@ -333,6 +333,7 @@ export class CalendarService {
       data: {
         ...data,
         relatedActivityId,
+        attachments: data.attachments as any,
       },
       include: {
         course: {
@@ -446,7 +447,7 @@ export class CalendarService {
     });
 
     // Calculate time remaining for each event
-    const eventsWithTimeRemaining = events.map((event: CalendarEventWithTimeRemaining) => {
+    const eventsWithTimeRemaining = events.map((event: any) => {
       const now = new Date();
       const eventDate = new Date(event.startDate);
       const diffMs = eventDate.getTime() - now.getTime();

@@ -575,12 +575,12 @@ export class QuestionBanksService {
 
     switch (format.toLowerCase()) {
       case 'json':
-        return this.importFromJson(data, userId, userRole, courseId);
+        return this.importFromJson(data as JsonQuestionBankImport, userId, userRole, courseId);
       case 'csv':
-        return this.importFromCsv(data, userId, userRole, courseId);
+        return this.importFromCsv(data as CsvQuestionImport[], userId, userRole, courseId);
       case 'excel':
       case 'xlsx':
-        return this.importFromExcel(data, userId, userRole, courseId);
+        return this.importFromExcel(data as ExcelQuestionImport[], userId, userRole, courseId);
       default:
         throw new BadRequestException('Unsupported import format. Use: json, csv, or excel');
     }
@@ -601,7 +601,7 @@ export class QuestionBanksService {
         description: metadata.description,
         topic: metadata.topic,
         difficulty: metadata.difficulty || DifficultyLevel.MEDIUM,
-        questionType: metadata.questionType,
+        questionType: metadata.questionType || QuestionType.MULTIPLE_CHOICE,
       },
     });
 
@@ -662,7 +662,7 @@ export class QuestionBanksService {
       const question = await this.prisma.question.create({
         data: {
           questionBankId: questionBank.id,
-          type: q.type || QuestionType.MULTIPLE_CHOICE,
+          type: (q.type as QuestionType) || QuestionType.MULTIPLE_CHOICE,
           questionText: q.questionText,
           points: parseFloat(q.points) || 1,
           explanation: q.explanation,
@@ -722,7 +722,7 @@ export class QuestionBanksService {
       const question = await this.prisma.question.create({
         data: {
           questionBankId: questionBank.id,
-          type: q.type || QuestionType.MULTIPLE_CHOICE,
+          type: (q.type as QuestionType) || QuestionType.MULTIPLE_CHOICE,
           questionText: q.questionText,
           points: parseFloat(q.points) || 1,
           explanation: q.explanation,
