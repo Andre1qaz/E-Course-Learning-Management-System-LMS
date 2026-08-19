@@ -1,4 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsEnum, IsArray, IsBoolean, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  MaxLength,
+  IsEnum,
+  IsArray,
+  IsBoolean,
+  Min,
+  Max,
+} from 'class-validator';
 import { QuestionType } from '@prisma/client';
 
 // Heuristic #5: Error Prevention — validate question data before creation

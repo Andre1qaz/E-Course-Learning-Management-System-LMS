@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -103,6 +113,11 @@ export class ModulesController {
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.modulesService.reorder(courseId, userId, role, body.moduleOrders);
+    return this.modulesService.reorder(
+      courseId,
+      userId,
+      role,
+      body.moduleOrders,
+    );
   }
 }

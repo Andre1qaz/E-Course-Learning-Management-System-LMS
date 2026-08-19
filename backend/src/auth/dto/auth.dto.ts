@@ -33,7 +33,8 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Password wajib diisi' })
   @MinLength(8, { message: 'Password minimal 8 karakter' })
   @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
-    message: 'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
+    message:
+      'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
   })
   password!: string;
 }
@@ -80,7 +81,8 @@ export class ResetPasswordDto {
   @IsNotEmpty({ message: 'Password baru wajib diisi' })
   @MinLength(8, { message: 'Password baru minimal 8 karakter' })
   @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
-    message: 'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
+    message:
+      'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
   })
   newPassword!: string;
 

@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  MaxLength,
+  IsArray,
+} from 'class-validator';
 
 // Heuristic #5: Error Prevention — validate module data before creation
 // Heuristic #12: Clarity of Purpose and Objectives — require learning objectives

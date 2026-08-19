@@ -9,9 +9,7 @@ import { Queue } from 'bullmq';
 export class GradebookQueueService {
   private readonly logger = new Logger(GradebookQueueService.name);
 
-  constructor(
-    @InjectQueue('gradebook') private gradebookQueue: Queue,
-  ) {}
+  constructor(@InjectQueue('gradebook') private gradebookQueue: Queue) {}
 
   /**
    * Add gradebook export job to the queue
@@ -36,10 +34,14 @@ export class GradebookQueueService {
           count: 5000, // Keep last 5000 failed jobs
         },
       });
-      this.logger.log(`Added gradebook export job ${job.id} for course ${data.courseId} as ${data.format}`);
+      this.logger.log(
+        `Added gradebook export job ${job.id} for course ${data.courseId} as ${data.format}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add gradebook export job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add gradebook export job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -47,10 +49,7 @@ export class GradebookQueueService {
   /**
    * Add bulk grade recalculation job to the queue
    */
-  async addRecalculateJob(data: {
-    courseId: string;
-    userId: string;
-  }) {
+  async addRecalculateJob(data: { courseId: string; userId: string }) {
     try {
       const job = await this.gradebookQueue.add('recalculate-grades', data, {
         attempts: 3,
@@ -59,10 +58,14 @@ export class GradebookQueueService {
           delay: 2000,
         },
       });
-      this.logger.log(`Added grade recalculation job ${job.id} for course ${data.courseId}`);
+      this.logger.log(
+        `Added grade recalculation job ${job.id} for course ${data.courseId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add grade recalculation job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add grade recalculation job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -108,7 +111,9 @@ export class GradebookQueueService {
         failedReason: job.failedReason,
       };
     } catch (error) {
-      this.logger.error(`Failed to get job status: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to get job status: ${(error as Error).message}`,
+      );
       throw error;
     }
   }

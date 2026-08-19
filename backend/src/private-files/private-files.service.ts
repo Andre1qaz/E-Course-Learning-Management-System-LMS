@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { AutoValidator } from '../common/base/validation-guide';
@@ -101,9 +106,10 @@ export class PrivateFilesService {
 
     const newQuotaUsed = Number(user.storageQuotaUsed) + data.fileSize;
     if (newQuotaUsed > Number(user.storageQuotaLimit)) {
-      const remaining = Number(user.storageQuotaLimit) - Number(user.storageQuotaUsed);
+      const remaining =
+        Number(user.storageQuotaLimit) - Number(user.storageQuotaUsed);
       throw new ForbiddenException(
-        `Storage quota exceeded. Maximum size for new files: ${(remaining / 1024 / 1024).toFixed(2)}MB, overall limit: ${(Number(user.storageQuotaLimit) / 1024 / 1024).toFixed(2)}MB`
+        `Storage quota exceeded. Maximum size for new files: ${(remaining / 1024 / 1024).toFixed(2)}MB, overall limit: ${(Number(user.storageQuotaLimit) / 1024 / 1024).toFixed(2)}MB`,
       );
     }
 
@@ -173,7 +179,8 @@ export class PrivateFilesService {
     });
 
     if (user) {
-      const newQuotaUsed = Number(user.storageQuotaUsed) - Number(file.fileSize);
+      const newQuotaUsed =
+        Number(user.storageQuotaUsed) - Number(file.fileSize);
       await this.prisma.user.update({
         where: { id: userId },
         data: {
@@ -200,19 +207,22 @@ export class PrivateFilesService {
    */
   async createFolder(userId: string, folderPath: string) {
     // ✅ Auto-validation folderPath
-    const result = AutoValidator.validateObject({ folderPath }, {
-      folderPath: { type: 'string', required: true, maxLength: 500 },
-    });
+    const result = AutoValidator.validateObject(
+      { folderPath },
+      {
+        folderPath: { type: 'string', required: true, maxLength: 500 },
+      },
+    );
 
     if (!result.valid) {
       throw new BadRequestException(result.errors.join(', '));
     }
 
     // Normalize folder path
-    const normalizedPath = result.sanitized.folderPath.startsWith('/') 
-      ? result.sanitized.folderPath 
+    const normalizedPath = result.sanitized.folderPath.startsWith('/')
+      ? result.sanitized.folderPath
       : `/${result.sanitized.folderPath}`;
-    
+
     // Check if folder already exists (by checking if any file exists in this path)
     const existingFile = await this.prisma.privateFile.findFirst({
       where: {
@@ -314,7 +324,9 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only move your own files');
     }
 
-    const normalizedPath = newFolderPath.startsWith('/') ? newFolderPath : `/${newFolderPath}`;
+    const normalizedPath = newFolderPath.startsWith('/')
+      ? newFolderPath
+      : `/${newFolderPath}`;
 
     const updatedFile = await this.prisma.privateFile.update({
       where: { id: fileId },

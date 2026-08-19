@@ -14,7 +14,11 @@ import { BullModule } from '@nestjs/bullmq';
     }),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsProcessor, NotificationsQueueService],
+  providers: [
+    NotificationsService,
+    NotificationsProcessor,
+    NotificationsQueueService,
+  ],
   exports: [NotificationsService, NotificationsQueueService],
 })
 export class NotificationsModule {}

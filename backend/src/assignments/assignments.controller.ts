@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -45,7 +61,9 @@ export class AssignmentsController {
   }
 
   @Get('gradebook/:courseId')
-  @ApiOperation({ summary: 'Get gradebook for a course (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Get gradebook for a course (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getGradebook(
     @Param('courseId', ParseUUIDPipe) courseId: string,
@@ -94,11 +112,18 @@ export class AssignmentsController {
     @Body() dto: SubmitAssignmentDto,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.assignmentsService.submit(id, userId, dto.fileUrl, dto.fileName);
+    return this.assignmentsService.submit(
+      id,
+      userId,
+      dto.fileUrl,
+      dto.fileName,
+    );
   }
 
   @Get(':id/submissions')
-  @ApiOperation({ summary: 'Get all submissions for an assignment (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Get all submissions for an assignment (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getSubmissions(
     @Param('id', ParseUUIDPipe) id: string,
@@ -109,7 +134,7 @@ export class AssignmentsController {
   }
 
   @Get(':id/my-submission')
-  @ApiOperation({ summary: 'Get student\'s submission for an assignment' })
+  @ApiOperation({ summary: "Get student's submission for an assignment" })
   async getStudentSubmission(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('sub') userId: string,
@@ -118,7 +143,9 @@ export class AssignmentsController {
   }
 
   @Post('submissions/:submissionId/grade')
-  @ApiOperation({ summary: 'Grade assignment submission (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Grade assignment submission (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async grade(
     @Param('submissionId', ParseUUIDPipe) submissionId: string,

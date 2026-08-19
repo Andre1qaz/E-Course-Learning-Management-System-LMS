@@ -25,17 +25,25 @@ export class NotificationsQueueService {
     link?: string;
   }) {
     try {
-      const job = await this.notificationsQueue.add('create-notification', data, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+      const job = await this.notificationsQueue.add(
+        'create-notification',
+        data,
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      });
-      this.logger.log(`Added notification job ${job.id} for user ${data.userId}`);
+      );
+      this.logger.log(
+        `Added notification job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add notification job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add notification job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -51,17 +59,25 @@ export class NotificationsQueueService {
     link?: string;
   }) {
     try {
-      const job = await this.notificationsQueue.add('create-bulk-notifications', data, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+      const job = await this.notificationsQueue.add(
+        'create-bulk-notifications',
+        data,
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      });
-      this.logger.log(`Added bulk notification job ${job.id} for ${data.userIds.length} users`);
+      );
+      this.logger.log(
+        `Added bulk notification job ${job.id} for ${data.userIds.length} users`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add bulk notification job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add bulk notification job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -84,10 +100,14 @@ export class NotificationsQueueService {
         },
         delay: this.calculateDelay(data.deadlineDate),
       });
-      this.logger.log(`Added deadline reminder job ${job.id} for ${data.deadlineDate}`);
+      this.logger.log(
+        `Added deadline reminder job ${job.id} for ${data.deadlineDate}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add deadline reminder job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add deadline reminder job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -113,7 +133,9 @@ export class NotificationsQueueService {
       this.logger.log(`Added exam reminder job ${job.id} for ${data.examDate}`);
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add exam reminder job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add exam reminder job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -135,10 +157,14 @@ export class NotificationsQueueService {
           delay: 2000,
         },
       });
-      this.logger.log(`Added grade released job ${job.id} for user ${data.userId}`);
+      this.logger.log(
+        `Added grade released job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add grade released job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add grade released job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -159,10 +185,14 @@ export class NotificationsQueueService {
           delay: 2000,
         },
       });
-      this.logger.log(`Added forum reply job ${job.id} for user ${data.userId}`);
+      this.logger.log(
+        `Added forum reply job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add forum reply job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add forum reply job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -176,17 +206,25 @@ export class NotificationsQueueService {
     courseName: string;
   }) {
     try {
-      const job = await this.notificationsQueue.add('material-published', data, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+      const job = await this.notificationsQueue.add(
+        'material-published',
+        data,
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      });
-      this.logger.log(`Added material published job ${job.id} for user ${data.userId}`);
+      );
+      this.logger.log(
+        `Added material published job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add material published job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add material published job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -201,17 +239,25 @@ export class NotificationsQueueService {
     deadline: Date;
   }) {
     try {
-      const job = await this.notificationsQueue.add('assignment-created', data, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
+      const job = await this.notificationsQueue.add(
+        'assignment-created',
+        data,
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
         },
-      });
-      this.logger.log(`Added assignment created job ${job.id} for user ${data.userId}`);
+      );
+      this.logger.log(
+        `Added assignment created job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add assignment created job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add assignment created job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -233,10 +279,14 @@ export class NotificationsQueueService {
           delay: 2000,
         },
       });
-      this.logger.log(`Added quiz created job ${job.id} for user ${data.userId}`);
+      this.logger.log(
+        `Added quiz created job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add quiz created job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add quiz created job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -258,10 +308,14 @@ export class NotificationsQueueService {
           delay: 2000,
         },
       });
-      this.logger.log(`Added exam created job ${job.id} for user ${data.userId}`);
+      this.logger.log(
+        `Added exam created job ${job.id} for user ${data.userId}`,
+      );
       return job;
     } catch (error) {
-      this.logger.error(`Failed to add exam created job: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to add exam created job: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -282,7 +336,7 @@ export class NotificationsQueueService {
     const now = new Date();
     const target = new Date(targetDate);
     const delay = target.getTime() - now.getTime();
-    
+
     // Return 0 if the date is in the past
     return delay > 0 ? delay : 0;
   }

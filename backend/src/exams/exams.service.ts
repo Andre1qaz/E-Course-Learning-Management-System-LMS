@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -27,7 +32,12 @@ export class ExamsService {
    * Heuristic #16: Instructional Assessment — require duration and maxScore
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async create(courseId: string, userId: string, userRole: Role, dto: CreateExamDto) {
+  async create(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateExamDto,
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -56,7 +66,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can create exams');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can create exams',
+      );
     }
 
     // ✅ Validate dates dengan data yang sudah di-parse
@@ -204,7 +216,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update this exam');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update this exam',
+      );
     }
 
     // Prevent editing if exam has attempts
@@ -213,7 +227,9 @@ export class ExamsService {
     });
 
     if (hasAttempts) {
-      throw new BadRequestException('Cannot update exam that has been taken by students');
+      throw new BadRequestException(
+        'Cannot update exam that has been taken by students',
+      );
     }
 
     // ✅ Update dengan data yang sudah divalidasi
@@ -272,7 +288,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this exam');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this exam',
+      );
     }
 
     // Delete related data
@@ -324,7 +342,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can publish this exam');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can publish this exam',
+      );
     }
 
     // Check if exam has questions
@@ -415,9 +435,9 @@ export class ExamsService {
         where: { userId },
         select: { courseId: true },
       });
-      where = { 
+      where = {
         courseId: { in: enrollments.map((e) => e.courseId) },
-        isPublished: true
+        isPublished: true,
       };
     }
 
@@ -451,7 +471,12 @@ export class ExamsService {
   /**
    * Add question to exam (Admin or course instructor only)
    */
-  async addQuestion(examId: string, userId: string, userRole: Role, dto: CreateQuestionDto) {
+  async addQuestion(
+    examId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateQuestionDto,
+  ) {
     const exam = await this.prisma.exam.findUnique({
       where: { id: examId },
       include: {
@@ -465,7 +490,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can add questions');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can add questions',
+      );
     }
 
     // Prevent adding questions if exam has attempts
@@ -474,7 +501,9 @@ export class ExamsService {
     });
 
     if (hasAttempts) {
-      throw new BadRequestException('Cannot add questions to exam that has been taken');
+      throw new BadRequestException(
+        'Cannot add questions to exam that has been taken',
+      );
     }
 
     // Get next order
@@ -599,9 +628,13 @@ export class ExamsService {
     }
 
     // Check if student is enrolled
-    const isEnrolled = exam.course.enrollments.some((e: any) => e.userId === userId);
+    const isEnrolled = exam.course.enrollments.some(
+      (e: any) => e.userId === userId,
+    );
     if (!isEnrolled) {
-      throw new ForbiddenException('You must be enrolled in this course to take the exam');
+      throw new ForbiddenException(
+        'You must be enrolled in this course to take the exam',
+      );
     }
 
     // Check if exam is published
@@ -626,7 +659,10 @@ export class ExamsService {
       },
     });
 
-    if (existingAttempt && existingAttempt.status === ExamAttemptStatus.SUBMITTED) {
+    if (
+      existingAttempt &&
+      existingAttempt.status === ExamAttemptStatus.SUBMITTED
+    ) {
       throw new ForbiddenException('You have already submitted this exam');
     }
 
@@ -693,7 +729,8 @@ export class ExamsService {
       answer = await this.prisma.answer.update({
         where: { id: existingAnswer.id },
         data: {
-          answerText: dto.answer || dto.essayAnswer || existingAnswer.answerText,
+          answerText:
+            dto.answer || dto.essayAnswer || existingAnswer.answerText,
           selectedOptionId: dto.answer || existingAnswer.selectedOptionId,
         },
       });
@@ -714,7 +751,7 @@ export class ExamsService {
       where: { id: attemptId },
       data: {
         autoSavedData: {
-          ...attempt.autoSavedData as any,
+          ...(attempt.autoSavedData as any),
           [dto.questionId]: {
             answer: dto.answer,
             essayAnswer: dto.essayAnswer,
@@ -776,7 +813,9 @@ export class ExamsService {
     const answers = [];
 
     for (const answerDto of dto.answers) {
-      const question = attempt.exam.questions.find((q: any) => q.id === answerDto.questionId);
+      const question = attempt.exam.questions.find(
+        (q: any) => q.id === answerDto.questionId,
+      );
       if (!question) continue;
 
       let score = 0;
@@ -797,7 +836,7 @@ export class ExamsService {
       if (question.type === 'TRUE_FALSE' && answerDto.answer) {
         const userAnswer = answerDto.answer.toLowerCase();
         const correctOption = question.options.find((o: any) => o.isCorrect);
-        
+
         if (correctOption) {
           const correctAnswer = correctOption.optionText.toLowerCase();
           if (userAnswer === correctAnswer) {
@@ -815,7 +854,7 @@ export class ExamsService {
       if (question.type === QuestionType.SHORT_ANSWER && answerDto.answer) {
         const userAnswer = answerDto.answer.trim();
         const correctOption = question.options.find((o: any) => o.isCorrect);
-        
+
         if (correctOption) {
           const correctAnswer = correctOption.optionText.trim();
           // Case-insensitive comparison for short answers
@@ -930,7 +969,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can view all attempts');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can view all attempts',
+      );
     }
 
     const attempts = await this.prisma.examAttempt.findMany({
@@ -962,7 +1003,9 @@ export class ExamsService {
     attemptId: string,
     userId: string,
     userRole: Role,
-    dto: { answers: Array<{ questionId: string; score: number; feedback?: string }> },
+    dto: {
+      answers: Array<{ questionId: string; score: number; feedback?: string }>;
+    },
   ) {
     const attempt = await this.prisma.examAttempt.findUnique({
       where: { id: attemptId },
@@ -980,8 +1023,13 @@ export class ExamsService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && attempt.exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can grade attempts');
+    if (
+      userRole !== Role.ADMIN &&
+      attempt.exam.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can grade attempts',
+      );
     }
 
     // Update answers with manual grading
@@ -1003,7 +1051,10 @@ export class ExamsService {
       where: { attemptId },
     });
 
-    const totalScore = answers.reduce((sum: number, a: any) => sum + (a.score || 0), 0);
+    const totalScore = answers.reduce(
+      (sum: number, a: any) => sum + (a.score || 0),
+      0,
+    );
 
     // Update attempt
     const gradedAttempt = await this.prisma.examAttempt.update({
@@ -1051,7 +1102,9 @@ export class ExamsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && exam.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can reorder questions');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can reorder questions',
+      );
     }
 
     // Update orders in a transaction

@@ -1,9 +1,9 @@
-import { 
-  ValidatorConstraint, 
+import {
+  ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
   registerDecorator,
-  ValidationOptions
+  ValidationOptions,
 } from 'class-validator';
 
 // Custom validator for optional UUID fields
@@ -15,7 +15,8 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
       return true;
     }
     // Otherwise, it must be a valid UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(value);
   }
 
@@ -25,7 +26,7 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsOptionalUUID(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

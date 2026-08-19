@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Role, EventCategory } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -20,10 +36,26 @@ export class CalendarController {
 
   @Get()
   @ApiOperation({ summary: 'Get all calendar events for current user' })
-  @ApiQuery({ name: 'courseId', required: false, description: 'Filter by course ID' })
-  @ApiQuery({ name: 'category', required: false, description: 'Filter by event category' })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Filter by start date' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'Filter by end date' })
+  @ApiQuery({
+    name: 'courseId',
+    required: false,
+    description: 'Filter by course ID',
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Filter by event category',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Filter by start date',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Filter by end date',
+  })
   async getUserEvents(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -60,13 +92,21 @@ export class CalendarController {
 
   @Get('upcoming')
   @ApiOperation({ summary: 'Get upcoming events (next 7 days)' })
-  @ApiQuery({ name: 'days', required: false, description: 'Number of days ahead (default: 7)' })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    description: 'Number of days ahead (default: 7)',
+  })
   async getUpcomingEvents(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
     @Query('days') days?: string,
   ) {
-    return this.calendarService.getUpcomingEvents(userId, role, days ? parseInt(days) : 7);
+    return this.calendarService.getUpcomingEvents(
+      userId,
+      role,
+      days ? parseInt(days) : 7,
+    );
   }
 
   @Get(':id')
@@ -74,7 +114,7 @@ export class CalendarController {
   async getEventById(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id') eventId: string,
+    @Param('id', ParseUUIDPipe) eventId: string,
   ) {
     return this.calendarService.getEventById(eventId, userId, role);
   }
@@ -90,7 +130,9 @@ export class CalendarController {
       title: createEventDto.title,
       description: createEventDto.description,
       startDate: new Date(createEventDto.startDate),
-      endDate: createEventDto.endDate ? new Date(createEventDto.endDate) : undefined,
+      endDate: createEventDto.endDate
+        ? new Date(createEventDto.endDate)
+        : undefined,
       startTime: createEventDto.startTime,
       endTime: createEventDto.endTime,
       location: createEventDto.location,
@@ -113,14 +155,18 @@ export class CalendarController {
   async updateEvent(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id') eventId: string,
+    @Param('id', ParseUUIDPipe) eventId: string,
     @Body() updateEventDto: UpdateEventDto,
   ) {
     return this.calendarService.updateEvent(userId, role, eventId, {
       title: updateEventDto.title,
       description: updateEventDto.description,
-      startDate: updateEventDto.startDate ? new Date(updateEventDto.startDate) : undefined,
-      endDate: updateEventDto.endDate ? new Date(updateEventDto.endDate) : undefined,
+      startDate: updateEventDto.startDate
+        ? new Date(updateEventDto.startDate)
+        : undefined,
+      endDate: updateEventDto.endDate
+        ? new Date(updateEventDto.endDate)
+        : undefined,
       startTime: updateEventDto.startTime,
       endTime: updateEventDto.endTime,
       location: updateEventDto.location,
@@ -142,7 +188,7 @@ export class CalendarController {
   async deleteEvent(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id') eventId: string,
+    @Param('id', ParseUUIDPipe) eventId: string,
   ) {
     return this.calendarService.deleteEvent(userId, role, eventId);
   }
@@ -152,7 +198,7 @@ export class CalendarController {
   async toggleEventPublish(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id') eventId: string,
+    @Param('id', ParseUUIDPipe) eventId: string,
   ) {
     return this.calendarService.toggleEventPublish(userId, role, eventId);
   }

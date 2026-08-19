@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  MaxLength,
+  IsDateString,
+} from 'class-validator';
 
 // Heuristic #5: Error Prevention — validate assignment data before creation
 // Heuristic #16: Instructional Assessment — require maxScore for grading

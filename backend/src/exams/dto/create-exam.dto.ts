@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, MaxLength, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  MaxLength,
+  IsDateString,
+  IsBoolean,
+} from 'class-validator';
 
 // Heuristic #5: Error Prevention — validate exam data before creation
 // Heuristic #16: Instructional Assessment — require maxScore and duration

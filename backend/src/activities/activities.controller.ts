@@ -1,5 +1,19 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
@@ -94,7 +108,9 @@ export class ActivitiesController {
 
   @Post(':id/move')
   @Roles(Role.ADMIN, Role.DOSEN)
-  @ApiOperation({ summary: 'Move an activity to another week (Admin/Dosen only)' })
+  @ApiOperation({
+    summary: 'Move an activity to another week (Admin/Dosen only)',
+  })
   @ApiParam({ name: 'weekId', description: 'Week ID' })
   @ApiParam({ name: 'id', description: 'Activity ID' })
   move(
@@ -116,7 +132,12 @@ export class ActivitiesController {
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.activitiesService.reorder(weekId, body.activityOrders, userId, role);
+    return this.activitiesService.reorder(
+      weekId,
+      body.activityOrders,
+      userId,
+      role,
+    );
   }
 }
 

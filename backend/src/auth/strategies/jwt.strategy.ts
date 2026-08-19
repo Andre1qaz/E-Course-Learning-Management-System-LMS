@@ -29,7 +29,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Sesi tidak valid. Silakan login kembali.');
+      throw new UnauthorizedException(
+        'Sesi tidak valid. Silakan login kembali.',
+      );
     }
 
     return {

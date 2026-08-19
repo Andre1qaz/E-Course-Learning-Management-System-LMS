@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -17,8 +32,16 @@ export class AnnouncementsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all announcements for current user' })
-  @ApiQuery({ name: 'courseId', required: false, description: 'Filter by course ID' })
-  @ApiQuery({ name: 'unreadOnly', required: false, description: 'Show only unread announcements' })
+  @ApiQuery({
+    name: 'courseId',
+    required: false,
+    description: 'Filter by course ID',
+  })
+  @ApiQuery({
+    name: 'unreadOnly',
+    required: false,
+    description: 'Show only unread announcements',
+  })
   async getAnnouncements(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

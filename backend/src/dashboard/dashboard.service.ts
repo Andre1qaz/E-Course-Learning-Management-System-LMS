@@ -240,13 +240,19 @@ export class DashboardService {
     const validGrades = grades.filter((g: any) => g.finalScore !== null);
     const averageGrade =
       validGrades.length > 0
-        ? validGrades.reduce((sum: number, g: any) => sum + (g.finalScore || 0), 0) / validGrades.length
+        ? validGrades.reduce(
+            (sum: number, g: any) => sum + (g.finalScore || 0),
+            0,
+          ) / validGrades.length
         : 0;
 
     // Calculate average progress
     const averageProgress =
       grades.length > 0
-        ? grades.reduce((sum: number, g: any) => sum + g.completionPercentage, 0) / grades.length
+        ? grades.reduce(
+            (sum: number, g: any) => sum + g.completionPercentage,
+            0,
+          ) / grades.length
         : 0;
 
     return {

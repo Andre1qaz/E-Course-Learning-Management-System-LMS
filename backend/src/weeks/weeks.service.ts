@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWeekDto } from './dto/create-week.dto';
 import { UpdateWeekDto } from './dto/update-week.dto';
@@ -13,7 +18,8 @@ export class WeeksService {
     // Check if user has access to the course
     await this.checkCourseAccess(courseId, userId, userRole);
 
-    const canSeeUnpublished = userRole === Role.ADMIN || userRole === Role.DOSEN;
+    const canSeeUnpublished =
+      userRole === Role.ADMIN || userRole === Role.DOSEN;
 
     const weeks = await this.prisma.week.findMany({
       where: { courseId },
@@ -29,9 +35,9 @@ export class WeeksService {
     const weeksWithExams = await Promise.all(
       weeks.map(async (week) => {
         const exams = await this.prisma.exam.findMany({
-          where: { 
+          where: {
             weekId: week.id,
-            ...(canSeeUnpublished ? {} : { isPublished: true })
+            ...(canSeeUnpublished ? {} : { isPublished: true }),
           },
           include: {
             _count: {
@@ -48,7 +54,7 @@ export class WeeksService {
           ...week,
           exams,
         };
-      })
+      }),
     );
 
     return weeksWithExams;
@@ -74,7 +80,12 @@ export class WeeksService {
     return week;
   }
 
-  async create(courseId: string, dto: CreateWeekDto, userId: string, userRole: Role) {
+  async create(
+    courseId: string,
+    dto: CreateWeekDto,
+    userId: string,
+    userRole: Role,
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -158,7 +169,12 @@ export class WeeksService {
     });
   }
 
-  async reorder(courseId: string, weekOrders: { id: string; order: number }[], userId: string, userRole: Role) {
+  async reorder(
+    courseId: string,
+    weekOrders: { id: string; order: number }[],
+    userId: string,
+    userRole: Role,
+  ) {
     // Only ADMIN and DOSEN can reorder weeks
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
       throw new ForbiddenException('Only Admin and Dosen can reorder weeks');
@@ -178,7 +194,11 @@ export class WeeksService {
     );
   }
 
-  private async checkCourseAccess(courseId: string, userId: string, userRole: Role) {
+  private async checkCourseAccess(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });

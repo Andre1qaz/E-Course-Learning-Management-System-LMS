@@ -1,10 +1,10 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsBoolean, 
-  IsDateString, 
-  IsArray, 
-  ValidateNested
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';

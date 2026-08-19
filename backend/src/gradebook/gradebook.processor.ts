@@ -31,11 +31,13 @@ export class GradebookProcessor extends WorkerHost {
   }
 
   private async handleExportGradebook(job: Job) {
-    this.logger.log(`Processing gradebook export job ${job.id} for course ${job.data.courseId}`);
-    
+    this.logger.log(
+      `Processing gradebook export job ${job.id} for course ${job.data.courseId}`,
+    );
+
     // Update progress
     await job.updateProgress(10);
-    
+
     try {
       const result = await this.gradebookService.exportGradebook(
         job.data.courseId,
@@ -43,7 +45,7 @@ export class GradebookProcessor extends WorkerHost {
         job.data.userId,
         'ADMIN', // Queue jobs are typically initiated by admins/lecturers
       );
-      
+
       await job.updateProgress(100);
       return result;
     } catch (error: any) {
@@ -53,18 +55,20 @@ export class GradebookProcessor extends WorkerHost {
   }
 
   private async handleRecalculateGrades(job: Job) {
-    this.logger.log(`Processing grade recalculation job ${job.id} for course ${job.data.courseId}`);
-    
+    this.logger.log(
+      `Processing grade recalculation job ${job.id} for course ${job.data.courseId}`,
+    );
+
     // Update progress
     await job.updateProgress(10);
-    
+
     try {
       const result = await this.gradebookService.recalculateGrades(
         job.data.courseId,
         job.data.userId,
         'ADMIN', // Queue jobs are typically initiated by admins/lecturers
       );
-      
+
       await job.updateProgress(100);
       return result;
     } catch (error: any) {
@@ -72,5 +76,4 @@ export class GradebookProcessor extends WorkerHost {
       throw error;
     }
   }
-
 }

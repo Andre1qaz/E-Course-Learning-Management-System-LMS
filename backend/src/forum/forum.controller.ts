@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -19,7 +34,11 @@ export class ForumController {
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get all forum threads for a course' })
   @ApiParam({ name: 'courseId', description: 'Course ID' })
-  async getCourseThreads(@Param('courseId', ParseUUIDPipe) courseId: string, @CurrentUser('sub') userId: string, @CurrentUser('role') role: Role) {
+  async getCourseThreads(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
     return this.forumService.getCourseThreads(courseId, userId, role);
   }
 
@@ -38,7 +57,18 @@ export class ForumController {
   @ApiOperation({ summary: 'Create a new forum thread' })
   async createThread(
     @CurrentUser('sub') userId: string,
-    @Body() data: { courseId: string; title: string; content: string; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }> },
+    @Body()
+    data: {
+      courseId: string;
+      title: string;
+      content: string;
+      attachments?: Array<{
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+      }>;
+    },
   ) {
     return this.forumService.createThread(userId, data.courseId, {
       title: data.title,
@@ -92,7 +122,9 @@ export class ForumController {
   }
 
   @Put('thread/:threadId/best-answer/:replyId')
-  @ApiOperation({ summary: 'Mark a reply as best answer (instructor/admin only)' })
+  @ApiOperation({
+    summary: 'Mark a reply as best answer (instructor/admin only)',
+  })
   @ApiParam({ name: 'threadId', description: 'Thread ID' })
   @ApiParam({ name: 'replyId', description: 'Reply ID' })
   async markBestAnswer(
@@ -121,7 +153,16 @@ export class ForumController {
   async createReply(
     @CurrentUser('sub') userId: string,
     @Param('threadId', ParseUUIDPipe) threadId: string,
-    @Body() data: { content: string; attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }> },
+    @Body()
+    data: {
+      content: string;
+      attachments?: Array<{
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+      }>;
+    },
   ) {
     return this.forumService.createReply(userId, threadId, data);
   }
@@ -154,6 +195,11 @@ export class ForumController {
     @CurrentUser('sub') userId: string,
     @Body() data: { fileName: string; fileType: string; fileSize: number },
   ) {
-    return this.forumService.generateAttachmentUploadUrl(userId, data.fileName, data.fileType, data.fileSize);
+    return this.forumService.generateAttachmentUploadUrl(
+      userId,
+      data.fileName,
+      data.fileType,
+      data.fileSize,
+    );
   }
 }

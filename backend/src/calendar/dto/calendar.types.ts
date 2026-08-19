@@ -1,4 +1,9 @@
-import { EventCategory, EventTargetAudience, RelatedActivityType, CalendarEventType } from '@prisma/client';
+import {
+  EventCategory,
+  EventTargetAudience,
+  RelatedActivityType,
+  CalendarEventType,
+} from '@prisma/client';
 
 export interface CalendarEventWhere {
   isPublished?: boolean;

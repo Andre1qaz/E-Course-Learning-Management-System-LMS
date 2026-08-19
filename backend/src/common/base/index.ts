@@ -1,6 +1,6 @@
 /**
  * Base classes dan decorators untuk memudahkan pembuatan resource baru
- * 
+ *
  * Export semua utilities yang diperlukan untuk pembuatan resource
  */
 

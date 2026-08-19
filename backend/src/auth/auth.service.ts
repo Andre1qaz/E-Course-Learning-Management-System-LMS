@@ -8,7 +8,14 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
-import { LoginDto, RegisterDto, ForgotPasswordDto, UpdateProfileDto, ChangePasswordDto, ResetPasswordDto } from './dto/auth.dto';
+import {
+  LoginDto,
+  RegisterDto,
+  ForgotPasswordDto,
+  UpdateProfileDto,
+  ChangePasswordDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
 import { AutoValidator } from '../common/base/validation-guide';
 
@@ -26,7 +33,12 @@ export class AuthService {
     const result = AutoValidator.validateObject(dto, {
       name: { type: 'string', required: true, maxLength: 100 },
       email: { type: 'string', required: true, maxLength: 255 },
-      password: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+      password: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
     });
 
     if (!result.valid) {
@@ -52,7 +64,10 @@ export class AuthService {
     }
 
     // Heuristic #5: Error Prevention — password hashing, never plain text
-    const hashedPassword = await bcrypt.hash(result.sanitized.password, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(
+      result.sanitized.password,
+      SALT_ROUNDS,
+    );
 
     const user = await this.prisma.user.create({
       data: {
@@ -105,7 +120,10 @@ export class AuthService {
       throw new UnauthorizedException('Email atau password salah.');
     }
 
-    const isPasswordValid = await bcrypt.compare(result.sanitized.password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      result.sanitized.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Email atau password salah.');
     }
@@ -185,8 +203,7 @@ export class AuthService {
     return {
       success: true,
       data: { resetToken }, // Only for development - remove in production
-      message:
-        `Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda. Token: ${resetToken}`,
+      message: `Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda. Token: ${resetToken}`,
     };
   }
 
@@ -194,8 +211,18 @@ export class AuthService {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       token: { type: 'string', required: true, maxLength: 100 },
-      newPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
-      confirmPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+      newPassword: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
+      confirmPassword: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
     });
 
     if (!result.valid) {
@@ -220,14 +247,21 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Token reset tidak valid atau telah kadaluarsa.');
+      throw new UnauthorizedException(
+        'Token reset tidak valid atau telah kadaluarsa.',
+      );
     }
 
     if (user.resetTokenExpires && user.resetTokenExpires < new Date()) {
-      throw new UnauthorizedException('Token reset telah kadaluarsa. Silakan minta token baru.');
+      throw new UnauthorizedException(
+        'Token reset telah kadaluarsa. Silakan minta token baru.',
+      );
     }
 
-    const hashedPassword = await bcrypt.hash(result.sanitized.newPassword, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(
+      result.sanitized.newPassword,
+      SALT_ROUNDS,
+    );
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -255,7 +289,10 @@ export class AuthService {
   }
 
   private generateResetToken(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
   }
 
   async getProfile(userId: string): Promise<ApiResponse> {
@@ -326,7 +363,10 @@ export class AuthService {
     };
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<ApiResponse> {
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<ApiResponse> {
     // ✅ Validate userId dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
 
@@ -375,15 +415,28 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<ApiResponse> {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<ApiResponse> {
     // ✅ Validate userId dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
 
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       oldPassword: { type: 'string', required: true, maxLength: 100 },
-      newPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
-      confirmPassword: { type: 'string', required: true, minLength: 8, maxLength: 100 },
+      newPassword: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
+      confirmPassword: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
     });
 
     if (!result.valid) {
@@ -411,12 +464,18 @@ export class AuthService {
       throw new UnauthorizedException('User tidak ditemukan.');
     }
 
-    const isPasswordValid = await bcrypt.compare(result.sanitized.oldPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      result.sanitized.oldPassword,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Password lama tidak sesuai.');
     }
 
-    const hashedPassword = await bcrypt.hash(result.sanitized.newPassword, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(
+      result.sanitized.newPassword,
+      SALT_ROUNDS,
+    );
 
     await this.prisma.user.update({
       where: { id: validatedUserId },

@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
@@ -29,9 +34,10 @@ export class ActivitiesService {
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
     // Students only see published activities
-    const whereClause = userRole === Role.MAHASISWA
-      ? { weekId, status: ActivityStatus.PUBLISHED }
-      : { weekId };
+    const whereClause =
+      userRole === Role.MAHASISWA
+        ? { weekId, status: ActivityStatus.PUBLISHED }
+        : { weekId };
 
     return this.prisma.activity.findMany({
       where: whereClause,
@@ -53,14 +59,22 @@ export class ActivitiesService {
     await this.checkCourseAccess(activity.week.courseId, userId, userRole);
 
     // Students cannot see draft activities
-    if (userRole === Role.MAHASISWA && activity.status === ActivityStatus.DRAFT) {
+    if (
+      userRole === Role.MAHASISWA &&
+      activity.status === ActivityStatus.DRAFT
+    ) {
       throw new ForbiddenException('You do not have access to this activity');
     }
 
     return activity;
   }
 
-  async create(weekId: string, dto: CreateActivityDto, userId: string, userRole: Role) {
+  async create(
+    weekId: string,
+    dto: CreateActivityDto,
+    userId: string,
+    userRole: Role,
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -79,7 +93,9 @@ export class ActivitiesService {
 
     // Only ADMIN and DOSEN can create activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can create activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can create activities',
+      );
     }
 
     // Check if week exists and user has access
@@ -99,7 +115,8 @@ export class ActivitiesService {
       data: {
         weekId: validatedWeekId,
         ...result.sanitized,
-        publishedAt: result.sanitized.status === 'PUBLISHED' ? new Date() : null,
+        publishedAt:
+          result.sanitized.status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
@@ -112,17 +129,27 @@ export class ActivitiesService {
     return activity;
   }
 
-  async update(id: string, dto: UpdateActivityDto, userId: string, userRole: Role) {
+  async update(
+    id: string,
+    dto: UpdateActivityDto,
+    userId: string,
+    userRole: Role,
+  ) {
     // Only ADMIN and DOSEN can update activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can update activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can update activities',
+      );
     }
 
     const activity = await this.findOne(id, userId, userRole);
 
     // Update publishedAt if status is being changed to PUBLISHED
     const updateData: UpdateActivityDto & { publishedAt?: string } = { ...dto };
-    if (dto.status === 'PUBLISHED' && activity.status !== ActivityStatus.PUBLISHED) {
+    if (
+      dto.status === 'PUBLISHED' &&
+      activity.status !== ActivityStatus.PUBLISHED
+    ) {
       updateData.publishedAt = new Date().toISOString();
     }
 
@@ -133,7 +160,10 @@ export class ActivitiesService {
 
     await this.calendarService.createEventFromActivity(updatedActivity.id);
 
-    if (dto.status === 'PUBLISHED' && activity.status !== ActivityStatus.PUBLISHED) {
+    if (
+      dto.status === 'PUBLISHED' &&
+      activity.status !== ActivityStatus.PUBLISHED
+    ) {
       await this.notifyActivityPublished(updatedActivity.id);
     }
 
@@ -143,7 +173,9 @@ export class ActivitiesService {
   async remove(id: string, userId: string, userRole: Role) {
     // Only ADMIN and DOSEN can delete activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can delete activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can delete activities',
+      );
     }
 
     await this.findOne(id, userId, userRole);
@@ -157,12 +189,22 @@ export class ActivitiesService {
   async duplicate(id: string, userId: string, userRole: Role) {
     // Only ADMIN and DOSEN can duplicate activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can duplicate activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can duplicate activities',
+      );
     }
 
     const activity = await this.findOne(id, userId, userRole);
 
-    const { id: _, createdAt, updatedAt, publishedAt, week, metadata, ...activityData } = activity;
+    const {
+      id: _,
+      createdAt,
+      updatedAt,
+      publishedAt,
+      week,
+      metadata,
+      ...activityData
+    } = activity;
 
     return this.prisma.activity.create({
       data: {
@@ -201,10 +243,17 @@ export class ActivitiesService {
     });
   }
 
-  async reorder(weekId: string, activityOrders: { id: string; order: number }[], userId: string, userRole: Role) {
+  async reorder(
+    weekId: string,
+    activityOrders: { id: string; order: number }[],
+    userId: string,
+    userRole: Role,
+  ) {
     // Only ADMIN and DOSEN can reorder activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can reorder activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can reorder activities',
+      );
     }
 
     // Check if user has access to the week
@@ -230,14 +279,20 @@ export class ActivitiesService {
     );
   }
 
-  async reorderGlobal(activityOrders: { id: string; order: number }[], userId: string, userRole: Role) {
+  async reorderGlobal(
+    activityOrders: { id: string; order: number }[],
+    userId: string,
+    userRole: Role,
+  ) {
     // Only ADMIN and DOSEN can reorder activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can reorder activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can reorder activities',
+      );
     }
 
     // Verify that all activities belong to courses the user has access to
-    const activityIds = activityOrders.map(a => a.id);
+    const activityIds = activityOrders.map((a) => a.id);
     const activities = await this.prisma.activity.findMany({
       where: { id: { in: activityIds } },
       include: { week: { include: { course: true } } },
@@ -261,7 +316,9 @@ export class ActivitiesService {
   async publish(id: string, userId: string, userRole: Role) {
     // Only ADMIN and DOSEN can publish activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can publish activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can publish activities',
+      );
     }
 
     const activity = await this.findOne(id, userId, userRole);
@@ -286,7 +343,9 @@ export class ActivitiesService {
   async unpublish(id: string, userId: string, userRole: Role) {
     // Only ADMIN and DOSEN can unpublish activities
     if (userRole !== Role.ADMIN && userRole !== Role.DOSEN) {
-      throw new ForbiddenException('Only Admin and Dosen can unpublish activities');
+      throw new ForbiddenException(
+        'Only Admin and Dosen can unpublish activities',
+      );
     }
 
     const activity = await this.findOne(id, userId, userRole);
@@ -304,7 +363,11 @@ export class ActivitiesService {
     });
   }
 
-  private async checkCourseAccess(courseId: string, userId: string, userRole: Role) {
+  private async checkCourseAccess(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -371,7 +434,12 @@ export class ActivitiesService {
       EXTERNAL_LINK: 'Link Eksternal',
     };
 
-    const notificationTypeMap: Partial<Record<ActivityType, 'ASSIGNMENT_CREATED' | 'QUIZ_CREATED' | 'MATERIAL_PUBLISHED'>> = {
+    const notificationTypeMap: Partial<
+      Record<
+        ActivityType,
+        'ASSIGNMENT_CREATED' | 'QUIZ_CREATED' | 'MATERIAL_PUBLISHED'
+      >
+    > = {
       ASSIGNMENT: 'ASSIGNMENT_CREATED',
       QUIZ: 'QUIZ_CREATED',
       MATERIAL: 'MATERIAL_PUBLISHED',

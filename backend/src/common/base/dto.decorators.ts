@@ -1,10 +1,10 @@
-import { 
-  IsString, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsNumber, 
-  IsBoolean, 
-  IsDateString, 
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDateString,
   IsHexColor,
   MaxLength,
   Min,
@@ -13,7 +13,7 @@ import {
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-  ValidationArguments
+  ValidationArguments,
 } from 'class-validator';
 
 /**
@@ -29,18 +29,19 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
     if (value === undefined || value === null || value === '') {
       return true;
     }
-    
+
     // Handle berbagai UUID format
     const normalizedId = value.trim().toLowerCase();
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     // Coba format dengan dashes
     if (uuidRegex.test(normalizedId)) return true;
-    
+
     // Coba format tanpa dashes (32 hex chars)
     const noDashRegex = /^[0-9a-f]{32}$/i;
     if (noDashRegex.test(normalizedId)) return true;
-    
+
     return false;
   }
 
@@ -50,7 +51,7 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsOptionalUUID(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -68,15 +69,16 @@ export class IsUUIDConstraint implements ValidatorConstraintInterface {
     if (!value || value.trim() === '') {
       return false;
     }
-    
+
     const normalizedId = value.trim().toLowerCase();
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     if (uuidRegex.test(normalizedId)) return true;
-    
+
     const noDashRegex = /^[0-9a-f]{32}$/i;
     if (noDashRegex.test(normalizedId)) return true;
-    
+
     return false;
   }
 
@@ -86,7 +88,7 @@ export class IsUUIDConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsUUID(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -144,7 +146,10 @@ export function OptionalIdField() {
 /**
  * Decorator untuk number field yang required
  */
-export function RequiredNumber(min: number = 0, max: number = Number.MAX_SAFE_INTEGER) {
+export function RequiredNumber(
+  min: number = 0,
+  max: number = Number.MAX_SAFE_INTEGER,
+) {
   return function (target: any, propertyKey: string) {
     IsNumber()(target, propertyKey);
     IsNotEmpty()(target, propertyKey);
@@ -156,7 +161,10 @@ export function RequiredNumber(min: number = 0, max: number = Number.MAX_SAFE_IN
 /**
  * Decorator untuk optional number field
  */
-export function OptionalNumber(min: number = 0, max: number = Number.MAX_SAFE_INTEGER) {
+export function OptionalNumber(
+  min: number = 0,
+  max: number = Number.MAX_SAFE_INTEGER,
+) {
   return function (target: any, propertyKey: string) {
     IsNumber()(target, propertyKey);
     IsOptional()(target, propertyKey);

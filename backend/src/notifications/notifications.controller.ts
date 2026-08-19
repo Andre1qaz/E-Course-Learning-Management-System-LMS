@@ -1,5 +1,19 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,7 +42,10 @@ export class NotificationsController {
     @CurrentUser('sub') userId: string,
     @Query('unreadOnly') unreadOnly?: string,
   ) {
-    return this.notificationsService.getUserNotifications(userId, unreadOnly === 'true');
+    return this.notificationsService.getUserNotifications(
+      userId,
+      unreadOnly === 'true',
+    );
   }
 
   @Get('unread-count')
@@ -39,7 +56,10 @@ export class NotificationsController {
 
   @Put(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
-  async markAsRead(@CurrentUser('sub') userId: string, @Param('id') notificationId: string) {
+  async markAsRead(
+    @CurrentUser('sub') userId: string,
+    @Param('id') notificationId: string,
+  ) {
     return this.notificationsService.markAsRead(userId, notificationId);
   }
 
@@ -51,7 +71,10 @@ export class NotificationsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete notification' })
-  async deleteNotification(@CurrentUser('sub') userId: string, @Param('id') notificationId: string) {
+  async deleteNotification(
+    @CurrentUser('sub') userId: string,
+    @Param('id') notificationId: string,
+  ) {
     return this.notificationsService.deleteNotification(userId, notificationId);
   }
 

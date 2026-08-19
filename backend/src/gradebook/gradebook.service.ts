@@ -1,11 +1,23 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, ExamCategory } from '@prisma/client';
-import { UpdateGradeDto, UpdateCourseSettingsDto, BulkUpdateGradesDto } from './dto';
+import {
+  UpdateGradeDto,
+  UpdateCourseSettingsDto,
+  BulkUpdateGradesDto,
+} from './dto';
 import * as ExcelJS from 'exceljs';
 import PDFKit from 'pdfkit';
 import { AutoValidator } from '../common/base/validation-guide';
-import { EnrollmentWithGrade, BulkGradeUpdateResult } from './dto/gradebook.types';
+import {
+  EnrollmentWithGrade,
+  BulkGradeUpdateResult,
+} from './dto/gradebook.types';
 
 // Heuristic #1: Visibility of System Status — clear error messages
 // Heuristic #5: Error Prevention — validation and access control
@@ -111,7 +123,12 @@ export class GradebookService {
     };
   }
 
-  async getStudentGrades(courseId: string, studentId: string, userId: string, role: Role) {
+  async getStudentGrades(
+    courseId: string,
+    studentId: string,
+    userId: string,
+    role: Role,
+  ) {
     await this.checkCourseAccess(courseId, userId, role);
 
     const grade = await this.prisma.grade.findUnique({
@@ -251,7 +268,10 @@ export class GradebookService {
 
     // ✅ Validate dan normalize IDs
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
-    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+    const validatedStudentId = AutoValidator.validateUUID(
+      studentId,
+      'Student ID',
+    );
 
     await this.checkCourseAccess(validatedCourseId, userId, role);
 
@@ -266,20 +286,55 @@ export class GradebookService {
 
     // Track changes
     const changes = [];
-    if (result.sanitized.assignmentScore !== undefined && existingGrade?.assignmentScore !== result.sanitized.assignmentScore) {
-      changes.push({ field: 'assignmentScore', old: existingGrade?.assignmentScore, new: result.sanitized.assignmentScore });
+    if (
+      result.sanitized.assignmentScore !== undefined &&
+      existingGrade?.assignmentScore !== result.sanitized.assignmentScore
+    ) {
+      changes.push({
+        field: 'assignmentScore',
+        old: existingGrade?.assignmentScore,
+        new: result.sanitized.assignmentScore,
+      });
     }
-    if (result.sanitized.quizScore !== undefined && existingGrade?.quizScore !== result.sanitized.quizScore) {
-      changes.push({ field: 'quizScore', old: existingGrade?.quizScore, new: result.sanitized.quizScore });
+    if (
+      result.sanitized.quizScore !== undefined &&
+      existingGrade?.quizScore !== result.sanitized.quizScore
+    ) {
+      changes.push({
+        field: 'quizScore',
+        old: existingGrade?.quizScore,
+        new: result.sanitized.quizScore,
+      });
     }
-    if (result.sanitized.utsScore !== undefined && existingGrade?.utsScore !== result.sanitized.utsScore) {
-      changes.push({ field: 'utsScore', old: existingGrade?.utsScore, new: result.sanitized.utsScore });
+    if (
+      result.sanitized.utsScore !== undefined &&
+      existingGrade?.utsScore !== result.sanitized.utsScore
+    ) {
+      changes.push({
+        field: 'utsScore',
+        old: existingGrade?.utsScore,
+        new: result.sanitized.utsScore,
+      });
     }
-    if (result.sanitized.uasScore !== undefined && existingGrade?.uasScore !== result.sanitized.uasScore) {
-      changes.push({ field: 'uasScore', old: existingGrade?.uasScore, new: result.sanitized.uasScore });
+    if (
+      result.sanitized.uasScore !== undefined &&
+      existingGrade?.uasScore !== result.sanitized.uasScore
+    ) {
+      changes.push({
+        field: 'uasScore',
+        old: existingGrade?.uasScore,
+        new: result.sanitized.uasScore,
+      });
     }
-    if (result.sanitized.otherScore !== undefined && existingGrade?.otherScore !== result.sanitized.otherScore) {
-      changes.push({ field: 'otherScore', old: existingGrade?.otherScore, new: result.sanitized.otherScore });
+    if (
+      result.sanitized.otherScore !== undefined &&
+      existingGrade?.otherScore !== result.sanitized.otherScore
+    ) {
+      changes.push({
+        field: 'otherScore',
+        old: existingGrade?.otherScore,
+        new: result.sanitized.otherScore,
+      });
     }
 
     // ✅ Update dengan data yang sudah divalidasi
@@ -346,7 +401,11 @@ export class GradebookService {
         );
         results.push({ studentId: gradeUpdate.studentId, success: true });
       } catch (error) {
-        results.push({ studentId: gradeUpdate.studentId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        results.push({
+          studentId: gradeUpdate.studentId,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
 
@@ -436,18 +495,32 @@ export class GradebookService {
     const passingGrade = settings?.passingGrade || 60;
 
     const totalStudents = grades.length;
-    const passedStudents = grades.filter((g) => g.finalScore !== null && g.finalScore >= passingGrade).length;
+    const passedStudents = grades.filter(
+      (g) => g.finalScore !== null && g.finalScore >= passingGrade,
+    ).length;
     const failedStudents = totalStudents - passedStudents;
 
     const averageScores = {
-      assignment: grades.reduce((sum, g) => sum + (g.assignmentScore || 0), 0) / totalStudents || 0,
-      quiz: grades.reduce((sum, g) => sum + (g.quizScore || 0), 0) / totalStudents || 0,
-      uts: grades.reduce((sum, g) => sum + (g.utsScore || 0), 0) / totalStudents || 0,
-      uas: grades.reduce((sum, g) => sum + (g.uasScore || 0), 0) / totalStudents || 0,
-      final: grades.reduce((sum, g) => sum + (g.finalScore || 0), 0) / totalStudents || 0,
+      assignment:
+        grades.reduce((sum, g) => sum + (g.assignmentScore || 0), 0) /
+          totalStudents || 0,
+      quiz:
+        grades.reduce((sum, g) => sum + (g.quizScore || 0), 0) /
+          totalStudents || 0,
+      uts:
+        grades.reduce((sum, g) => sum + (g.utsScore || 0), 0) / totalStudents ||
+        0,
+      uas:
+        grades.reduce((sum, g) => sum + (g.uasScore || 0), 0) / totalStudents ||
+        0,
+      final:
+        grades.reduce((sum, g) => sum + (g.finalScore || 0), 0) /
+          totalStudents || 0,
     };
 
-    const averageCompletion = grades.reduce((sum, g) => sum + g.completionPercentage, 0) / totalStudents || 0;
+    const averageCompletion =
+      grades.reduce((sum, g) => sum + g.completionPercentage, 0) /
+        totalStudents || 0;
 
     return {
       success: true,
@@ -455,14 +528,20 @@ export class GradebookService {
         totalStudents,
         passedStudents,
         failedStudents,
-        passRate: totalStudents > 0 ? (passedStudents / totalStudents) * 100 : 0,
+        passRate:
+          totalStudents > 0 ? (passedStudents / totalStudents) * 100 : 0,
         averageScores,
         averageCompletion,
       },
     };
   }
 
-  async getGradeHistory(courseId: string, studentId: string, userId: string, role: Role) {
+  async getGradeHistory(
+    courseId: string,
+    studentId: string,
+    userId: string,
+    role: Role,
+  ) {
     await this.checkCourseAccess(courseId, userId, role);
 
     const grade = await this.prisma.grade.findUnique({
@@ -509,10 +588,17 @@ export class GradebookService {
 
     for (const enrollment of enrollments) {
       try {
-        const grade = await this.calculateStudentGrade(courseId, enrollment.userId);
+        const grade = await this.calculateStudentGrade(
+          courseId,
+          enrollment.userId,
+        );
         results.push({ studentId: enrollment.userId, success: true });
       } catch (error) {
-        results.push({ studentId: enrollment.userId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        results.push({
+          studentId: enrollment.userId,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
 
@@ -523,7 +609,12 @@ export class GradebookService {
     };
   }
 
-  async exportGradebook(courseId: string, format: string, userId: string, role: Role) {
+  async exportGradebook(
+    courseId: string,
+    format: string,
+    userId: string,
+    role: Role,
+  ) {
     await this.checkCourseAccess(courseId, userId, role);
 
     const gradebookData = await this.getCourseGradebook(courseId, userId, role);
@@ -580,7 +671,8 @@ export class GradebookService {
       }
     }
 
-    const assignmentScore = assignmentMaxTotal > 0 ? (assignmentTotal / assignmentMaxTotal) * 100 : 0;
+    const assignmentScore =
+      assignmentMaxTotal > 0 ? (assignmentTotal / assignmentMaxTotal) * 100 : 0;
 
     // Calculate quiz score
     const quizExams = await this.prisma.exam.findMany({
@@ -642,9 +734,18 @@ export class GradebookService {
       : 0;
 
     // Calculate completion percentage
-    const totalActivities = assignments.length + quizExams.length + (utsExam ? 1 : 0) + (uasExam ? 1 : 0);
-    const completedActivities = completedAssignments + completedQuizzes + (utsScore > 0 ? 1 : 0) + (uasScore > 0 ? 1 : 0);
-    const completionPercentage = totalActivities > 0 ? (completedActivities / totalActivities) * 100 : 0;
+    const totalActivities =
+      assignments.length +
+      quizExams.length +
+      (utsExam ? 1 : 0) +
+      (uasExam ? 1 : 0);
+    const completedActivities =
+      completedAssignments +
+      completedQuizzes +
+      (utsScore > 0 ? 1 : 0) +
+      (uasScore > 0 ? 1 : 0);
+    const completionPercentage =
+      totalActivities > 0 ? (completedActivities / totalActivities) * 100 : 0;
 
     // Calculate final score
     const finalScore =
@@ -724,7 +825,11 @@ export class GradebookService {
     });
   }
 
-  private async checkCourseAccess(courseId: string, userId: string, role: Role) {
+  private async checkCourseAccess(
+    courseId: string,
+    userId: string,
+    role: Role,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -739,7 +844,9 @@ export class GradebookService {
 
     if (role === Role.DOSEN) {
       if (course.instructorId !== userId) {
-        throw new ForbiddenException('You are not the instructor of this course');
+        throw new ForbiddenException(
+          'You are not the instructor of this course',
+        );
       }
       return true;
     }
@@ -805,7 +912,8 @@ export class GradebookService {
       data: {
         buffer: (buffer as unknown as Buffer).toString('base64'),
         filename: `gradebook_${data.course.code}_${new Date().toISOString().split('T')[0]}.xlsx`,
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        mimeType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       },
     };
   }
@@ -829,7 +937,11 @@ export class GradebookService {
       if (value === null || value === undefined) return '';
       const stringValue = String(value);
       // If value contains comma, quote, or newline, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+      if (
+        stringValue.includes(',') ||
+        stringValue.includes('"') ||
+        stringValue.includes('\n')
+      ) {
         return `"${stringValue.replace(/"/g, '""')}"`;
       }
       return stringValue;
@@ -888,13 +1000,30 @@ export class GradebookService {
       });
 
       // Title
-      doc.fontSize(18).font('Helvetica-Bold').text(`Gradebook - ${data.course.name}`, { align: 'center' });
-      doc.fontSize(12).font('Helvetica').text(`Course Code: ${data.course.code}`, { align: 'center' });
+      doc
+        .fontSize(18)
+        .font('Helvetica-Bold')
+        .text(`Gradebook - ${data.course.name}`, { align: 'center' });
+      doc
+        .fontSize(12)
+        .font('Helvetica')
+        .text(`Course Code: ${data.course.code}`, { align: 'center' });
       doc.moveDown();
 
       // Table setup
       const tableTop = doc.y;
-      const tableHeaders = ['Student Name', 'Email', 'Assignment', 'Quiz', 'UTS', 'UAS', 'Other', 'Final', 'Status', 'Completion %'];
+      const tableHeaders = [
+        'Student Name',
+        'Email',
+        'Assignment',
+        'Quiz',
+        'UTS',
+        'UAS',
+        'Other',
+        'Final',
+        'Status',
+        'Completion %',
+      ];
       const columnWidths = [120, 150, 60, 50, 50, 50, 50, 50, 60, 70];
       const rowHeight = 25;
       const startX = 30;
@@ -903,12 +1032,18 @@ export class GradebookService {
       doc.fontSize(10).font('Helvetica-Bold');
       let xPos = startX;
       tableHeaders.forEach((header, index) => {
-        doc.text(header, xPos, tableTop, { width: columnWidths[index], align: 'left' });
+        doc.text(header, xPos, tableTop, {
+          width: columnWidths[index],
+          align: 'left',
+        });
         xPos += columnWidths[index];
       });
 
       // Draw line under headers
-      doc.moveTo(startX, tableTop + 20).lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), tableTop + 20).stroke();
+      doc
+        .moveTo(startX, tableTop + 20)
+        .lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), tableTop + 20)
+        .stroke();
 
       // Draw data rows
       doc.fontSize(9).font('Helvetica');
@@ -931,7 +1066,10 @@ export class GradebookService {
 
         xPos = startX;
         rowData.forEach((cell, index) => {
-          doc.text(cell, xPos, yPos, { width: columnWidths[index], align: 'left' });
+          doc.text(cell, xPos, yPos, {
+            width: columnWidths[index],
+            align: 'left',
+          });
           xPos += columnWidths[index];
         });
 

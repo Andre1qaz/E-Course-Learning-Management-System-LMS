@@ -1,4 +1,12 @@
-import { IsString, IsEnum, IsOptional, IsInt, Min, IsObject, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
+  IsObject,
+  IsDateString,
+} from 'class-validator';
 import { ActivityType } from '@prisma/client';
 
 export class CreateActivityDto {

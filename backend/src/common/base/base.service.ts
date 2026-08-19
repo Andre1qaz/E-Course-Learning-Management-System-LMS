@@ -1,16 +1,22 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
 /**
  * Base Service Class yang menyediakan common logic untuk semua service
- * 
+ *
  * Fitur yang disediakan:
  * - Permission checking (role-based dan resource ownership)
  * - Response formatting standar
  * - Error handling konsisten
  * - Common CRUD operations pattern
- * 
+ *
  * Penggunaan:
  * extend class ini di service yang Anda buat
  */
@@ -23,7 +29,9 @@ export abstract class BaseService<T> {
    */
   protected checkRoleAccess(userRole: Role, allowedRoles: Role[]): void {
     if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to perform this action');
+      throw new ForbiddenException(
+        'You do not have permission to perform this action',
+      );
     }
   }
 
@@ -33,10 +41,12 @@ export abstract class BaseService<T> {
   protected checkOwnershipOrAdmin(
     resourceOwnerId: string,
     userId: string,
-    userRole: Role
+    userRole: Role,
   ): void {
     if (userRole !== Role.ADMIN && resourceOwnerId !== userId) {
-      throw new ForbiddenException('You do not have permission to access this resource');
+      throw new ForbiddenException(
+        'You do not have permission to access this resource',
+      );
     }
   }
 
@@ -46,7 +56,7 @@ export abstract class BaseService<T> {
   protected async checkCourseAccess(
     courseId: string,
     userId: string,
-    userRole: Role
+    userRole: Role,
   ): Promise<void> {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
@@ -70,7 +80,10 @@ export abstract class BaseService<T> {
   /**
    * Format response standar untuk semua endpoint
    */
-  protected formatResponse(data: any, message: string = 'Operation successful') {
+  protected formatResponse(
+    data: any,
+    message: string = 'Operation successful',
+  ) {
     return {
       success: true,
       data,
@@ -82,18 +95,20 @@ export abstract class BaseService<T> {
    * Generate standard UUID untuk relasi optional
    * Auto-validate dan normalize UUID
    */
-  protected sanitizeOptionalId(id: string | undefined | null): string | undefined {
+  protected sanitizeOptionalId(
+    id: string | undefined | null,
+  ): string | undefined {
     if (!id || id.trim() === '') {
       return undefined;
     }
-    
+
     // Auto-validate dan normalize
     if (!this.isValidUUID(id)) {
       throw new BadRequestException(
-        `ID harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+        `ID harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`,
       );
     }
-    
+
     return this.normalizeUUID(id);
   }
 
@@ -104,7 +119,7 @@ export abstract class BaseService<T> {
     if (!id || id.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     return this.validateAndNormalizeUUID(id, fieldName);
   }
 
@@ -114,18 +129,19 @@ export abstract class BaseService<T> {
    */
   protected isValidUUID(id: string): boolean {
     if (!id) return false;
-    
+
     // Handle berbagai UUID format
     const normalizedId = id.trim().toLowerCase();
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     // Coba format dengan dashes
     if (uuidRegex.test(normalizedId)) return true;
-    
+
     // Coba format tanpa dashes (32 hex chars)
     const noDashRegex = /^[0-9a-f]{32}$/i;
     if (noDashRegex.test(normalizedId)) return true;
-    
+
     return false;
   }
 
@@ -134,14 +150,14 @@ export abstract class BaseService<T> {
    */
   protected normalizeUUID(id: string): string {
     if (!id) return id;
-    
+
     const normalizedId = id.trim().toLowerCase();
-    
+
     // Jika sudah ada dashes, return as-is
     if (normalizedId.includes('-')) {
       return normalizedId;
     }
-    
+
     // Convert format tanpa dashes ke format dengan dashes
     if (normalizedId.length === 32) {
       return [
@@ -149,10 +165,10 @@ export abstract class BaseService<T> {
         normalizedId.substring(8, 12),
         normalizedId.substring(12, 16),
         normalizedId.substring(16, 20),
-        normalizedId.substring(20, 32)
+        normalizedId.substring(20, 32),
       ].join('-');
     }
-    
+
     return normalizedId;
   }
 
@@ -160,17 +176,20 @@ export abstract class BaseService<T> {
    * Validate and sanitize UUID dengan auto-conversion
    * Jika invalid, throw error dengan message yang jelas
    */
-  protected validateAndNormalizeUUID(id: string, fieldName: string = 'ID'): string {
+  protected validateAndNormalizeUUID(
+    id: string,
+    fieldName: string = 'ID',
+  ): string {
     if (!id || id.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     if (!this.isValidUUID(id)) {
       throw new BadRequestException(
-        `${fieldName} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+        `${fieldName} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`,
       );
     }
-    
+
     return this.normalizeUUID(id);
   }
 
@@ -181,7 +200,7 @@ export abstract class BaseService<T> {
     id: string,
     model: any,
     include?: any,
-    errorMessage: string = 'Resource not found'
+    errorMessage: string = 'Resource not found',
   ): Promise<T> {
     const resource = await model.findUnique({
       where: { id },
@@ -206,7 +225,7 @@ export abstract class BaseService<T> {
       orderBy?: any;
       skip?: number;
       take?: number;
-    } = {}
+    } = {},
   ): Promise<T[]> {
     const { where, include, orderBy, skip, take } = options;
 
@@ -226,7 +245,7 @@ export abstract class BaseService<T> {
     model: any,
     data: any,
     include?: any,
-    successMessage: string = 'Resource created successfully'
+    successMessage: string = 'Resource created successfully',
   ) {
     const resource = await model.create({
       data,
@@ -244,7 +263,7 @@ export abstract class BaseService<T> {
     model: any,
     data: any,
     include?: any,
-    successMessage: string = 'Resource updated successfully'
+    successMessage: string = 'Resource updated successfully',
   ) {
     const resource = await model.update({
       where: { id },
@@ -261,7 +280,7 @@ export abstract class BaseService<T> {
   protected async deleteResource(
     id: string,
     model: any,
-    successMessage: string = 'Resource deleted successfully'
+    successMessage: string = 'Resource deleted successfully',
   ) {
     await model.delete({
       where: { id },
@@ -293,9 +312,15 @@ export abstract class BaseService<T> {
   /**
    * Validate date range (start < end)
    */
-  protected validateDateRange(startTime: Date, endTime: Date, fieldName: string = 'date range'): void {
+  protected validateDateRange(
+    startTime: Date,
+    endTime: Date,
+    fieldName: string = 'date range',
+  ): void {
     if (startTime >= endTime) {
-      throw new BadRequestException(`Invalid ${fieldName}: start time must be before end time`);
+      throw new BadRequestException(
+        `Invalid ${fieldName}: start time must be before end time`,
+      );
     }
   }
 
@@ -307,78 +332,100 @@ export abstract class BaseService<T> {
     if (!dateString || dateString.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     // Coba parsing dengan berbagai format
     const parsedDate = new Date(dateString);
-    
+
     if (isNaN(parsedDate.getTime())) {
       throw new BadRequestException(
-        `${fieldName} harus berupa tanggal yang valid. Format: YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss`
+        `${fieldName} harus berupa tanggal yang valid. Format: YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss`,
       );
     }
-    
+
     return parsedDate;
   }
 
   /**
    * Sanitize dan validate optional date
    */
-  protected sanitizeOptionalDate(dateString: string | undefined | null, fieldName: string = 'date'): Date | undefined {
+  protected sanitizeOptionalDate(
+    dateString: string | undefined | null,
+    fieldName: string = 'date',
+  ): Date | undefined {
     if (!dateString || dateString.trim() === '') {
       return undefined;
     }
-    
+
     return this.parseDate(dateString, fieldName);
   }
 
   /**
    * Sanitize dan validate string field
    */
-  protected sanitizeString(value: string | undefined | null, fieldName: string = 'field', maxLength?: number): string {
+  protected sanitizeString(
+    value: string | undefined | null,
+    fieldName: string = 'field',
+    maxLength?: number,
+  ): string {
     if (value === undefined || value === null) {
       return '';
     }
-    
+
     const sanitized = value.trim();
-    
+
     if (maxLength && sanitized.length > maxLength) {
       throw new BadRequestException(
-        `${fieldName} tidak boleh lebih dari ${maxLength} karakter`
+        `${fieldName} tidak boleh lebih dari ${maxLength} karakter`,
       );
     }
-    
+
     return sanitized;
   }
 
   /**
    * Sanitize dan validate required string
    */
-  protected sanitizeRequiredString(value: string, fieldName: string = 'field', maxLength?: number): string {
+  protected sanitizeRequiredString(
+    value: string,
+    fieldName: string = 'field',
+    maxLength?: number,
+  ): string {
     if (!value || value.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     return this.sanitizeString(value, fieldName, maxLength);
   }
 
   /**
    * Sanitize dan validate number field
    */
-  protected sanitizeNumber(value: any, fieldName: string = 'field', min?: number, max?: number): number {
+  protected sanitizeNumber(
+    value: any,
+    fieldName: string = 'field',
+    min?: number,
+    max?: number,
+  ): number {
     const num = Number(value);
-    
+
     if (isNaN(num)) {
-      throw new BadRequestException(`${fieldName} harus berupa angka yang valid`);
+      throw new BadRequestException(
+        `${fieldName} harus berupa angka yang valid`,
+      );
     }
-    
+
     if (min !== undefined && num < min) {
-      throw new BadRequestException(`${fieldName} tidak boleh kurang dari ${min}`);
+      throw new BadRequestException(
+        `${fieldName} tidak boleh kurang dari ${min}`,
+      );
     }
-    
+
     if (max !== undefined && num > max) {
-      throw new BadRequestException(`${fieldName} tidak boleh lebih dari ${max}`);
+      throw new BadRequestException(
+        `${fieldName} tidak boleh lebih dari ${max}`,
+      );
     }
-    
+
     return num;
   }
 
@@ -389,28 +436,32 @@ export abstract class BaseService<T> {
     if (typeof value === 'boolean') {
       return value;
     }
-    
+
     if (value === 'true' || value === '1' || value === 1) {
       return true;
     }
-    
+
     if (value === 'false' || value === '0' || value === 0) {
       return false;
     }
-    
+
     throw new BadRequestException(`${fieldName} harus berupa true atau false`);
   }
 
   /**
    * Sanitize dan validate enum field
    */
-  protected sanitizeEnum<T>(value: any, enumValues: T[], fieldName: string = 'field'): T {
+  protected sanitizeEnum<T>(
+    value: any,
+    enumValues: T[],
+    fieldName: string = 'field',
+  ): T {
     if (!enumValues.includes(value)) {
       throw new BadRequestException(
-        `${fieldName} harus salah satu dari: ${enumValues.join(', ')}`
+        `${fieldName} harus salah satu dari: ${enumValues.join(', ')}`,
       );
     }
-    
+
     return value as T;
   }
 
@@ -418,45 +469,64 @@ export abstract class BaseService<T> {
    * Auto-sanitize entire DTO object
    * Ini akan otomatis handle semua format issues
    */
-  protected sanitizeDTO(dto: any, schema: {
-    [key: string]: {
-      type: 'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'enum';
-      required?: boolean;
-      maxLength?: number;
-      minLength?: number;
-      min?: number;
-      max?: number;
-      enumValues?: any[];
-    };
-  }): any {
+  protected sanitizeDTO(
+    dto: any,
+    schema: {
+      [key: string]: {
+        type: 'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'enum';
+        required?: boolean;
+        maxLength?: number;
+        minLength?: number;
+        min?: number;
+        max?: number;
+        enumValues?: any[];
+      };
+    },
+  ): any {
     const sanitized: any = {};
-    
+
     for (const [key, config] of Object.entries(schema)) {
       const value = dto[key];
-      
+
       // Skip jika tidak required dan value kosong
-      if (!config.required && (value === undefined || value === null || value === '')) {
+      if (
+        !config.required &&
+        (value === undefined || value === null || value === '')
+      ) {
         continue;
       }
-      
+
       try {
         switch (config.type) {
           case 'string':
             if (config.required) {
-              sanitized[key] = this.sanitizeRequiredString(value, key, config.maxLength);
+              sanitized[key] = this.sanitizeRequiredString(
+                value,
+                key,
+                config.maxLength,
+              );
             } else {
-              sanitized[key] = this.sanitizeString(value, key, config.maxLength);
+              sanitized[key] = this.sanitizeString(
+                value,
+                key,
+                config.maxLength,
+              );
             }
             break;
-            
+
           case 'number':
-            sanitized[key] = this.sanitizeNumber(value, key, config.min, config.max);
+            sanitized[key] = this.sanitizeNumber(
+              value,
+              key,
+              config.min,
+              config.max,
+            );
             break;
-            
+
           case 'boolean':
             sanitized[key] = this.sanitizeBoolean(value, key);
             break;
-            
+
           case 'date':
             if (config.required) {
               sanitized[key] = this.parseDate(value, key);
@@ -464,7 +534,7 @@ export abstract class BaseService<T> {
               sanitized[key] = this.sanitizeOptionalDate(value, key);
             }
             break;
-            
+
           case 'uuid':
             if (config.required) {
               sanitized[key] = this.validateAndNormalizeUUID(value, key);
@@ -472,7 +542,7 @@ export abstract class BaseService<T> {
               sanitized[key] = this.sanitizeOptionalId(value);
             }
             break;
-            
+
           case 'enum':
             if (config.enumValues) {
               sanitized[key] = this.sanitizeEnum(value, config.enumValues, key);
@@ -482,11 +552,11 @@ export abstract class BaseService<T> {
       } catch (error) {
         // Re-throw dengan context yang lebih jelas
         throw new BadRequestException(
-          `Error pada field "${key}": ${error instanceof Error ? error.message : String(error)}`
+          `Error pada field "${key}": ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
-    
+
     return sanitized;
   }
 
@@ -494,15 +564,19 @@ export abstract class BaseService<T> {
    * VALIDATION SEDERHANA - Satu method untuk semua validation
    * Gunakan ini untuk quick validation tanpa schema kompleks
    */
-  protected validateAll(dto: any): { valid: boolean; errors: string[]; sanitized: any } {
+  protected validateAll(dto: any): {
+    valid: boolean;
+    errors: string[];
+    sanitized: any;
+  } {
     const errors: string[] = [];
     const sanitized: any = {};
-    
+
     for (const [key, value] of Object.entries(dto)) {
       if (value === undefined || value === null || value === '') {
         continue;
       }
-      
+
       // Auto-detect type dan validate
       if (typeof value === 'string') {
         // Cek jika ini UUID
@@ -510,15 +584,19 @@ export abstract class BaseService<T> {
           try {
             sanitized[key] = this.validateAndNormalizeUUID(value, key);
           } catch (error) {
-            errors.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
+            errors.push(
+              `${key}: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
-        } 
+        }
         // Cek jika ini date
         else if (!isNaN(Date.parse(value))) {
           try {
             sanitized[key] = this.parseDate(value, key);
           } catch (error) {
-            errors.push(`${key}: ${error instanceof Error ? error.message : String(error)}`);
+            errors.push(
+              `${key}: ${error instanceof Error ? error.message : String(error)}`,
+            );
           }
         }
         // String biasa
@@ -533,7 +611,7 @@ export abstract class BaseService<T> {
         errors.push(`${key}: Tipe data tidak dikenali`);
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -552,7 +630,7 @@ export abstract class BaseService<T> {
       title: string;
       message: string;
       link?: string;
-    }
+    },
   ): Promise<void> {
     if (notificationService && notificationService.addBulkNotificationJob) {
       await notificationService.addBulkNotificationJob(options);
@@ -565,7 +643,7 @@ export abstract class BaseService<T> {
   protected async createCalendarEvent(
     calendarService: any,
     createMethod: string,
-    resourceId: string
+    resourceId: string,
   ): Promise<void> {
     if (calendarService && calendarService[createMethod]) {
       await calendarService[createMethod](resourceId);

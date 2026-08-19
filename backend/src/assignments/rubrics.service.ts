@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRubricDto } from './dto/create-rubric.dto';
 import { UpdateRubricDto } from './dto/update-rubric.dto';
@@ -15,7 +19,12 @@ export class RubricsService {
   /**
    * Create a new rubric for an assignment
    */
-  async create(assignmentId: string, userId: string, userRole: Role, dto: CreateRubricDto) {
+  async create(
+    assignmentId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateRubricDto,
+  ) {
     // Check assignment access
     const assignment = await this.prisma.assignment.findUnique({
       where: { id: assignmentId },
@@ -28,7 +37,9 @@ export class RubricsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can create rubrics');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can create rubrics',
+      );
     }
 
     // Check if rubric already exists
@@ -37,12 +48,16 @@ export class RubricsService {
     });
 
     if (existingRubric) {
-      throw new ForbiddenException('A rubric already exists for this assignment');
+      throw new ForbiddenException(
+        'A rubric already exists for this assignment',
+      );
     }
 
     // Validate total points matches assignment maxScore
     if (dto.totalPoints !== assignment.maxScore) {
-      throw new ForbiddenException(`Rubric total points must match assignment maxScore (${assignment.maxScore})`);
+      throw new ForbiddenException(
+        `Rubric total points must match assignment maxScore (${assignment.maxScore})`,
+      );
     }
 
     // Create rubric with criteria and levels
@@ -145,7 +160,12 @@ export class RubricsService {
   /**
    * Update rubric
    */
-  async update(id: string, userId: string, userRole: Role, dto: UpdateRubricDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateRubricDto,
+  ) {
     const rubric = await this.prisma.rubric.findUnique({
       where: { id },
       include: { assignment: { include: { course: true } } },
@@ -156,13 +176,23 @@ export class RubricsService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && rubric.assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update this rubric');
+    if (
+      userRole !== Role.ADMIN &&
+      rubric.assignment.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update this rubric',
+      );
     }
 
     // Validate total points if provided
-    if (dto.totalPoints !== undefined && dto.totalPoints !== rubric.assignment.maxScore) {
-      throw new ForbiddenException(`Rubric total points must match assignment maxScore (${rubric.assignment.maxScore})`);
+    if (
+      dto.totalPoints !== undefined &&
+      dto.totalPoints !== rubric.assignment.maxScore
+    ) {
+      throw new ForbiddenException(
+        `Rubric total points must match assignment maxScore (${rubric.assignment.maxScore})`,
+      );
     }
 
     const updatedRubric = await this.prisma.rubric.update({
@@ -205,8 +235,13 @@ export class RubricsService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && rubric.assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this rubric');
+    if (
+      userRole !== Role.ADMIN &&
+      rubric.assignment.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this rubric',
+      );
     }
 
     await this.prisma.rubric.delete({
@@ -254,8 +289,13 @@ export class RubricsService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && submission.assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can grade submissions');
+    if (
+      userRole !== Role.ADMIN &&
+      submission.assignment.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can grade submissions',
+      );
     }
 
     if (!submission.assignment.rubric) {

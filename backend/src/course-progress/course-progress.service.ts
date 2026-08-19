@@ -26,7 +26,10 @@ export class CourseProgressService {
   ): Promise<CourseProgressResponse> {
     // ✅ Validate UUIDs dengan AutoValidator
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
-    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+    const validatedStudentId = AutoValidator.validateUUID(
+      studentId,
+      'Student ID',
+    );
 
     const [course, student] = await Promise.all([
       this.prisma.course.findUnique({
@@ -56,7 +59,9 @@ export class CourseProgressService {
         where: { courseId: validatedCourseId },
         include: { files: true },
       }),
-      this.prisma.assignment.findMany({ where: { courseId: validatedCourseId } }),
+      this.prisma.assignment.findMany({
+        where: { courseId: validatedCourseId },
+      }),
       this.prisma.exam.findMany({ where: { courseId: validatedCourseId } }),
       this.prisma.activity.findMany({
         where: { week: { courseId: validatedCourseId } },
@@ -64,33 +69,32 @@ export class CourseProgressService {
     ]);
 
     // Get student's completion data
-    const [
-      assignmentSubmissions,
-      examAttempts,
-      activityLogs,
-    ] = await Promise.all([
-      this.prisma.assignmentSubmission.findMany({
-        where: {
-          assignmentId: { in: assignments.map((a) => a.id) },
-          studentId: validatedStudentId,
-          status: { in: ['SUBMITTED', 'LATE', 'GRADED'] },
-        },
-      }),
-      this.prisma.examAttempt.findMany({
-        where: {
-          examId: { in: exams.map((e) => e.id) },
-          studentId: validatedStudentId,
-          status: { in: ['SUBMITTED', 'GRADED'] },
-        },
-      }),
-      this.prisma.activityLog.findMany({
-        where: {
-          userId: validatedStudentId,
-          entity: { in: ['Module', 'Activity'] },
-          entityId: { in: [...modules.map((m) => m.id), ...activities.map((a) => a.id)] },
-        },
-      }),
-    ]);
+    const [assignmentSubmissions, examAttempts, activityLogs] =
+      await Promise.all([
+        this.prisma.assignmentSubmission.findMany({
+          where: {
+            assignmentId: { in: assignments.map((a) => a.id) },
+            studentId: validatedStudentId,
+            status: { in: ['SUBMITTED', 'LATE', 'GRADED'] },
+          },
+        }),
+        this.prisma.examAttempt.findMany({
+          where: {
+            examId: { in: exams.map((e) => e.id) },
+            studentId: validatedStudentId,
+            status: { in: ['SUBMITTED', 'GRADED'] },
+          },
+        }),
+        this.prisma.activityLog.findMany({
+          where: {
+            userId: validatedStudentId,
+            entity: { in: ['Module', 'Activity'] },
+            entityId: {
+              in: [...modules.map((m) => m.id), ...activities.map((a) => a.id)],
+            },
+          },
+        }),
+      ]);
 
     // Calculate breakdown
     const breakdown = this.calculateProgressBreakdown(
@@ -118,10 +122,15 @@ export class CourseProgressService {
       breakdown.examsCompleted +
       breakdown.activitiesCompleted;
 
-    const overallProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    const overallProgress =
+      totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
 
     // Update grade record with completion percentage
-    await this.updateGradeCompletion(validatedCourseId, validatedStudentId, overallProgress);
+    await this.updateGradeCompletion(
+      validatedCourseId,
+      validatedStudentId,
+      overallProgress,
+    );
 
     return {
       courseId: course.id,
@@ -176,7 +185,8 @@ export class CourseProgressService {
 
     const averageProgress =
       studentsProgress.length > 0
-        ? studentsProgress.reduce((sum, p) => sum + p.overallProgress, 0) / studentsProgress.length
+        ? studentsProgress.reduce((sum, p) => sum + p.overallProgress, 0) /
+          studentsProgress.length
         : 0;
 
     const atRiskStudents = studentsProgress.filter(
@@ -199,7 +209,10 @@ export class CourseProgressService {
     studentId: string,
   ): Promise<CourseProgressResponse[]> {
     // ✅ Validate studentId dengan AutoValidator
-    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
+    const validatedStudentId = AutoValidator.validateUUID(
+      studentId,
+      'Student ID',
+    );
 
     const enrollments = await this.prisma.enrollment.findMany({
       where: { userId: validatedStudentId, role: 'STUDENT' },
@@ -229,8 +242,14 @@ export class CourseProgressService {
 
     if (studentId) {
       // ✅ Validate studentId dengan AutoValidator
-      const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
-      await this.calculateStudentProgress(validatedCourseId, validatedStudentId);
+      const validatedStudentId = AutoValidator.validateUUID(
+        studentId,
+        'Student ID',
+      );
+      await this.calculateStudentProgress(
+        validatedCourseId,
+        validatedStudentId,
+      );
       return {
         message: 'Progress recalculated for student',
         updated: 1,
@@ -271,20 +290,28 @@ export class CourseProgressService {
 
     const averageProgress =
       grades.length > 0
-        ? grades.reduce((sum: number, g: any) => sum + g.completionPercentage, 0) / grades.length
+        ? grades.reduce(
+            (sum: number, g: any) => sum + g.completionPercentage,
+            0,
+          ) / grades.length
         : 0;
 
     const passedCount = grades.filter((g: any) => g.passed === true).length;
-    const passRate = grades.length > 0 ? (passedCount / grades.length) * 100 : 0;
+    const passRate =
+      grades.length > 0 ? (passedCount / grades.length) * 100 : 0;
 
-    const atRiskStudents = grades.filter((g: any) => g.completionPercentage < 50).length;
+    const atRiskStudents = grades.filter(
+      (g: any) => g.completionPercentage < 50,
+    ).length;
 
     return {
       totalEnrollments,
       averageProgress: Math.round(averageProgress * 100) / 100,
       passRate: Math.round(passRate * 100) / 100,
       atRiskStudents,
-      completedCourses: grades.filter((g: any) => g.completionPercentage === 100).length,
+      completedCourses: grades.filter(
+        (g: any) => g.completionPercentage === 100,
+      ).length,
     };
   }
 
@@ -369,8 +396,16 @@ export class CourseProgressService {
   ): Promise<void> {
     // ✅ Validate UUIDs dan number dengan AutoValidator
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
-    const validatedStudentId = AutoValidator.validateUUID(studentId, 'Student ID');
-    const validatedPercentage = AutoValidator.validateNumber(completionPercentage, 'Completion percentage', 0, 100);
+    const validatedStudentId = AutoValidator.validateUUID(
+      studentId,
+      'Student ID',
+    );
+    const validatedPercentage = AutoValidator.validateNumber(
+      completionPercentage,
+      'Completion percentage',
+      0,
+      100,
+    );
 
     const grade = await this.prisma.grade.findUnique({
       where: {

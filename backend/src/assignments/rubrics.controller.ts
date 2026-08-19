@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,7 +31,9 @@ export class RubricsController {
   constructor(private rubricsService: RubricsService) {}
 
   @Post('assignment/:assignmentId')
-  @ApiOperation({ summary: 'Create rubric for assignment (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Create rubric for assignment (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async create(
     @Param('assignmentId') assignmentId: string,
@@ -75,7 +86,12 @@ export class RubricsController {
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.rubricsService.submitAssessment(submissionId, userId, role, dto);
+    return this.rubricsService.submitAssessment(
+      submissionId,
+      userId,
+      role,
+      dto,
+    );
   }
 
   @Get('submissions/:submissionId/assessment')

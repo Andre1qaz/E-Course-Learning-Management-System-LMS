@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -121,9 +127,7 @@ export class CoursesService {
     });
 
     const hasAccess =
-      userRole === Role.ADMIN ||
-      course.instructorId === userId ||
-      !!enrollment;
+      userRole === Role.ADMIN || course.instructorId === userId || !!enrollment;
 
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this course');
@@ -150,7 +154,12 @@ export class CoursesService {
    * Update course (Admin or course instructor only)
    * Heuristic #3: User Control and Freedom — allow editing course details
    */
-  async update(id: string, userId: string, userRole: Role, dto: UpdateCourseDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateCourseDto,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id },
     });
@@ -161,12 +170,19 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update this course');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update this course',
+      );
     }
 
     // Validate category if provided (filter out empty strings)
-    const categoryId = dto.categoryId !== undefined ? (dto.categoryId && dto.categoryId.trim() !== '' ? dto.categoryId : null) : undefined;
-    
+    const categoryId =
+      dto.categoryId !== undefined
+        ? dto.categoryId && dto.categoryId.trim() !== ''
+          ? dto.categoryId
+          : null
+        : undefined;
+
     if (categoryId) {
       const category = await this.prisma.courseCategory.findUnique({
         where: { id: categoryId },
@@ -232,12 +248,16 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this course');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this course',
+      );
     }
 
     // Prevent deletion if course has active enrollments (optional safety check)
     if (course._count.enrollments > 0 && userRole !== Role.ADMIN) {
-      throw new ForbiddenException('Cannot delete course with active enrollments. Contact Admin.');
+      throw new ForbiddenException(
+        'Cannot delete course with active enrollments. Contact Admin.',
+      );
     }
 
     await this.prisma.course.delete({
@@ -273,7 +293,9 @@ export class CoursesService {
     }
 
     // Check if already enrolled
-    const existingEnrollment = course.enrollments.find((e: any) => e.userId === userId);
+    const existingEnrollment = course.enrollments.find(
+      (e: any) => e.userId === userId,
+    );
     if (existingEnrollment) {
       throw new ForbiddenException('You are already enrolled in this course');
     }
@@ -324,11 +346,15 @@ export class CoursesService {
    * Get all courses with filtering
    * Heuristic #7: Flexibility and Efficiency of Use — search and filter options
    */
-  async findAll(userId: string, userRole: Role, filters?: {
-    search?: string;
-    categoryId?: string;
-    isActive?: boolean;
-  }) {
+  async findAll(
+    userId: string,
+    userRole: Role,
+    filters?: {
+      search?: string;
+      categoryId?: string;
+      isActive?: boolean;
+    },
+  ) {
     const where: any = {};
 
     // Apply role-based filtering
@@ -385,10 +411,13 @@ export class CoursesService {
    * Get available courses for students to enroll (courses they are not enrolled in)
    * Heuristic #7: Flexibility and Efficiency of Use — search by course code
    */
-  async getAvailableCourses(userId: string, filters?: {
-    search?: string;
-    categoryId?: string;
-  }) {
+  async getAvailableCourses(
+    userId: string,
+    filters?: {
+      search?: string;
+      categoryId?: string;
+    },
+  ) {
     const where: any = {
       isActive: true,
       enrollmentEnabled: true,
@@ -452,7 +481,12 @@ export class CoursesService {
    * Direct enrollment by Admin or Lecturer
    * Heuristic #5: Error Prevention — validate permissions and prevent duplicates
    */
-  async directEnroll(courseId: string, userId: string, userRole: Role, dto: DirectEnrollDto) {
+  async directEnroll(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    dto: DirectEnrollDto,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -463,7 +497,9 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can enroll students directly');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can enroll students directly',
+      );
     }
 
     // Validate target user exists
@@ -510,7 +546,12 @@ export class CoursesService {
    * Update enrollment key (code or enable/disable)
    * Heuristic #5: Error Prevention — validate permissions and ensure uniqueness
    */
-  async updateEnrollmentKey(courseId: string, userId: string, userRole: Role, dto: UpdateEnrollmentKeyDto) {
+  async updateEnrollmentKey(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateEnrollmentKeyDto,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -521,7 +562,9 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update enrollment key');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update enrollment key',
+      );
     }
 
     const updateData: any = {};
@@ -573,7 +616,9 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can view participants');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can view participants',
+      );
     }
 
     const enrollments = await this.prisma.enrollment.findMany({
@@ -615,7 +660,12 @@ export class CoursesService {
    * Remove a participant from course
    * Heuristic #3: User Control and Freedom — allow removal with proper checks
    */
-  async removeParticipant(courseId: string, participantId: string, userId: string, userRole: Role) {
+  async removeParticipant(
+    courseId: string,
+    participantId: string,
+    userId: string,
+    userRole: Role,
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -626,7 +676,9 @@ export class CoursesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can remove participants');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can remove participants',
+      );
     }
 
     const enrollment = await this.prisma.enrollment.findUnique({

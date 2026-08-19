@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, NotificationType } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
@@ -39,7 +44,9 @@ export class ForumService {
     });
 
     if (!enrollment && course.instructorId !== userId) {
-      throw new ForbiddenException('You do not have access to this course forum');
+      throw new ForbiddenException(
+        'You do not have access to this course forum',
+      );
     }
   }
 
@@ -62,7 +69,10 @@ export class ForumService {
   /**
    * Find user IDs by usernames for mentions
    */
-  private async findUserIdsByUsernames(usernames: string[], courseId: string): Promise<string[]> {
+  private async findUserIdsByUsernames(
+    usernames: string[],
+    courseId: string,
+  ): Promise<string[]> {
     // Get enrolled users in the course to match usernames against their email local parts
     const enrolledUsers = await this.prisma.enrollment.findMany({
       where: { courseId },
@@ -79,21 +89,26 @@ export class ForumService {
       select: { instructorId: true },
     });
 
-    const instructor = course ? await this.prisma.user.findUnique({
-      where: { id: course.instructorId },
-      select: { id: true, email: true },
-    }) : null;
+    const instructor = course
+      ? await this.prisma.user.findUnique({
+          where: { id: course.instructorId },
+          select: { id: true, email: true },
+        })
+      : null;
 
     // Combine enrolled users and instructor
-    const allUsers = [...enrolledUsers.map(e => e.user), ...(instructor ? [instructor] : [])];
+    const allUsers = [
+      ...enrolledUsers.map((e) => e.user),
+      ...(instructor ? [instructor] : []),
+    ];
 
     // Extract local part from email (before @) and match against mentioned usernames
     const matchedUserIds = allUsers
-      .filter(user => {
+      .filter((user) => {
         const emailLocalPart = user.email.split('@')[0];
         return usernames.includes(emailLocalPart);
       })
-      .map(user => user.id);
+      .map((user) => user.id);
 
     return matchedUserIds;
   }
@@ -132,7 +147,10 @@ export class ForumService {
     const usernames = this.parseMentions(content);
     if (usernames.length === 0) return;
 
-    const mentionedUserIds = await this.findUserIdsByUsernames(usernames, courseId);
+    const mentionedUserIds = await this.findUserIdsByUsernames(
+      usernames,
+      courseId,
+    );
 
     for (const mentionedUserId of mentionedUserIds) {
       // Create mention record
@@ -165,7 +183,9 @@ export class ForumService {
         NotificationType.FORUM_REPLY,
         'You were mentioned in a forum discussion',
         `${author?.name} mentioned you in a discussion`,
-        threadId ? `/forum/thread/${threadId}` : `/forum/thread/${threadId}#reply-${replyId}`,
+        threadId
+          ? `/forum/thread/${threadId}`
+          : `/forum/thread/${threadId}#reply-${replyId}`,
       );
     }
   }
@@ -228,19 +248,28 @@ export class ForumService {
     const threadsWithUnread = threads.map((thread: any) => {
       if (!userId) return { ...thread, unreadCount: 0 };
 
-      const userReplies = thread.replies.filter((r: any) => r.authorId === userId);
-      const lastUserReply = userReplies.length > 0 ? userReplies[userReplies.length - 1] : null;
-      
+      const userReplies = thread.replies.filter(
+        (r: any) => r.authorId === userId,
+      );
+      const lastUserReply =
+        userReplies.length > 0 ? userReplies[userReplies.length - 1] : null;
+
       let unreadCount = 0;
       if (lastUserReply) {
         // Count replies after user's last reply
-        unreadCount = thread.replies.filter((r: any) => new Date(r.createdAt) > new Date(lastUserReply.createdAt) && r.authorId !== userId
+        unreadCount = thread.replies.filter(
+          (r: any) =>
+            new Date(r.createdAt) > new Date(lastUserReply.createdAt) &&
+            r.authorId !== userId,
         ).length;
       } else {
         // If user hasn't replied, count replies created after thread creation as unread
         // This assumes the user saw the thread when it was created (reasonable heuristic)
         // A proper solution would require a thread read tracking table
-        unreadCount = thread.replies.filter((r: any) => new Date(r.createdAt) > new Date(thread.createdAt) && r.authorId !== userId
+        unreadCount = thread.replies.filter(
+          (r: any) =>
+            new Date(r.createdAt) > new Date(thread.createdAt) &&
+            r.authorId !== userId,
         ).length;
       }
 
@@ -328,11 +357,20 @@ export class ForumService {
    * Create a new forum thread
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async createThread(userId: string, courseId: string, data: {
-    title: string;
-    content: string;
-    attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
-  }) {
+  async createThread(
+    userId: string,
+    courseId: string,
+    data: {
+      title: string;
+      content: string;
+      attachments?: Array<{
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+      }>;
+    },
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(data, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -366,7 +404,9 @@ export class ForumService {
     });
 
     if (!enrollment && course.instructorId !== userId) {
-      throw new ForbiddenException('You must be enrolled in this course to create a thread');
+      throw new ForbiddenException(
+        'You must be enrolled in this course to create a thread',
+      );
     }
 
     // ✅ Create dengan data yang sudah divalidasi
@@ -437,10 +477,14 @@ export class ForumService {
    * Update a forum thread
    * Only thread author can update
    */
-  async updateThread(userId: string, threadId: string, data: {
-    title?: string;
-    content?: string;
-  }) {
+  async updateThread(
+    userId: string,
+    threadId: string,
+    data: {
+      title?: string;
+      content?: string;
+    },
+  ) {
     const thread = await this.prisma.forumThread.findUnique({
       where: { id: threadId },
     });
@@ -497,8 +541,14 @@ export class ForumService {
     }
 
     // Check permission
-    if (thread.authorId !== userId && thread.course.instructorId !== userId && userRole !== 'ADMIN') {
-      throw new ForbiddenException('You can only delete your own threads or course instructor/admin can delete any thread');
+    if (
+      thread.authorId !== userId &&
+      thread.course.instructorId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
+      throw new ForbiddenException(
+        'You can only delete your own threads or course instructor/admin can delete any thread',
+      );
     }
 
     await this.prisma.forumThread.delete({
@@ -616,7 +666,11 @@ export class ForumService {
     }
 
     // Check permission
-    if (reply.authorId !== userId && reply.thread.course.instructorId !== userId && userRole !== 'ADMIN') {
+    if (
+      reply.authorId !== userId &&
+      reply.thread.course.instructorId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
       throw new ForbiddenException('You can only delete your own replies');
     }
 
@@ -645,7 +699,9 @@ export class ForumService {
     }
 
     if (thread.course.instructorId !== userId && userRole !== 'ADMIN') {
-      throw new ForbiddenException('Only course instructor or admin can lock threads');
+      throw new ForbiddenException(
+        'Only course instructor or admin can lock threads',
+      );
     }
 
     const updatedThread = await this.prisma.forumThread.update({
@@ -690,7 +746,12 @@ export class ForumService {
   /**
    * Mark a reply as the best answer (instructor/admin only)
    */
-  async markBestAnswer(userId: string, userRole: string, threadId: string, replyId: string) {
+  async markBestAnswer(
+    userId: string,
+    userRole: string,
+    threadId: string,
+    replyId: string,
+  ) {
     const thread = await this.prisma.forumThread.findUnique({
       where: { id: threadId },
       include: { course: true },
@@ -700,8 +761,14 @@ export class ForumService {
       throw new NotFoundException('Thread not found');
     }
 
-    if (thread.course.instructorId !== userId && userRole !== 'ADMIN' && thread.authorId !== userId) {
-      throw new ForbiddenException('Only course instructor, admin, or thread author can mark best answers');
+    if (
+      thread.course.instructorId !== userId &&
+      userRole !== 'ADMIN' &&
+      thread.authorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only course instructor, admin, or thread author can mark best answers',
+      );
     }
 
     const reply = await this.prisma.forumReply.findUnique({
@@ -778,8 +845,14 @@ export class ForumService {
       throw new NotFoundException('Thread not found');
     }
 
-    if (thread.course.instructorId !== userId && userRole !== 'ADMIN' && thread.authorId !== userId) {
-      throw new ForbiddenException('Only course instructor, admin, or thread author can remove best answers');
+    if (
+      thread.course.instructorId !== userId &&
+      userRole !== 'ADMIN' &&
+      thread.authorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only course instructor, admin, or thread author can remove best answers',
+      );
     }
 
     const updatedThread = await this.prisma.forumThread.update({
@@ -843,7 +916,12 @@ export class ForumService {
     threadId: string,
     data: {
       content: string;
-      attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>;
+      attachments?: Array<{
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        mimeType: string;
+      }>;
     },
   ) {
     // ✅ Auto-validation semua field dengan AutoValidator
@@ -869,7 +947,9 @@ export class ForumService {
 
     // Check if thread is locked
     if (thread.isLocked) {
-      throw new ForbiddenException('This thread is locked and no longer accepts new replies');
+      throw new ForbiddenException(
+        'This thread is locked and no longer accepts new replies',
+      );
     }
 
     // Verify user is enrolled in the course or is the instructor
@@ -883,7 +963,9 @@ export class ForumService {
     });
 
     if (!enrollment && thread.course.instructorId !== userId) {
-      throw new ForbiddenException('You must be enrolled in this course to reply');
+      throw new ForbiddenException(
+        'You must be enrolled in this course to reply',
+      );
     }
 
     const reply = await this.prisma.forumReply.create({
@@ -916,7 +998,13 @@ export class ForumService {
     });
 
     // Process mentions
-    await this.processMentions(data.content, thread.courseId, userId, undefined, reply.id);
+    await this.processMentions(
+      data.content,
+      thread.courseId,
+      userId,
+      undefined,
+      reply.id,
+    );
 
     // Notify thread author about new reply
     if (thread.authorId !== userId) {

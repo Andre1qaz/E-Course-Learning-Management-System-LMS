@@ -12,7 +12,8 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000',
+    origin:
+      configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000',
     credentials: true,
   });
 

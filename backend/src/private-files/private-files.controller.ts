@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Put,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -46,7 +57,8 @@ export class PrivateFilesController {
   })
   async uploadFile(
     @CurrentUser('sub') userId: string,
-    @Body() data: {
+    @Body()
+    data: {
       fileName: string;
       fileType: string;
       fileSize: number;
@@ -58,7 +70,10 @@ export class PrivateFilesController {
 
   @Delete(':fileId')
   @ApiOperation({ summary: 'Delete a private file' })
-  async deleteFile(@CurrentUser('sub') userId: string, @Param('fileId') fileId: string) {
+  async deleteFile(
+    @CurrentUser('sub') userId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+  ) {
     return this.privateFilesService.deleteFile(userId, fileId);
   }
 
@@ -82,7 +97,10 @@ export class PrivateFilesController {
 
   @Get(':fileId/download')
   @ApiOperation({ summary: 'Get download URL for a private file' })
-  async getDownloadUrl(@CurrentUser('sub') userId: string, @Param('fileId') fileId: string) {
+  async getDownloadUrl(
+    @CurrentUser('sub') userId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
+  ) {
     return this.privateFilesService.getDownloadUrl(userId, fileId);
   }
 
@@ -99,10 +117,14 @@ export class PrivateFilesController {
   })
   async renameFile(
     @CurrentUser('sub') userId: string,
-    @Param('fileId') fileId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
     @Body() data: { newFileName: string },
   ) {
-    return this.privateFilesService.renameFile(userId, fileId, data.newFileName);
+    return this.privateFilesService.renameFile(
+      userId,
+      fileId,
+      data.newFileName,
+    );
   }
 
   @Put(':fileId/move')
@@ -118,9 +140,13 @@ export class PrivateFilesController {
   })
   async moveFile(
     @CurrentUser('sub') userId: string,
-    @Param('fileId') fileId: string,
+    @Param('fileId', ParseUUIDPipe) fileId: string,
     @Body() data: { newFolderPath: string },
   ) {
-    return this.privateFilesService.moveFile(userId, fileId, data.newFolderPath);
+    return this.privateFilesService.moveFile(
+      userId,
+      fileId,
+      data.newFolderPath,
+    );
   }
 }

@@ -1,12 +1,34 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CoursesService } from './courses.service';
-import { CreateCourseDto, UpdateCourseDto, EnrollCourseDto, DirectEnrollDto, UpdateEnrollmentKeyDto } from './dto';
+import {
+  CreateCourseDto,
+  UpdateCourseDto,
+  EnrollCourseDto,
+  DirectEnrollDto,
+  UpdateEnrollmentKeyDto,
+} from './dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses
 // Heuristic #5: Error Prevention — role-based access control
@@ -59,7 +81,8 @@ export class CoursesController {
     return this.coursesService.findAll(userId, role, {
       search,
       categoryId,
-      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isActive:
+        isActive === 'true' ? true : isActive === 'false' ? false : undefined,
     });
   }
 
@@ -161,7 +184,9 @@ export class CoursesController {
   }
 
   @Delete(':courseId/participants/:participantId')
-  @ApiOperation({ summary: 'Remove participant from course (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Remove participant from course (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async removeParticipant(
     @Param('courseId', ParseUUIDPipe) courseId: string,
@@ -169,6 +194,11 @@ export class CoursesController {
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.coursesService.removeParticipant(courseId, participantId, userId, role);
+    return this.coursesService.removeParticipant(
+      courseId,
+      participantId,
+      userId,
+      role,
+    );
   }
 }

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -62,7 +68,11 @@ export class CourseCategoriesService {
    * Get all course categories
    * Heuristic #7: Flexibility and Efficiency of Use — filter by active status
    */
-  async findAll(userId: string, userRole: Role, filters?: { isActive?: boolean }) {
+  async findAll(
+    userId: string,
+    userRole: Role,
+    filters?: { isActive?: boolean },
+  ) {
     const where: { isActive?: boolean } = {};
 
     if (filters?.isActive !== undefined) {
@@ -129,7 +139,12 @@ export class CourseCategoriesService {
   /**
    * Update course category (Admin only)
    */
-  async update(id: string, userId: string, userRole: Role, dto: UpdateCategoryDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateCategoryDto,
+  ) {
     if (userRole !== Role.ADMIN) {
       throw new ForbiddenException('Only Admin can update course categories');
     }

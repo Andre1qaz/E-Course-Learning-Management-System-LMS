@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -28,7 +33,12 @@ export class ModulesService {
    * Heuristic #12: Clarity of Purpose and Objectives — learning objectives required
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async create(courseId: string, userId: string, userRole: Role, dto: CreateModuleDto) {
+  async create(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateModuleDto,
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -55,7 +65,9 @@ export class ModulesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can create modules');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can create modules',
+      );
     }
 
     // Auto-generate order if not provided
@@ -155,7 +167,12 @@ export class ModulesService {
    * Update module (Admin or course instructor only)
    * Heuristic #23: Relevancy — updatedAt automatically tracked
    */
-  async update(id: string, userId: string, userRole: Role, dto: UpdateModuleDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateModuleDto,
+  ) {
     const module = await this.prisma.module.findUnique({
       where: { id },
       include: {
@@ -169,7 +186,9 @@ export class ModulesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && module.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update this module');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update this module',
+      );
     }
 
     const updatedModule = await this.prisma.module.update({
@@ -208,7 +227,9 @@ export class ModulesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && module.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this module');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this module',
+      );
     }
 
     // Delete files from storage
@@ -232,7 +253,12 @@ export class ModulesService {
    * Add file to module
    * Heuristic #17: Instructional Material — support various file types
    */
-  async addFile(moduleId: string, userId: string, userRole: Role, dto: CreateModuleFileDto) {
+  async addFile(
+    moduleId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateModuleFileDto,
+  ) {
     const module = await this.prisma.module.findUnique({
       where: { id: moduleId },
       include: {
@@ -246,7 +272,9 @@ export class ModulesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && module.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can add files to this module');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can add files to this module',
+      );
     }
 
     // Determine file type based on MIME type
@@ -257,12 +285,14 @@ export class ModulesService {
       fileType = ModuleFileType.VIDEO;
     } else if (
       dto.fileType === 'application/msword' ||
-      dto.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      dto.fileType ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ) {
       fileType = ModuleFileType.DOCUMENT;
     } else if (
       dto.fileType === 'application/vnd.ms-powerpoint' ||
-      dto.fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      dto.fileType ===
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     ) {
       fileType = ModuleFileType.SLIDE;
     }
@@ -305,8 +335,13 @@ export class ModulesService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && moduleFile.module.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this file');
+    if (
+      userRole !== Role.ADMIN &&
+      moduleFile.module.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this file',
+      );
     }
 
     // Delete from storage
@@ -344,9 +379,7 @@ export class ModulesService {
 
     // Check access permissions
     const hasAccess =
-      userRole === Role.ADMIN ||
-      course.instructorId === userId ||
-      !!enrollment;
+      userRole === Role.ADMIN || course.instructorId === userId || !!enrollment;
 
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this course');
@@ -371,7 +404,12 @@ export class ModulesService {
    * Reorder modules
    * Heuristic #15: Learning Design — allow structuring module sequence
    */
-  async reorder(courseId: string, userId: string, userRole: Role, moduleOrders: { id: string; order: number }[]) {
+  async reorder(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    moduleOrders: { id: string; order: number }[],
+  ) {
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -382,7 +420,9 @@ export class ModulesService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can reorder modules');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can reorder modules',
+      );
     }
 
     // Update orders in transaction

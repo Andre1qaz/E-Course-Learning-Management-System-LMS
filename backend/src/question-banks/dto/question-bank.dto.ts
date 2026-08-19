@@ -1,19 +1,64 @@
 import { DifficultyLevel, QuestionType } from '@prisma/client';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNotEmpty,
+  MaxLength,
+} from 'class-validator';
+import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 
-export interface CreateQuestionBankDto {
-  title: string;
+export class CreateQuestionBankDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(1000)
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
   topic?: string;
+
+  @IsOptional()
+  @IsOptionalUUID()
   courseId?: string;
+
+  @IsEnum(DifficultyLevel)
+  @IsOptional()
   difficulty?: DifficultyLevel;
+
+  @IsEnum(QuestionType)
+  @IsOptional()
   questionType?: QuestionType;
 }
 
-export interface UpdateQuestionBankDto {
+export class UpdateQuestionBankDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
   title?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(1000)
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
   topic?: string;
+
+  @IsEnum(DifficultyLevel)
+  @IsOptional()
   difficulty?: DifficultyLevel;
+
+  @IsEnum(QuestionType)
+  @IsOptional()
   questionType?: QuestionType;
 }
 

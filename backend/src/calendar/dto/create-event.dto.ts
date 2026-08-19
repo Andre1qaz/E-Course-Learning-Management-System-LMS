@@ -1,15 +1,20 @@
-import { 
-  IsString, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsDateString, 
-  MaxLength, 
-  IsEnum, 
-  IsBoolean, 
-  IsArray, 
-  IsObject
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  MaxLength,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  IsObject,
 } from 'class-validator';
-import { CalendarEventType, EventCategory, EventTargetAudience, RelatedActivityType } from '@prisma/client';
+import {
+  CalendarEventType,
+  EventCategory,
+  EventTargetAudience,
+  RelatedActivityType,
+} from '@prisma/client';
 import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 import { CalendarEventAttachment } from './calendar.types';
 

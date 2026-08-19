@@ -10,7 +10,7 @@ import {
   UseGuards,
   Request,
   HttpCode,
-  HttpStatus
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -19,13 +19,13 @@ import { Role } from '@prisma/client';
 
 /**
  * Base Controller Class yang menyediakan common logic untuk semua controller
- * 
+ *
  * Fitur yang disediakan:
  * - Auto JWT authentication
  * - Auto role-based access control
  * - Standard CRUD endpoints pattern
  * - User context extraction from request
- * 
+ *
  * Penggunaan:
  * extend class ini di controller yang Anda buat
  */

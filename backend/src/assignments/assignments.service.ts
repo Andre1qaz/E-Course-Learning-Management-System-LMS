@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
@@ -26,7 +31,12 @@ export class AssignmentsService {
    * Heuristic #16: Instructional Assessment — require maxScore for grading
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async create(courseId: string, userId: string, userRole: Role, dto: CreateAssignmentDto) {
+  async create(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+    dto: CreateAssignmentDto,
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -53,7 +63,9 @@ export class AssignmentsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can create assignments');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can create assignments',
+      );
     }
 
     // ✅ Create dengan data yang sudah divalidasi
@@ -152,7 +164,12 @@ export class AssignmentsService {
    * Update assignment (Admin or course instructor only)
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async update(id: string, userId: string, userRole: Role, dto: UpdateAssignmentDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateAssignmentDto,
+  ) {
     // ✅ Auto-validation untuk field yang di-update
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: false, maxLength: 200 },
@@ -181,7 +198,9 @@ export class AssignmentsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update this assignment');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update this assignment',
+      );
     }
 
     // ✅ Update dengan data yang sudah divalidasi
@@ -240,7 +259,9 @@ export class AssignmentsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete this assignment');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete this assignment',
+      );
     }
 
     // Delete submissions
@@ -277,9 +298,7 @@ export class AssignmentsService {
 
     // Check access permissions
     const hasAccess =
-      userRole === Role.ADMIN ||
-      course.instructorId === userId ||
-      !!enrollment;
+      userRole === Role.ADMIN || course.instructorId === userId || !!enrollment;
 
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this course');
@@ -308,7 +327,12 @@ export class AssignmentsService {
    * Submit assignment (Students only)
    * Heuristic #18: Consistency and Standards — track submission status
    */
-  async submit(assignmentId: string, userId: string, fileUrl: string, fileName: string) {
+  async submit(
+    assignmentId: string,
+    userId: string,
+    fileUrl: string,
+    fileName: string,
+  ) {
     const assignment = await this.prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -325,23 +349,30 @@ export class AssignmentsService {
     }
 
     // Check if student is enrolled
-    const isEnrolled = assignment.course.enrollments.some((e: any) => e.userId === userId);
+    const isEnrolled = assignment.course.enrollments.some(
+      (e: any) => e.userId === userId,
+    );
     if (!isEnrolled) {
-      throw new ForbiddenException('You must be enrolled in this course to submit assignments');
+      throw new ForbiddenException(
+        'You must be enrolled in this course to submit assignments',
+      );
     }
 
     // Check if already submitted
-    const existingSubmission = await this.prisma.assignmentSubmission.findUnique({
-      where: {
-        assignmentId_studentId: {
-          assignmentId,
-          studentId: userId,
+    const existingSubmission =
+      await this.prisma.assignmentSubmission.findUnique({
+        where: {
+          assignmentId_studentId: {
+            assignmentId,
+            studentId: userId,
+          },
         },
-      },
-    });
+      });
 
     if (existingSubmission) {
-      throw new ForbiddenException('You have already submitted this assignment');
+      throw new ForbiddenException(
+        'You have already submitted this assignment',
+      );
     }
 
     // Check deadline
@@ -378,7 +409,12 @@ export class AssignmentsService {
    * Grade assignment submission (Admin or course instructor only)
    * Heuristic #16: Instructional Assessment — detailed feedback
    */
-  async grade(submissionId: string, userId: string, userRole: Role, dto: GradeAssignmentDto) {
+  async grade(
+    submissionId: string,
+    userId: string,
+    userRole: Role,
+    dto: GradeAssignmentDto,
+  ) {
     const submission = await this.prisma.assignmentSubmission.findUnique({
       where: { id: submissionId },
       include: {
@@ -395,13 +431,20 @@ export class AssignmentsService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && submission.assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can grade submissions');
+    if (
+      userRole !== Role.ADMIN &&
+      submission.assignment.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can grade submissions',
+      );
     }
 
     // Validate score if provided
     if (dto.score !== undefined && dto.score > submission.assignment.maxScore) {
-      throw new ForbiddenException(`Score cannot exceed maximum score of ${submission.assignment.maxScore}`);
+      throw new ForbiddenException(
+        `Score cannot exceed maximum score of ${submission.assignment.maxScore}`,
+      );
     }
 
     const gradedSubmission = await this.prisma.assignmentSubmission.update({
@@ -410,7 +453,10 @@ export class AssignmentsService {
         score: dto.score,
         feedback: dto.feedback,
         rubricNotes: dto.rubricNotes,
-        status: dto.score !== undefined ? AssignmentSubmissionStatus.GRADED : AssignmentSubmissionStatus.SUBMITTED,
+        status:
+          dto.score !== undefined
+            ? AssignmentSubmissionStatus.GRADED
+            : AssignmentSubmissionStatus.SUBMITTED,
       },
       include: {
         student: {
@@ -452,7 +498,9 @@ export class AssignmentsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && assignment.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can view all submissions');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can view all submissions',
+      );
     }
 
     const submissions = await this.prisma.assignmentSubmission.findMany({
@@ -554,7 +602,9 @@ export class AssignmentsService {
 
     // Check permissions
     if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can view gradebook');
+      throw new ForbiddenException(
+        'Only Admin and course instructor can view gradebook',
+      );
     }
 
     // Get all submissions for this course
@@ -581,15 +631,15 @@ export class AssignmentsService {
       },
     });
 
-// Build gradebook matrix
-      const gradebook = course.enrollments.map((enrollment: any) => {
+    // Build gradebook matrix
+    const gradebook = course.enrollments.map((enrollment: any) => {
       const studentSubmissions = submissions.filter(
         (s: any) => s.studentId === enrollment.userId,
       );
 
       const grades = course.assignments.map((assignment: any) => {
         const submission = studentSubmissions.find(
-          (s: any) => s.assignmentId === assignment.id
+          (s: any) => s.assignmentId === assignment.id,
         );
 
         return {
@@ -602,8 +652,14 @@ export class AssignmentsService {
         };
       });
 
-      const totalScore = grades.reduce((sum: number, g: any) => sum + (g.score || 0), 0);
-      const maxTotalScore = grades.reduce((sum: number, g: any) => sum + g.maxScore, 0);
+      const totalScore = grades.reduce(
+        (sum: number, g: any) => sum + (g.score || 0),
+        0,
+      );
+      const maxTotalScore = grades.reduce(
+        (sum: number, g: any) => sum + g.maxScore,
+        0,
+      );
 
       return {
         student: enrollment.user,

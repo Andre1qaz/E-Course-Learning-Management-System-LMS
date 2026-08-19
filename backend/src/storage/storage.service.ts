@@ -1,6 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AutoValidator } from '../common/base/validation-guide';
 
@@ -33,8 +38,10 @@ export class StorageService {
       forcePathStyle: true,
     });
 
-    this.publicBucket = this.configService.get('MINIO_BUCKET_PUBLIC') || 'ecourse-public';
-    this.privateBucket = this.configService.get('MINIO_BUCKET_PRIVATE') || 'ecourse-private';
+    this.publicBucket =
+      this.configService.get('MINIO_BUCKET_PUBLIC') || 'ecourse-public';
+    this.privateBucket =
+      this.configService.get('MINIO_BUCKET_PRIVATE') || 'ecourse-private';
   }
 
   /**
@@ -48,17 +55,25 @@ export class StorageService {
     isPrivate: boolean = false,
   ): Promise<{ uploadUrl: string; fileUrl: string }> {
     // ✅ Auto-validation semua field dengan AutoValidator
-    const result = AutoValidator.validateObject({
-      fileName,
-      fileType,
-      fileSize,
-      isPrivate,
-    }, {
-      fileName: { type: 'string', required: true, maxLength: 255 },
-      fileType: { type: 'string', required: true, maxLength: 100 },
-      fileSize: { type: 'number', required: true, min: 0, max: 50 * 1024 * 1024 },
-      isPrivate: { type: 'boolean', required: false },
-    });
+    const result = AutoValidator.validateObject(
+      {
+        fileName,
+        fileType,
+        fileSize,
+        isPrivate,
+      },
+      {
+        fileName: { type: 'string', required: true, maxLength: 255 },
+        fileType: { type: 'string', required: true, maxLength: 100 },
+        fileSize: {
+          type: 'number',
+          required: true,
+          min: 0,
+          max: 50 * 1024 * 1024,
+        },
+        isPrivate: { type: 'boolean', required: false },
+      },
+    );
 
     if (!result.valid) {
       throw new BadRequestException(result.errors.join(', '));
@@ -80,10 +95,14 @@ export class StorageService {
     ];
 
     if (!allowedTypes.includes(result.sanitized.fileType)) {
-      throw new BadRequestException(`File type ${result.sanitized.fileType} is not allowed`);
+      throw new BadRequestException(
+        `File type ${result.sanitized.fileType} is not allowed`,
+      );
     }
 
-    const bucket = result.sanitized.isPrivate ? this.privateBucket : this.publicBucket;
+    const bucket = result.sanitized.isPrivate
+      ? this.privateBucket
+      : this.publicBucket;
     const key = `${Date.now()}-${result.sanitized.fileName}`;
 
     const command = new PutObjectCommand({
@@ -93,7 +112,9 @@ export class StorageService {
       ContentLength: result.sanitized.fileSize,
     });
 
-    const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour
+    const uploadUrl = await getSignedUrl(this.s3Client, command, {
+      expiresIn: 3600,
+    }); // 1 hour
     const fileUrl = `${this.configService.get('MINIO_ENDPOINT')}:${this.configService.get('MINIO_PORT')}/${bucket}/${key}`;
 
     return { uploadUrl, fileUrl };
@@ -120,7 +141,8 @@ export class StorageService {
   async deleteFile(key: string, isPrivate: boolean = false): Promise<void> {
     // ✅ Validate input dengan AutoValidator
     const validatedKey = AutoValidator.validateString(key, 'File key', 500);
-    const validatedIsPrivate = AutoValidator.validateOptionalBoolean(isPrivate, 'Is private') ?? false;
+    const validatedIsPrivate =
+      AutoValidator.validateOptionalBoolean(isPrivate, 'Is private') ?? false;
 
     const bucket = validatedIsPrivate ? this.privateBucket : this.publicBucket;
     const command = new DeleteObjectCommand({
@@ -136,7 +158,11 @@ export class StorageService {
    */
   extractKeyFromUrl(fileUrl: string): string {
     // ✅ Validate fileUrl dengan AutoValidator
-    const validatedFileUrl = AutoValidator.validateString(fileUrl, 'File URL', 1000);
+    const validatedFileUrl = AutoValidator.validateString(
+      fileUrl,
+      'File URL',
+      1000,
+    );
     const parts = validatedFileUrl.split('/');
     return parts[parts.length - 1];
   }

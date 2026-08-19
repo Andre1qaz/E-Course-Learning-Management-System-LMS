@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  HttpStatus,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { DifficultyLevel, QuestionType } from '@prisma/client';
@@ -12,7 +18,7 @@ import {
   QuestionBankWithQuestions,
   JsonQuestionBankImport,
   CsvQuestionImport,
-  ExcelQuestionImport
+  ExcelQuestionImport,
 } from './dto/question-bank.dto';
 
 @Injectable()
@@ -46,7 +52,9 @@ export class QuestionBanksService {
 
       // Check permissions
       if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-        throw new ForbiddenException('Only Admin and course instructor can create question banks');
+        throw new ForbiddenException(
+          'Only Admin and course instructor can create question banks',
+        );
       }
     }
 
@@ -78,7 +86,8 @@ export class QuestionBanksService {
   }
 
   async findAll(userId: string, userRole: Role) {
-    const where = userRole === Role.ADMIN ? {} : { course: { instructorId: userId } };
+    const where =
+      userRole === Role.ADMIN ? {} : { course: { instructorId: userId } };
 
     const questionBanks = await this.prisma.questionBank.findMany({
       where,
@@ -134,8 +143,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
-      throw new ForbiddenException('You do not have access to this question bank');
+    if (
+      userRole !== Role.ADMIN &&
+      questionBank.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this question bank',
+      );
     }
 
     return {
@@ -144,7 +158,12 @@ export class QuestionBanksService {
     };
   }
 
-  async update(id: string, userId: string, userRole: Role, dto: UpdateQuestionBankDto) {
+  async update(
+    id: string,
+    userId: string,
+    userRole: Role,
+    dto: UpdateQuestionBankDto,
+  ) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id },
       include: {
@@ -157,8 +176,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update question banks');
+    if (
+      userRole !== Role.ADMIN &&
+      questionBank.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update question banks',
+      );
     }
 
     const updated = await this.prisma.questionBank.update({
@@ -200,8 +224,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete question banks');
+    if (
+      userRole !== Role.ADMIN &&
+      questionBank.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete question banks',
+      );
     }
 
     await this.prisma.questionBank.delete({
@@ -214,7 +243,12 @@ export class QuestionBanksService {
     };
   }
 
-  async addQuestion(questionBankId: string, userId: string, userRole: Role, dto: AddQuestionDto) {
+  async addQuestion(
+    questionBankId: string,
+    userId: string,
+    userRole: Role,
+    dto: AddQuestionDto,
+  ) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id: questionBankId },
       include: {
@@ -227,8 +261,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can add questions');
+    if (
+      userRole !== Role.ADMIN &&
+      questionBank.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can add questions',
+      );
     }
 
     // Get next order
@@ -288,8 +327,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && question.questionBank?.course?.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can remove questions');
+    if (
+      userRole !== Role.ADMIN &&
+      question.questionBank?.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can remove questions',
+      );
     }
 
     await this.prisma.question.delete({
@@ -302,7 +346,12 @@ export class QuestionBanksService {
     };
   }
 
-  async importFromBank(questionBankId: string, examId: string, userId: string, userRole: Role) {
+  async importFromBank(
+    questionBankId: string,
+    examId: string,
+    userId: string,
+    userRole: Role,
+  ) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id: questionBankId },
       include: {
@@ -331,8 +380,14 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && (questionBank.course?.instructorId !== userId || exam.course?.instructorId !== userId)) {
-      throw new ForbiddenException('Only Admin and course instructor can import questions');
+    if (
+      userRole !== Role.ADMIN &&
+      (questionBank.course?.instructorId !== userId ||
+        exam.course?.instructorId !== userId)
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can import questions',
+      );
     }
 
     // Get next order for exam
@@ -382,7 +437,13 @@ export class QuestionBanksService {
     };
   }
 
-  async exportQuestionBank(id: string, userId: string, userRole: Role, format: string, res: Response) {
+  async exportQuestionBank(
+    id: string,
+    userId: string,
+    userRole: Role,
+    format: string,
+    res: Response,
+  ) {
     const questionBank = await this.prisma.questionBank.findUnique({
       where: { id },
       include: {
@@ -410,8 +471,13 @@ export class QuestionBanksService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && questionBank.course?.instructorId !== userId) {
-      throw new ForbiddenException('You do not have access to this question bank');
+    if (
+      userRole !== Role.ADMIN &&
+      questionBank.course?.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this question bank',
+      );
     }
 
     const fileName = `${questionBank.title.replace(/[^a-z0-9]/gi, '_')}_export`;
@@ -425,11 +491,17 @@ export class QuestionBanksService {
       case 'xlsx':
         return this.exportAsExcel(questionBank, fileName, res);
       default:
-        throw new BadRequestException('Unsupported export format. Use: json, csv, or excel');
+        throw new BadRequestException(
+          'Unsupported export format. Use: json, csv, or excel',
+        );
     }
   }
 
-  private async exportAsJson(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
+  private async exportAsJson(
+    questionBank: QuestionBankWithQuestions,
+    fileName: string,
+    res: Response,
+  ) {
     const exportData = {
       metadata: {
         title: questionBank.title,
@@ -453,11 +525,18 @@ export class QuestionBanksService {
     };
 
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.json"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}.json"`,
+    );
     res.status(HttpStatus.OK).json(exportData);
   }
 
-  private async exportAsCsv(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
+  private async exportAsCsv(
+    questionBank: QuestionBankWithQuestions,
+    fileName: string,
+    res: Response,
+  ) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Questions');
 
@@ -475,7 +554,11 @@ export class QuestionBanksService {
     // Add questions
     questionBank.questions.forEach((q) => {
       const optionsText = q.options?.map((o) => o.optionText).join(' | ') || '';
-      const correctAnswer = q.options?.filter((o) => o.isCorrect).map((o) => o.optionText).join(' | ') || '';
+      const correctAnswer =
+        q.options
+          ?.filter((o) => o.isCorrect)
+          .map((o) => o.optionText)
+          .join(' | ') || '';
 
       worksheet.addRow({
         id: q.id,
@@ -489,13 +572,20 @@ export class QuestionBanksService {
     });
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}.csv"`,
+    );
 
     const buffer = await workbook.csv.writeBuffer();
     res.status(HttpStatus.OK).send(buffer);
   }
 
-  private async exportAsExcel(questionBank: QuestionBankWithQuestions, fileName: string, res: Response) {
+  private async exportAsExcel(
+    questionBank: QuestionBankWithQuestions,
+    fileName: string,
+    res: Response,
+  ) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Questions');
 
@@ -535,7 +625,10 @@ export class QuestionBanksService {
     // Add questions
     questionBank.questions.forEach((q) => {
       const options = q.options || [];
-      const correctAnswers = options.filter((o) => o.isCorrect).map((o, i: number) => `Option ${i + 1}`).join(', ');
+      const correctAnswers = options
+        .filter((o) => o.isCorrect)
+        .map((o, i: number) => `Option ${i + 1}`)
+        .join(', ');
 
       worksheet.addRow({
         type: q.type,
@@ -550,14 +643,26 @@ export class QuestionBanksService {
       });
     });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}.xlsx"`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}.xlsx"`,
+    );
 
     const buffer = await workbook.xlsx.writeBuffer();
     res.status(HttpStatus.OK).send(buffer);
   }
 
-  async importQuestionBank(format: string, data: JsonQuestionBankImport | CsvQuestionImport[] | ExcelQuestionImport[], userId: string, userRole: Role, courseId?: string) {
+  async importQuestionBank(
+    format: string,
+    data: JsonQuestionBankImport | CsvQuestionImport[] | ExcelQuestionImport[],
+    userId: string,
+    userRole: Role,
+    courseId?: string,
+  ) {
     // Check course access if courseId is provided
     if (courseId) {
       const course = await this.prisma.course.findUnique({
@@ -569,28 +674,54 @@ export class QuestionBanksService {
       }
 
       if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-        throw new ForbiddenException('Only Admin and course instructor can import question banks');
+        throw new ForbiddenException(
+          'Only Admin and course instructor can import question banks',
+        );
       }
     }
 
     switch (format.toLowerCase()) {
       case 'json':
-        return this.importFromJson(data as JsonQuestionBankImport, userId, userRole, courseId);
+        return this.importFromJson(
+          data as JsonQuestionBankImport,
+          userId,
+          userRole,
+          courseId,
+        );
       case 'csv':
-        return this.importFromCsv(data as CsvQuestionImport[], userId, userRole, courseId);
+        return this.importFromCsv(
+          data as CsvQuestionImport[],
+          userId,
+          userRole,
+          courseId,
+        );
       case 'excel':
       case 'xlsx':
-        return this.importFromExcel(data as ExcelQuestionImport[], userId, userRole, courseId);
+        return this.importFromExcel(
+          data as ExcelQuestionImport[],
+          userId,
+          userRole,
+          courseId,
+        );
       default:
-        throw new BadRequestException('Unsupported import format. Use: json, csv, or excel');
+        throw new BadRequestException(
+          'Unsupported import format. Use: json, csv, or excel',
+        );
     }
   }
 
-  private async importFromJson(data: JsonQuestionBankImport, userId: string, userRole: Role, courseId?: string) {
+  private async importFromJson(
+    data: JsonQuestionBankImport,
+    userId: string,
+    userRole: Role,
+    courseId?: string,
+  ) {
     const { metadata, questions } = data;
 
     if (!metadata || !questions) {
-      throw new BadRequestException('Invalid JSON format. Missing metadata or questions');
+      throw new BadRequestException(
+        'Invalid JSON format. Missing metadata or questions',
+      );
     }
 
     // Create question bank
@@ -639,10 +770,17 @@ export class QuestionBanksService {
     };
   }
 
-  private async importFromCsv(data: CsvQuestionImport[], userId: string, userRole: Role, courseId?: string) {
+  private async importFromCsv(
+    data: CsvQuestionImport[],
+    userId: string,
+    userRole: Role,
+    courseId?: string,
+  ) {
     // For CSV import, data should be an array of objects
     if (!Array.isArray(data)) {
-      throw new BadRequestException('Invalid CSV format. Expected array of question objects');
+      throw new BadRequestException(
+        'Invalid CSV format. Expected array of question objects',
+      );
     }
 
     // Create question bank
@@ -672,7 +810,9 @@ export class QuestionBanksService {
       // Import options for multiple choice
       if (q.options && typeof q.options === 'string') {
         const optionTexts = q.options.split(' | ');
-        const correctAnswers = q.correctAnswer ? q.correctAnswer.split(' | ') : [];
+        const correctAnswers = q.correctAnswer
+          ? q.correctAnswer.split(' | ')
+          : [];
 
         for (let i = 0; i < optionTexts.length; i++) {
           await this.prisma.questionOption.create({
@@ -694,10 +834,17 @@ export class QuestionBanksService {
     };
   }
 
-  private async importFromExcel(data: ExcelQuestionImport[], userId: string, userRole: Role, courseId?: string) {
+  private async importFromExcel(
+    data: ExcelQuestionImport[],
+    userId: string,
+    userRole: Role,
+    courseId?: string,
+  ) {
     // For Excel import, data should be an array of objects (rows)
     if (!Array.isArray(data)) {
-      throw new BadRequestException('Invalid Excel format. Expected array of question objects');
+      throw new BadRequestException(
+        'Invalid Excel format. Expected array of question objects',
+      );
     }
 
     // Skip metadata rows (first 8 rows) and header row (9th row)
@@ -731,10 +878,26 @@ export class QuestionBanksService {
 
       // Import options
       const options = [];
-      if (q.option1) options.push({ text: q.option1, isCorrect: q.correctAnswer?.includes('Option 1') });
-      if (q.option2) options.push({ text: q.option2, isCorrect: q.correctAnswer?.includes('Option 2') });
-      if (q.option3) options.push({ text: q.option3, isCorrect: q.correctAnswer?.includes('Option 3') });
-      if (q.option4) options.push({ text: q.option4, isCorrect: q.correctAnswer?.includes('Option 4') });
+      if (q.option1)
+        options.push({
+          text: q.option1,
+          isCorrect: q.correctAnswer?.includes('Option 1'),
+        });
+      if (q.option2)
+        options.push({
+          text: q.option2,
+          isCorrect: q.correctAnswer?.includes('Option 2'),
+        });
+      if (q.option3)
+        options.push({
+          text: q.option3,
+          isCorrect: q.correctAnswer?.includes('Option 3'),
+        });
+      if (q.option4)
+        options.push({
+          text: q.option4,
+          isCorrect: q.correctAnswer?.includes('Option 4'),
+        });
 
       for (let i = 0; i < options.length; i++) {
         await this.prisma.questionOption.create({
@@ -751,7 +914,7 @@ export class QuestionBanksService {
     return {
       success: true,
       data: questionBank,
-      message: `Question bank imported with ${questionsData.filter(q => q.questionText).length} questions`,
+      message: `Question bank imported with ${questionsData.filter((q) => q.questionText).length} questions`,
     };
   }
 }

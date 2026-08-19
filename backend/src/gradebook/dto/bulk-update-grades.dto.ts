@@ -30,7 +30,10 @@ export class BulkUpdateGradeItemDto {
 }
 
 export class BulkUpdateGradesDto {
-  @ApiProperty({ description: 'Array of grade updates', type: [BulkUpdateGradeItemDto] })
+  @ApiProperty({
+    description: 'Array of grade updates',
+    type: [BulkUpdateGradeItemDto],
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BulkUpdateGradeItemDto)

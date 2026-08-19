@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ActivityStatus,
@@ -18,7 +23,7 @@ import {
   CalendarEventAttachment,
   CreateCalendarEventDto,
   UpdateCalendarEventDto,
-  CalendarEventWithTimeRemaining
+  CalendarEventWithTimeRemaining,
 } from './dto/calendar.types';
 
 // Heuristic #1: Visibility of System Status — clear error messages for calendar operations
@@ -32,7 +37,10 @@ export class CalendarService {
     private notificationsQueueService: NotificationsQueueService,
   ) {}
 
-  private async buildAccessWhere(userId: string, userRole: Role): Promise<CalendarEventWhere> {
+  private async buildAccessWhere(
+    userId: string,
+    userRole: Role,
+  ): Promise<CalendarEventWhere> {
     if (userRole === Role.MAHASISWA) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { userId },
@@ -56,10 +64,7 @@ export class CalendarService {
       });
       const courseIds = coursesTaught.map((c) => c.id);
       return {
-        OR: [
-          { courseId: { in: courseIds } },
-          { userId },
-        ],
+        OR: [{ courseId: { in: courseIds } }, { userId }],
       };
     }
 
@@ -72,13 +77,20 @@ export class CalendarService {
    * Lecturer: sees events from their courses including unpublished
    * Student: sees only published events from enrolled courses
    */
-  async getUserEvents(userId: string, userRole: Role, filters?: {
-    courseId?: string;
-    category?: EventCategory;
-    startDate?: Date;
-    endDate?: Date;
-  }) {
-    const where: CalendarEventWhere = await this.buildAccessWhere(userId, userRole);
+  async getUserEvents(
+    userId: string,
+    userRole: Role,
+    filters?: {
+      courseId?: string;
+      category?: EventCategory;
+      startDate?: Date;
+      endDate?: Date;
+    },
+  ) {
+    const where: CalendarEventWhere = await this.buildAccessWhere(
+      userId,
+      userRole,
+    );
 
     if (filters?.courseId) {
       where.courseId = filters.courseId;
@@ -115,11 +127,15 @@ export class CalendarService {
     };
   }
 
-
   /**
    * Get events for a specific month
    */
-  async getEventsByMonth(userId: string, userRole: Role, year: number, month: number) {
+  async getEventsByMonth(
+    userId: string,
+    userRole: Role,
+    year: number,
+    month: number,
+  ) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
@@ -160,26 +176,30 @@ export class CalendarService {
    * All users can create personal notes
    * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
    */
-  async createEvent(userId: string, userRole: Role, data: {
-    title: string;
-    description?: string;
-    startDate: Date;
-    endDate?: Date;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-    isOnline?: boolean;
-    meetingLink?: string;
-    category?: EventCategory;
-    color?: string;
-    type?: CalendarEventType;
-    targetAudience?: EventTargetAudience;
-    relatedActivityType?: RelatedActivityType;
-    relatedActivityId?: string;
-    isPublished?: boolean;
-    attachments?: CalendarEventAttachment[];
-    courseId?: string;
-  }) {
+  async createEvent(
+    userId: string,
+    userRole: Role,
+    data: {
+      title: string;
+      description?: string;
+      startDate: Date;
+      endDate?: Date;
+      startTime?: string;
+      endTime?: string;
+      location?: string;
+      isOnline?: boolean;
+      meetingLink?: string;
+      category?: EventCategory;
+      color?: string;
+      type?: CalendarEventType;
+      targetAudience?: EventTargetAudience;
+      relatedActivityType?: RelatedActivityType;
+      relatedActivityId?: string;
+      isPublished?: boolean;
+      attachments?: CalendarEventAttachment[];
+      courseId?: string;
+    },
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(data, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -194,12 +214,32 @@ export class CalendarService {
       courseId: { type: 'uuid', required: false },
       relatedActivityId: { type: 'uuid', required: false },
       isPublished: { type: 'boolean', required: false },
+      category: {
+        type: 'enum',
+        required: false,
+        enumValues: Object.values(EventCategory),
+      },
+      type: {
+        type: 'enum',
+        required: false,
+        enumValues: Object.values(CalendarEventType),
+      },
+      targetAudience: {
+        type: 'enum',
+        required: false,
+        enumValues: Object.values(EventTargetAudience),
+      },
+      relatedActivityType: {
+        type: 'enum',
+        required: false,
+        enumValues: Object.values(RelatedActivityType),
+      },
     });
 
     if (!result.valid) {
       throw new BadRequestException(result.errors.join(', '));
     }
-    
+
     // If courseId is provided, verify user has permission
     if (result.sanitized.courseId) {
       const course = await this.prisma.course.findUnique({
@@ -212,7 +252,9 @@ export class CalendarService {
 
       // Only instructor or admin can create course events
       if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-        throw new ForbiddenException('Only course instructor can create course events');
+        throw new ForbiddenException(
+          'Only course instructor can create course events',
+        );
       }
     }
 
@@ -228,11 +270,15 @@ export class CalendarService {
         location: data.location,
         isOnline: data.isOnline || false,
         meetingLink: data.meetingLink,
-        category: data.category || EventCategory.PENGUMUMAN_AKADEMIK,
+        category:
+          result.sanitized.category || EventCategory.PENGUMUMAN_AKADEMIK,
         color: data.color || '#1a365d',
-        type: data.type || CalendarEventType.ANNOUNCEMENT,
-        targetAudience: data.targetAudience || EventTargetAudience.COURSE_STUDENTS,
-        relatedActivityType: data.relatedActivityType || RelatedActivityType.NONE,
+        type: result.sanitized.type || CalendarEventType.ANNOUNCEMENT,
+        targetAudience:
+          result.sanitized.targetAudience ||
+          EventTargetAudience.COURSE_STUDENTS,
+        relatedActivityType:
+          result.sanitized.relatedActivityType || RelatedActivityType.NONE,
         relatedActivityId: result.sanitized.relatedActivityId,
         isPublished: data.isPublished !== undefined ? data.isPublished : true,
         attachments: data.attachments as any,
@@ -279,25 +325,30 @@ export class CalendarService {
    * Update a calendar event
    * Only event creator (for personal notes) or course instructor (for course events) can update
    */
-  async updateEvent(userId: string, userRole: Role, eventId: string, data: {
-    title?: string;
-    description?: string;
-    startDate?: Date;
-    endDate?: Date;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-    isOnline?: boolean;
-    meetingLink?: string;
-    category?: EventCategory;
-    color?: string;
-    type?: CalendarEventType;
-    targetAudience?: EventTargetAudience;
-    relatedActivityType?: RelatedActivityType;
-    relatedActivityId?: string;
-    isPublished?: boolean;
-    attachments?: CalendarEventAttachment[];
-  }) {
+  async updateEvent(
+    userId: string,
+    userRole: Role,
+    eventId: string,
+    data: {
+      title?: string;
+      description?: string;
+      startDate?: Date;
+      endDate?: Date;
+      startTime?: string;
+      endTime?: string;
+      location?: string;
+      isOnline?: boolean;
+      meetingLink?: string;
+      category?: EventCategory;
+      color?: string;
+      type?: CalendarEventType;
+      targetAudience?: EventTargetAudience;
+      relatedActivityType?: RelatedActivityType;
+      relatedActivityId?: string;
+      isPublished?: boolean;
+      attachments?: CalendarEventAttachment[];
+    },
+  ) {
     const event = await this.prisma.calendarEvent.findUnique({
       where: { id: eventId },
       include: { course: true },
@@ -311,22 +362,33 @@ export class CalendarService {
     if (event.userId) {
       // Personal note - only owner can update
       if (event.userId !== userId) {
-        throw new ForbiddenException('You can only update your own personal notes');
+        throw new ForbiddenException(
+          'You can only update your own personal notes',
+        );
       }
     } else if (event.courseId) {
       // Course event - only instructor or admin can update
       if (userRole !== Role.ADMIN && event.course?.instructorId !== userId) {
-        throw new ForbiddenException('Only course instructor can update course events');
+        throw new ForbiddenException(
+          'Only course instructor can update course events',
+        );
       }
     } else {
       // Global announcement - only admin can update
       if (userRole !== Role.ADMIN) {
-        throw new ForbiddenException('Only admin can update global announcements');
+        throw new ForbiddenException(
+          'Only admin can update global announcements',
+        );
       }
     }
 
     // Filter out empty strings for optional UUID fields
-    const relatedActivityId = data.relatedActivityId !== undefined ? (data.relatedActivityId && data.relatedActivityId.trim() !== '' ? data.relatedActivityId : null) : undefined;
+    const relatedActivityId =
+      data.relatedActivityId !== undefined
+        ? data.relatedActivityId && data.relatedActivityId.trim() !== ''
+          ? data.relatedActivityId
+          : null
+        : undefined;
 
     const updatedEvent = await this.prisma.calendarEvent.update({
       where: { id: eventId },
@@ -348,7 +410,11 @@ export class CalendarService {
     });
 
     // Send schedule change notification if date/time changed and event is published
-    if ((data.startDate || data.startTime || data.endTime) && updatedEvent.isPublished && updatedEvent.courseId) {
+    if (
+      (data.startDate || data.startTime || data.endTime) &&
+      updatedEvent.isPublished &&
+      updatedEvent.courseId
+    ) {
       const enrollments = await this.prisma.enrollment.findMany({
         where: { courseId: updatedEvent.courseId },
         select: { userId: true },
@@ -389,17 +455,23 @@ export class CalendarService {
     if (event.userId) {
       // Personal note - only owner can delete
       if (event.userId !== userId) {
-        throw new ForbiddenException('You can only delete your own personal notes');
+        throw new ForbiddenException(
+          'You can only delete your own personal notes',
+        );
       }
     } else if (event.courseId) {
       // Course event - only instructor or admin can delete
       if (userRole !== Role.ADMIN && event.course?.instructorId !== userId) {
-        throw new ForbiddenException('Only course instructor can delete course events');
+        throw new ForbiddenException(
+          'Only course instructor can delete course events',
+        );
       }
     } else {
       // Global announcement - only admin can delete
       if (userRole !== Role.ADMIN) {
-        throw new ForbiddenException('Only admin can delete global announcements');
+        throw new ForbiddenException(
+          'Only admin can delete global announcements',
+        );
       }
     }
 
@@ -452,8 +524,10 @@ export class CalendarService {
       const eventDate = new Date(event.startDate);
       const diffMs = eventDate.getTime() - now.getTime();
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      
+      const diffHours = Math.floor(
+        (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+
       let timeRemaining = '';
       if (diffDays > 0) {
         timeRemaining = `${diffDays} hari ${diffHours} jam`;
@@ -623,7 +697,12 @@ export class CalendarService {
           startTime: exam.startTime.toTimeString().slice(0, 5),
           endTime: exam.deadline.toTimeString().slice(0, 5),
           category,
-          color: category === EventCategory.UTS ? '#e07a5f' : category === EventCategory.UAS ? '#c1121f' : '#2d6a4f',
+          color:
+            category === EventCategory.UTS
+              ? '#e07a5f'
+              : category === EventCategory.UAS
+                ? '#c1121f'
+                : '#2d6a4f',
           courseId: exam.courseId,
         },
       });
@@ -639,7 +718,12 @@ export class CalendarService {
         startTime: exam.startTime.toTimeString().slice(0, 5),
         endTime: exam.deadline.toTimeString().slice(0, 5),
         category,
-        color: category === EventCategory.UTS ? '#e07a5f' : category === EventCategory.UAS ? '#c1121f' : '#2d6a4f',
+        color:
+          category === EventCategory.UTS
+            ? '#e07a5f'
+            : category === EventCategory.UAS
+              ? '#c1121f'
+              : '#2d6a4f',
         type: CalendarEventType.DEADLINE,
         targetAudience: EventTargetAudience.COURSE_STUDENTS,
         relatedActivityType: RelatedActivityType.EXAM,
@@ -762,7 +846,8 @@ export class CalendarService {
       title = `Materi Baru: ${activity.title}`;
     }
 
-    const category = categoryMap[activity.type] || EventCategory.PENGUMUMAN_AKADEMIK;
+    const category =
+      categoryMap[activity.type] || EventCategory.PENGUMUMAN_AKADEMIK;
     const color = colorMap[activity.type] || '#1a365d';
     const type =
       activity.type === ActivityType.ASSIGNMENT
@@ -828,7 +913,9 @@ export class CalendarService {
     // Check permission
     if (event.courseId) {
       if (userRole !== Role.ADMIN && event.course?.instructorId !== userId) {
-        throw new ForbiddenException('Only course instructor can publish course events');
+        throw new ForbiddenException(
+          'Only course instructor can publish course events',
+        );
       }
     } else {
       if (userRole !== Role.ADMIN) {

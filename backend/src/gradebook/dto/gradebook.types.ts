@@ -36,7 +36,7 @@ export type StudentGradeResult = {
     name: string;
     email: string;
   };
-}
+};
 
 export interface EnrollmentWithGrade {
   course: {

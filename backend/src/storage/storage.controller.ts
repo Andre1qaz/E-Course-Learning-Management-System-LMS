@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, Delete, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Delete,
+  Param,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
@@ -27,19 +34,23 @@ export class StorageController {
       required: ['fileName', 'fileType', 'fileSize'],
     },
   })
-  async generateUploadUrl(@Body() body: {
-    fileName: string;
-    fileType: string;
-    fileSize: number;
-    isPrivate?: boolean;
-  }) {
+  async generateUploadUrl(
+    @Body()
+    body: {
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      isPrivate?: boolean;
+    },
+  ) {
     try {
-      const { uploadUrl, fileUrl } = await this.storageService.generateUploadUrl(
-        body.fileName,
-        body.fileType,
-        body.fileSize,
-        body.isPrivate || false,
-      );
+      const { uploadUrl, fileUrl } =
+        await this.storageService.generateUploadUrl(
+          body.fileName,
+          body.fileType,
+          body.fileSize,
+          body.isPrivate || false,
+        );
 
       return {
         success: true,
@@ -87,9 +98,14 @@ export class StorageController {
 
   @Delete('file/:fileUrl')
   @ApiOperation({ summary: 'Delete file from storage' })
-  async deleteFile(@Param('fileUrl') fileUrl: string, @Body() body: { isPrivate?: boolean }) {
+  async deleteFile(
+    @Param('fileUrl') fileUrl: string,
+    @Body() body: { isPrivate?: boolean },
+  ) {
     try {
-      const key = this.storageService.extractKeyFromUrl(decodeURIComponent(fileUrl));
+      const key = this.storageService.extractKeyFromUrl(
+        decodeURIComponent(fileUrl),
+      );
       await this.storageService.deleteFile(key, body.isPrivate || false);
 
       return {

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
@@ -22,16 +27,10 @@ export class AnnouncementsService {
       return {
         isPublished: true,
         validFrom: { lte: now },
-        OR: [
-          { validUntil: null },
-          { validUntil: { gte: now } },
-        ],
+        OR: [{ validUntil: null }, { validUntil: { gte: now } }],
         AND: [
           {
-            OR: [
-              { courseId: { in: courseIds } },
-              { courseId: null },
-            ],
+            OR: [{ courseId: { in: courseIds } }, { courseId: null }],
           },
         ],
       };
@@ -51,10 +50,7 @@ export class AnnouncementsService {
             courseId: { in: courseIds },
             isPublished: true,
             validFrom: { lte: now },
-            OR: [
-              { validUntil: null },
-              { validUntil: { gte: now } },
-            ],
+            OR: [{ validUntil: null }, { validUntil: { gte: now } }],
           },
           // Their own announcements (including drafts)
           { authorId: userId },
@@ -63,10 +59,7 @@ export class AnnouncementsService {
             courseId: null,
             isPublished: true,
             validFrom: { lte: now },
-            OR: [
-              { validUntil: null },
-              { validUntil: { gte: now } },
-            ],
+            OR: [{ validUntil: null }, { validUntil: { gte: now } }],
           },
         ],
       };
@@ -75,10 +68,14 @@ export class AnnouncementsService {
     return {};
   }
 
-  async getAnnouncements(userId: string, userRole: Role, filters?: {
-    courseId?: string;
-    unreadOnly?: boolean;
-  }) {
+  async getAnnouncements(
+    userId: string,
+    userRole: Role,
+    filters?: {
+      courseId?: string;
+      unreadOnly?: boolean;
+    },
+  ) {
     const where: any = await this.buildAccessWhere(userId, userRole);
 
     if (filters?.courseId) {
@@ -86,7 +83,9 @@ export class AnnouncementsService {
     }
 
     if (filters?.unreadOnly && userRole === Role.MAHASISWA) {
-      const readAnnouncementIds = await (this.prisma as any).announcementRead.findMany({
+      const readAnnouncementIds = await (
+        this.prisma as any
+      ).announcementRead.findMany({
         where: { userId },
         select: { announcementId: true },
       });
@@ -113,22 +112,30 @@ export class AnnouncementsService {
             thumbnailColor: true,
           },
         },
-        readStatus: userRole === Role.MAHASISWA ? {
-          where: { userId },
-          select: {
-            userId: true,
-            readAt: true,
-          },
-        } : false,
+        readStatus:
+          userRole === Role.MAHASISWA
+            ? {
+                where: { userId },
+                select: {
+                  userId: true,
+                  readAt: true,
+                },
+              }
+            : false,
       },
       orderBy: { publishedAt: 'desc' },
     });
 
-    const announcementsWithReadStatus = announcements.map((announcement: any) => ({
-      ...announcement,
-      isRead: userRole === Role.MAHASISWA ? announcement.readStatus.length > 0 : true,
-      readStatus: undefined,
-    }));
+    const announcementsWithReadStatus = announcements.map(
+      (announcement: any) => ({
+        ...announcement,
+        isRead:
+          userRole === Role.MAHASISWA
+            ? announcement.readStatus.length > 0
+            : true,
+        readStatus: undefined,
+      }),
+    );
 
     return {
       success: true,
@@ -164,7 +171,11 @@ export class AnnouncementsService {
       throw new NotFoundException('Announcement not found');
     }
 
-    if (!announcement.isPublished && userRole !== Role.ADMIN && announcement.authorId !== userId) {
+    if (
+      !announcement.isPublished &&
+      userRole !== Role.ADMIN &&
+      announcement.authorId !== userId
+    ) {
       throw new ForbiddenException('This announcement is not published yet');
     }
 
@@ -178,12 +189,16 @@ export class AnnouncementsService {
         }));
 
       if (!hasAccess) {
-        throw new ForbiddenException('You do not have access to this announcement');
+        throw new ForbiddenException(
+          'You do not have access to this announcement',
+        );
       }
     }
 
     if (userRole === Role.MAHASISWA) {
-      const existingRead = await (this.prisma as any).announcementRead.findUnique({
+      const existingRead = await (
+        this.prisma as any
+      ).announcementRead.findUnique({
         where: {
           announcementId_userId: {
             announcementId: id,
@@ -209,16 +224,20 @@ export class AnnouncementsService {
     };
   }
 
-  async createAnnouncement(userId: string, userRole: Role, data: {
-    title: string;
-    content: string;
-    attachments?: any;
-    validFrom?: Date;
-    validUntil?: Date;
-    isPublished?: boolean;
-    priority?: string;
-    courseId?: string;
-  }) {
+  async createAnnouncement(
+    userId: string,
+    userRole: Role,
+    data: {
+      title: string;
+      content: string;
+      attachments?: any;
+      validFrom?: Date;
+      validUntil?: Date;
+      isPublished?: boolean;
+      priority?: string;
+      courseId?: string;
+    },
+  ) {
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(data, {
       title: { type: 'string', required: true, maxLength: 200 },
@@ -245,10 +264,14 @@ export class AnnouncementsService {
       }
 
       if (userRole !== Role.ADMIN && course.instructorId !== userId) {
-        throw new ForbiddenException('Only course instructor can create course announcements');
+        throw new ForbiddenException(
+          'Only course instructor can create course announcements',
+        );
       }
     } else if (userRole !== Role.ADMIN) {
-      throw new ForbiddenException('Only admin can create global announcements');
+      throw new ForbiddenException(
+        'Only admin can create global announcements',
+      );
     }
 
     // ✅ Create dengan data yang sudah divalidasi
@@ -259,11 +282,19 @@ export class AnnouncementsService {
         attachments: data.attachments,
         validFrom: result.sanitized.validFrom || new Date(),
         validUntil: result.sanitized.validUntil,
-        isPublished: result.sanitized.isPublished !== undefined ? result.sanitized.isPublished : true,
+        isPublished:
+          result.sanitized.isPublished !== undefined
+            ? result.sanitized.isPublished
+            : true,
         priority: result.sanitized.priority || 'normal',
         courseId: result.sanitized.courseId,
         authorId: userId,
-        publishedAt: data.isPublished !== undefined ? data.isPublished ? new Date() : null : new Date(),
+        publishedAt:
+          data.isPublished !== undefined
+            ? data.isPublished
+              ? new Date()
+              : null
+            : new Date(),
       },
       include: {
         author: {
@@ -305,12 +336,14 @@ export class AnnouncementsService {
       if (targetUserIds.length > 0) {
         await this.notificationsQueueService.addBulkNotificationJob({
           userIds: targetUserIds,
-          type: 'ANNOUNCEMENT_CREATED' as any,
+          type: 'ANNOUNCEMENT_CREATED',
           title: 'Pengumuman Baru',
           message: announcement.courseId
             ? `Pengumuman baru: "${announcement.title}" di ${announcement.course.name}`
             : `Pengumuman baru: "${announcement.title}"`,
-          link: announcement.courseId ? `/courses/${announcement.courseId}` : '/announcements',
+          link: announcement.courseId
+            ? `/courses/${announcement.courseId}`
+            : '/announcements',
         });
       }
     }
@@ -322,15 +355,20 @@ export class AnnouncementsService {
     };
   }
 
-  async updateAnnouncement(id: string, userId: string, userRole: Role, data: {
-    title?: string;
-    content?: string;
-    attachments?: any;
-    validFrom?: Date;
-    validUntil?: Date;
-    isPublished?: boolean;
-    priority?: string;
-  }) {
+  async updateAnnouncement(
+    id: string,
+    userId: string,
+    userRole: Role,
+    data: {
+      title?: string;
+      content?: string;
+      attachments?: any;
+      validFrom?: Date;
+      validUntil?: Date;
+      isPublished?: boolean;
+      priority?: string;
+    },
+  ) {
     const announcement = await (this.prisma as any).announcement.findUnique({
       where: { id },
       include: { course: true },
@@ -341,7 +379,9 @@ export class AnnouncementsService {
     }
 
     if (userRole !== Role.ADMIN && announcement.authorId !== userId) {
-      throw new ForbiddenException('You can only update your own announcements');
+      throw new ForbiddenException(
+        'You can only update your own announcements',
+      );
     }
 
     const updatedAnnouncement = await (this.prisma as any).announcement.update({
@@ -384,7 +424,9 @@ export class AnnouncementsService {
     }
 
     if (userRole !== Role.ADMIN && announcement.authorId !== userId) {
-      throw new ForbiddenException('You can only delete your own announcements');
+      throw new ForbiddenException(
+        'You can only delete your own announcements',
+      );
     }
 
     await (this.prisma as any).announcement.delete({
@@ -404,10 +446,7 @@ export class AnnouncementsService {
       where: {
         isPublished: true,
         validFrom: { lte: now },
-        OR: [
-          { validUntil: null },
-          { validUntil: { gte: now } },
-        ],
+        OR: [{ validUntil: null }, { validUntil: { gte: now } }],
       },
       select: { id: true, courseId: true },
     });
@@ -419,16 +458,22 @@ export class AnnouncementsService {
     const enrolledCourseIds = enrollments.map((e) => e.courseId);
 
     const accessibleAnnouncements = allAnnouncements.filter(
-      (a: any) => !a.courseId || enrolledCourseIds.includes(a.courseId)
+      (a: any) => !a.courseId || enrolledCourseIds.includes(a.courseId),
     );
 
-    const readAnnouncementIds = await (this.prisma as any).announcementRead.findMany({
+    const readAnnouncementIds = await (
+      this.prisma as any
+    ).announcementRead.findMany({
       where: { userId },
       select: { announcementId: true },
     });
-    const readIds = new Set(readAnnouncementIds.map((r: any) => r.announcementId));
+    const readIds = new Set(
+      readAnnouncementIds.map((r: any) => r.announcementId),
+    );
 
-    const unreadCount = accessibleAnnouncements.filter((a: any) => !readIds.has(a.id)).length;
+    const unreadCount = accessibleAnnouncements.filter(
+      (a: any) => !readIds.has(a.id),
+    ).length;
 
     return {
       success: true,
@@ -446,14 +491,16 @@ export class AnnouncementsService {
       throw new NotFoundException('Announcement not found');
     }
 
-    const existingRead = await (this.prisma as any).announcementRead.findUnique({
-      where: {
-        announcementId_userId: {
-          announcementId: id,
-          userId,
+    const existingRead = await (this.prisma as any).announcementRead.findUnique(
+      {
+        where: {
+          announcementId_userId: {
+            announcementId: id,
+            userId,
+          },
         },
       },
-    });
+    );
 
     if (!existingRead) {
       await (this.prisma as any).announcementRead.create({
@@ -477,10 +524,7 @@ export class AnnouncementsService {
       where: {
         isPublished: true,
         validFrom: { lte: now },
-        OR: [
-          { validUntil: null },
-          { validUntil: { gte: now } },
-        ],
+        OR: [{ validUntil: null }, { validUntil: { gte: now } }],
       },
       select: { id: true, courseId: true },
     });
@@ -492,16 +536,22 @@ export class AnnouncementsService {
     const enrolledCourseIds = enrollments.map((e) => e.courseId);
 
     const accessibleAnnouncements = allAnnouncements.filter(
-      (a: any) => !a.courseId || enrolledCourseIds.includes(a.courseId)
+      (a: any) => !a.courseId || enrolledCourseIds.includes(a.courseId),
     );
 
-    const readAnnouncementIds = await (this.prisma as any).announcementRead.findMany({
+    const readAnnouncementIds = await (
+      this.prisma as any
+    ).announcementRead.findMany({
       where: { userId },
       select: { announcementId: true },
     });
-    const readIds = new Set(readAnnouncementIds.map((r: any) => r.announcementId));
+    const readIds = new Set(
+      readAnnouncementIds.map((r: any) => r.announcementId),
+    );
 
-    const unreadAnnouncements = accessibleAnnouncements.filter((a: any) => !readIds.has(a.id));
+    const unreadAnnouncements = accessibleAnnouncements.filter(
+      (a: any) => !readIds.has(a.id),
+    );
 
     await (this.prisma as any).announcementRead.createMany({
       data: unreadAnnouncements.map((a: any) => ({

@@ -8,7 +8,12 @@ import {
   Query,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,13 +35,17 @@ export class CourseProgressController {
   async getMyCourseProgress(@CurrentUser('sub') userId: string) {
     return {
       success: true,
-      data: await this.courseProgressService.getStudentAllCoursesProgress(userId),
+      data: await this.courseProgressService.getStudentAllCoursesProgress(
+        userId,
+      ),
       message: 'Student course progress retrieved successfully',
     };
   }
 
   @Get('student/course/:courseId')
-  @ApiOperation({ summary: 'Get progress for a specific course (student view)' })
+  @ApiOperation({
+    summary: 'Get progress for a specific course (student view)',
+  })
   @Roles(Role.MAHASISWA)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getStudentCourseProgress(
@@ -54,13 +63,19 @@ export class CourseProgressController {
   }
 
   @Get('lecturer/course/:courseId/students')
-  @ApiOperation({ summary: 'Get progress for all students in a course (lecturer view)' })
+  @ApiOperation({
+    summary: 'Get progress for all students in a course (lecturer view)',
+  })
   @Roles(Role.DOSEN, Role.ADMIN)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
-  async getCourseStudentsProgress(@Param('courseId', ParseUUIDPipe) courseId: string) {
+  async getCourseStudentsProgress(
+    @Param('courseId', ParseUUIDPipe) courseId: string,
+  ) {
     return {
       success: true,
-      data: await this.courseProgressService.getCourseStudentsProgress(courseId),
+      data: await this.courseProgressService.getCourseStudentsProgress(
+        courseId,
+      ),
       message: 'Course students progress retrieved successfully',
     };
   }

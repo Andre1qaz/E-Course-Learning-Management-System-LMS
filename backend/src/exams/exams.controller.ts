@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -162,7 +172,9 @@ export class ExamsController {
   }
 
   @Get(':id/attempts')
-  @ApiOperation({ summary: 'Get all attempts for an exam (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Get all attempts for an exam (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getAttempts(
     @Param('id', ParseUUIDPipe) examId: string,
@@ -173,11 +185,16 @@ export class ExamsController {
   }
 
   @Post('attempts/:attemptId/grade')
-  @ApiOperation({ summary: 'Grade exam attempt manually (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Grade exam attempt manually (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async gradeAttempt(
     @Param('attemptId', ParseUUIDPipe) attemptId: string,
-    @Body() dto: { answers: Array<{ questionId: string; score: number; feedback?: string }> },
+    @Body()
+    dto: {
+      answers: Array<{ questionId: string; score: number; feedback?: string }>;
+    },
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -185,7 +202,9 @@ export class ExamsController {
   }
 
   @Post(':id/questions/reorder')
-  @ApiOperation({ summary: 'Reorder questions in an exam (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Reorder questions in an exam (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async reorderQuestions(
     @Param('id', ParseUUIDPipe) examId: string,
@@ -193,6 +212,11 @@ export class ExamsController {
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.examsService.reorderQuestions(examId, userId, role, dto.questionOrders);
+    return this.examsService.reorderQuestions(
+      examId,
+      userId,
+      role,
+      dto.questionOrders,
+    );
   }
 }

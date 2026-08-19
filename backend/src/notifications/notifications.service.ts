@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { AutoValidator } from '../common/base/validation-guide';
@@ -63,7 +68,10 @@ export class NotificationsService {
   async markAsRead(userId: string, notificationId: string) {
     // ✅ Validate UUIDs dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedNotificationId = AutoValidator.validateUUID(notificationId, 'Notification ID');
+    const validatedNotificationId = AutoValidator.validateUUID(
+      notificationId,
+      'Notification ID',
+    );
 
     const notification = await this.prisma.notification.findUnique({
       where: { id: validatedNotificationId },
@@ -74,7 +82,9 @@ export class NotificationsService {
     }
 
     if (notification.userId !== validatedUserId) {
-      throw new ForbiddenException('You can only mark your own notifications as read');
+      throw new ForbiddenException(
+        'You can only mark your own notifications as read',
+      );
     }
 
     await this.prisma.notification.update({
@@ -117,7 +127,10 @@ export class NotificationsService {
   async deleteNotification(userId: string, notificationId: string) {
     // ✅ Validate UUIDs dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedNotificationId = AutoValidator.validateUUID(notificationId, 'Notification ID');
+    const validatedNotificationId = AutoValidator.validateUUID(
+      notificationId,
+      'Notification ID',
+    );
 
     const notification = await this.prisma.notification.findUnique({
       where: { id: validatedNotificationId },
@@ -128,7 +141,9 @@ export class NotificationsService {
     }
 
     if (notification.userId !== validatedUserId) {
-      throw new ForbiddenException('You can only delete your own notifications');
+      throw new ForbiddenException(
+        'You can only delete your own notifications',
+      );
     }
 
     await this.prisma.notification.delete({
@@ -197,7 +212,7 @@ export class NotificationsService {
 
     // ✅ Validate semua userIds
     const validatedUserIds = result.sanitized.userIds.map((userId: string) =>
-      AutoValidator.validateUUID(userId, 'User ID')
+      AutoValidator.validateUUID(userId, 'User ID'),
     );
 
     const notifications = await this.prisma.notification.createMany({
@@ -216,12 +231,28 @@ export class NotificationsService {
   /**
    * Create deadline reminder notification
    */
-  async createDeadlineReminder(userId: string, assignmentTitle: string, courseName: string, deadlineDate: Date) {
+  async createDeadlineReminder(
+    userId: string,
+    assignmentTitle: string,
+    courseName: string,
+    deadlineDate: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedAssignmentTitle = AutoValidator.validateString(assignmentTitle, 'Assignment title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
-    const validatedDeadline = AutoValidator.validateDate(deadlineDate, 'Deadline date');
+    const validatedAssignmentTitle = AutoValidator.validateString(
+      assignmentTitle,
+      'Assignment title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
+    const validatedDeadline = AutoValidator.validateDate(
+      deadlineDate,
+      'Deadline date',
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -235,11 +266,24 @@ export class NotificationsService {
   /**
    * Create exam reminder notification
    */
-  async createExamReminder(userId: string, examTitle: string, courseName: string, examDate: Date) {
+  async createExamReminder(
+    userId: string,
+    examTitle: string,
+    courseName: string,
+    examDate: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedExamTitle = AutoValidator.validateString(examTitle, 'Exam title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedExamTitle = AutoValidator.validateString(
+      examTitle,
+      'Exam title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
     const validatedExamDate = AutoValidator.validateDate(examDate, 'Exam date');
 
     return this.createNotification({
@@ -254,12 +298,29 @@ export class NotificationsService {
   /**
    * Create grade released notification
    */
-  async createGradeReleased(userId: string, itemType: string, itemName: string, courseName: string) {
+  async createGradeReleased(
+    userId: string,
+    itemType: string,
+    itemName: string,
+    courseName: string,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedItemType = AutoValidator.validateString(itemType, 'Item type', 50);
-    const validatedItemName = AutoValidator.validateString(itemName, 'Item name', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedItemType = AutoValidator.validateString(
+      itemType,
+      'Item type',
+      50,
+    );
+    const validatedItemName = AutoValidator.validateString(
+      itemName,
+      'Item name',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -273,11 +334,23 @@ export class NotificationsService {
   /**
    * Create forum reply notification
    */
-  async createForumReplyNotification(userId: string, threadTitle: string, replierName: string) {
+  async createForumReplyNotification(
+    userId: string,
+    threadTitle: string,
+    replierName: string,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedThreadTitle = AutoValidator.validateString(threadTitle, 'Thread title', 200);
-    const validatedReplierName = AutoValidator.validateString(replierName, 'Replier name', 100);
+    const validatedThreadTitle = AutoValidator.validateString(
+      threadTitle,
+      'Thread title',
+      200,
+    );
+    const validatedReplierName = AutoValidator.validateString(
+      replierName,
+      'Replier name',
+      100,
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -291,11 +364,23 @@ export class NotificationsService {
   /**
    * Create course created notification
    */
-  async createCourseCreatedNotification(userId: string, courseName: string, courseCode: string) {
+  async createCourseCreatedNotification(
+    userId: string,
+    courseName: string,
+    courseCode: string,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
-    const validatedCourseCode = AutoValidator.validateString(courseCode, 'Course code', 50);
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
+    const validatedCourseCode = AutoValidator.validateString(
+      courseCode,
+      'Course code',
+      50,
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -309,11 +394,23 @@ export class NotificationsService {
   /**
    * Create material published notification
    */
-  async createMaterialPublishedNotification(userId: string, materialTitle: string, courseName: string) {
+  async createMaterialPublishedNotification(
+    userId: string,
+    materialTitle: string,
+    courseName: string,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedMaterialTitle = AutoValidator.validateString(materialTitle, 'Material title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedMaterialTitle = AutoValidator.validateString(
+      materialTitle,
+      'Material title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -327,11 +424,24 @@ export class NotificationsService {
   /**
    * Create assignment created notification
    */
-  async createAssignmentCreatedNotification(userId: string, assignmentTitle: string, courseName: string, deadline: Date) {
+  async createAssignmentCreatedNotification(
+    userId: string,
+    assignmentTitle: string,
+    courseName: string,
+    deadline: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedAssignmentTitle = AutoValidator.validateString(assignmentTitle, 'Assignment title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
+    const validatedAssignmentTitle = AutoValidator.validateString(
+      assignmentTitle,
+      'Assignment title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
     const validatedDeadline = AutoValidator.validateDate(deadline, 'Deadline');
 
     return this.createNotification({
@@ -346,12 +456,28 @@ export class NotificationsService {
   /**
    * Create quiz created notification
    */
-  async createQuizCreatedNotification(userId: string, quizTitle: string, courseName: string, startTime: Date) {
+  async createQuizCreatedNotification(
+    userId: string,
+    quizTitle: string,
+    courseName: string,
+    startTime: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedQuizTitle = AutoValidator.validateString(quizTitle, 'Quiz title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
-    const validatedStartTime = AutoValidator.validateDate(startTime, 'Start time');
+    const validatedQuizTitle = AutoValidator.validateString(
+      quizTitle,
+      'Quiz title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
+    const validatedStartTime = AutoValidator.validateDate(
+      startTime,
+      'Start time',
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -365,12 +491,28 @@ export class NotificationsService {
   /**
    * Create exam created notification
    */
-  async createExamCreatedNotification(userId: string, examTitle: string, courseName: string, startTime: Date) {
+  async createExamCreatedNotification(
+    userId: string,
+    examTitle: string,
+    courseName: string,
+    startTime: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedExamTitle = AutoValidator.validateString(examTitle, 'Exam title', 200);
-    const validatedCourseName = AutoValidator.validateString(courseName, 'Course name', 200);
-    const validatedStartTime = AutoValidator.validateDate(startTime, 'Start time');
+    const validatedExamTitle = AutoValidator.validateString(
+      examTitle,
+      'Exam title',
+      200,
+    );
+    const validatedCourseName = AutoValidator.validateString(
+      courseName,
+      'Course name',
+      200,
+    );
+    const validatedStartTime = AutoValidator.validateDate(
+      startTime,
+      'Start time',
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -384,11 +526,22 @@ export class NotificationsService {
   /**
    * Create event created notification
    */
-  async createEventCreatedNotification(userId: string, eventTitle: string, eventDate: Date) {
+  async createEventCreatedNotification(
+    userId: string,
+    eventTitle: string,
+    eventDate: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedEventTitle = AutoValidator.validateString(eventTitle, 'Event title', 200);
-    const validatedEventDate = AutoValidator.validateDate(eventDate, 'Event date');
+    const validatedEventTitle = AutoValidator.validateString(
+      eventTitle,
+      'Event title',
+      200,
+    );
+    const validatedEventDate = AutoValidator.validateDate(
+      eventDate,
+      'Event date',
+    );
 
     return this.createNotification({
       userId: validatedUserId,
@@ -402,11 +555,24 @@ export class NotificationsService {
   /**
    * Create schedule changed notification
    */
-  async createScheduleChangedNotification(userId: string, itemType: string, itemName: string, newDate: Date) {
+  async createScheduleChangedNotification(
+    userId: string,
+    itemType: string,
+    itemName: string,
+    newDate: Date,
+  ) {
     // ✅ Validate input dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
-    const validatedItemType = AutoValidator.validateString(itemType, 'Item type', 50);
-    const validatedItemName = AutoValidator.validateString(itemName, 'Item name', 200);
+    const validatedItemType = AutoValidator.validateString(
+      itemType,
+      'Item type',
+      50,
+    );
+    const validatedItemName = AutoValidator.validateString(
+      itemName,
+      'Item name',
+      200,
+    );
     const validatedNewDate = AutoValidator.validateDate(newDate, 'New date');
 
     return this.createNotification({

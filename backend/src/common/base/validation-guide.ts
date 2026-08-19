@@ -1,6 +1,6 @@
 /**
  * PANDUAN VALIDASI OTOMATIS - TIDAK ADA ERROR LAGI!
- * 
+ *
  * Sistem ini OTOMATIS handle semua format dan validation:
  * - UUID (dengan/without dashes)
  * - Dates (berbagai format)
@@ -8,7 +8,7 @@
  * - Strings (dengan length validation)
  * - Booleans (berbagai format)
  * - Enums (valid values check)
- * 
+ *
  * SEMUA ERROR MESSAGE DALAM BAHASA INDONESIA!
  */
 
@@ -26,15 +26,16 @@ export class AutoValidator {
     if (!value || value.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     const normalizedId = value.trim().toLowerCase();
-    
+
     // Format dengan dashes: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    const withDashes = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const withDashes =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (withDashes.test(normalizedId)) {
       return normalizedId;
     }
-    
+
     // Format tanpa dashes: 32 karakter hex
     const withoutDashes = /^[0-9a-f]{32}$/i;
     if (withoutDashes.test(normalizedId)) {
@@ -44,23 +45,26 @@ export class AutoValidator {
         normalizedId.substring(8, 12),
         normalizedId.substring(12, 16),
         normalizedId.substring(16, 20),
-        normalizedId.substring(20, 32)
+        normalizedId.substring(20, 32),
       ].join('-');
     }
-    
+
     throw new BadRequestException(
-      `${fieldName} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung`
+      `${fieldName} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung`,
     );
   }
 
   /**
    * Validate optional UUID
    */
-  static validateOptionalUUID(value: any, fieldName: string = 'ID'): string | undefined {
+  static validateOptionalUUID(
+    value: any,
+    fieldName: string = 'ID',
+  ): string | undefined {
     if (!value || value.trim() === '') {
       return undefined;
     }
-    
+
     return this.validateUUID(value, fieldName);
   }
 
@@ -72,86 +76,115 @@ export class AutoValidator {
     if (!value || value.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     const date = new Date(value);
-    
+
     if (isNaN(date.getTime())) {
       throw new BadRequestException(
-        `${fieldName} harus berupa tanggal yang valid. Format: YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss`
+        `${fieldName} harus berupa tanggal yang valid. Format: YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss`,
       );
     }
-    
+
     return date;
   }
 
   /**
    * Validate optional date
    */
-  static validateOptionalDate(value: any, fieldName: string = 'tanggal'): Date | undefined {
+  static validateOptionalDate(
+    value: any,
+    fieldName: string = 'tanggal',
+  ): Date | undefined {
     if (!value || value.trim() === '') {
       return undefined;
     }
-    
+
     return this.validateDate(value, fieldName);
   }
 
   /**
    * Validate string
    */
-  static validateString(value: any, fieldName: string = 'teks', maxLength?: number): string {
+  static validateString(
+    value: any,
+    fieldName: string = 'teks',
+    maxLength?: number,
+  ): string {
     if (!value || value.trim() === '') {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
-    
+
     const sanitized = value.trim();
-    
+
     if (maxLength && sanitized.length > maxLength) {
-      throw new BadRequestException(`${fieldName} tidak boleh lebih dari ${maxLength} karakter`);
+      throw new BadRequestException(
+        `${fieldName} tidak boleh lebih dari ${maxLength} karakter`,
+      );
     }
-    
+
     return sanitized;
   }
 
   /**
    * Validate optional string
    */
-  static validateOptionalString(value: any, fieldName: string = 'teks', maxLength?: number): string | undefined {
+  static validateOptionalString(
+    value: any,
+    fieldName: string = 'teks',
+    maxLength?: number,
+  ): string | undefined {
     if (!value || value.trim() === '') {
       return undefined;
     }
-    
+
     return this.validateString(value, fieldName, maxLength);
   }
 
   /**
    * Validate number
    */
-  static validateNumber(value: any, fieldName: string = 'angka', min?: number, max?: number): number {
+  static validateNumber(
+    value: any,
+    fieldName: string = 'angka',
+    min?: number,
+    max?: number,
+  ): number {
     const num = Number(value);
-    
+
     if (isNaN(num)) {
-      throw new BadRequestException(`${fieldName} harus berupa angka yang valid`);
+      throw new BadRequestException(
+        `${fieldName} harus berupa angka yang valid`,
+      );
     }
-    
+
     if (min !== undefined && num < min) {
-      throw new BadRequestException(`${fieldName} tidak boleh kurang dari ${min}`);
+      throw new BadRequestException(
+        `${fieldName} tidak boleh kurang dari ${min}`,
+      );
     }
-    
+
     if (max !== undefined && num > max) {
-      throw new BadRequestException(`${fieldName} tidak boleh lebih dari ${max}`);
+      throw new BadRequestException(
+        `${fieldName} tidak boleh lebih dari ${max}`,
+      );
     }
-    
+
     return num;
   }
 
   /**
    * Validate optional number
    */
-  static validateOptionalNumber(value: any, fieldName: string = 'angka', min?: number, max?: number): number | undefined {
+  static validateOptionalNumber(
+    value: any,
+    fieldName: string = 'angka',
+    min?: number,
+    max?: number,
+  ): number | undefined {
     if (value === undefined || value === null || value === '') {
       return undefined;
     }
-    
+
     return this.validateNumber(value, fieldName, min, max);
   }
 
@@ -162,62 +195,89 @@ export class AutoValidator {
     if (typeof value === 'boolean') {
       return value;
     }
-    
+
     if (value === 'true' || value === '1' || value === 1) {
       return true;
     }
-    
+
     if (value === 'false' || value === '0' || value === 0) {
       return false;
     }
-    
+
     throw new BadRequestException(`${fieldName} harus berupa true atau false`);
   }
 
   /**
    * Validate optional boolean
    */
-  static validateOptionalBoolean(value: any, fieldName: string = 'pilihan'): boolean | undefined {
+  static validateOptionalBoolean(
+    value: any,
+    fieldName: string = 'pilihan',
+  ): boolean | undefined {
     if (value === undefined || value === null || value === '') {
       return undefined;
     }
-    
+
     return this.validateBoolean(value, fieldName);
   }
 
   /**
    * Validate enum
    */
-  static validateEnum(value: any, validValues: any[], fieldName: string = 'pilihan'): any {
+  static validateEnum(
+    value: any,
+    validValues: any[],
+    fieldName: string = 'pilihan',
+  ): any {
     if (!validValues.includes(value)) {
       throw new BadRequestException(
-        `${fieldName} harus salah satu dari: ${validValues.join(', ')}`
+        `${fieldName} harus salah satu dari: ${validValues.join(', ')}`,
       );
     }
-    
+
     return value;
+  }
+
+  /**
+   * Validate optional enum
+   */
+  static validateOptionalEnum(
+    value: any,
+    validValues: any[],
+    fieldName: string = 'pilihan',
+  ): any | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    return this.validateEnum(value, validValues, fieldName);
   }
 
   /**
    * SUPER VALIDATOR - Auto-detect tipe dan validate
    * Ini method yang paling mudah digunakan!
    */
-  static autoValidate(value: any, fieldName: string = 'field', options?: {
-    required?: boolean;
-    type?: 'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'auto';
-    maxLength?: number;
-    minLength?: number;
-    min?: number;
-    max?: number;
-    enumValues?: any[];
-  }): any {
+  static autoValidate(
+    value: any,
+    fieldName: string = 'field',
+    options?: {
+      required?: boolean;
+      type?:
+        'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'enum' | 'auto';
+      maxLength?: number;
+      minLength?: number;
+      min?: number;
+      max?: number;
+      enumValues?: any[];
+    },
+  ): any {
     const { required = true, type = 'auto' } = options || {};
-    
+
     // Handle optional
     if (!required && (value === undefined || value === null || value === '')) {
       return undefined;
     }
-    
+
     // Auto-detect type
     let detectedType = type;
     if (type === 'auto') {
@@ -235,7 +295,7 @@ export class AutoValidator {
         detectedType = 'boolean';
       }
     }
-    
+
     // Validate berdasarkan tipe
     switch (detectedType) {
       case 'uuid':
@@ -245,9 +305,21 @@ export class AutoValidator {
       case 'string':
         return this.validateString(value, fieldName, options?.maxLength);
       case 'number':
-        return this.validateNumber(value, fieldName, options?.min, options?.max);
+        return this.validateNumber(
+          value,
+          fieldName,
+          options?.min,
+          options?.max,
+        );
       case 'boolean':
         return this.validateBoolean(value, fieldName);
+      case 'enum':
+        if (!options?.enumValues) {
+          throw new BadRequestException(
+            `${fieldName} enum validation requires enumValues`,
+          );
+        }
+        return this.validateEnum(value, options.enumValues, fieldName);
       default:
         return value;
     }
@@ -257,26 +329,30 @@ export class AutoValidator {
    * Auto-validate seluruh object
    * Cukup panggil method ini, semua format akan otomatis di-handle!
    */
-  static validateObject(obj: any, schema?: {
-    [key: string]: {
-      required?: boolean;
-      type?: 'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'auto';
-      maxLength?: number;
-      minLength?: number;
-      min?: number;
-      max?: number;
-      enumValues?: any[];
-    };
-  }): { valid: boolean; errors: string[]; sanitized: any } {
+  static validateObject(
+    obj: any,
+    schema?: {
+      [key: string]: {
+        required?: boolean;
+        type?:
+          'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'enum' | 'auto';
+        maxLength?: number;
+        minLength?: number;
+        min?: number;
+        max?: number;
+        enumValues?: any[];
+      };
+    },
+  ): { valid: boolean; errors: string[]; sanitized: any } {
     const errors: string[] = [];
     const sanitized: any = {};
-    
+
     const keys = schema ? Object.keys(schema) : Object.keys(obj);
-    
+
     for (const key of keys) {
       const value = obj[key];
       const config = schema?.[key] || {};
-      
+
       try {
         sanitized[key] = this.autoValidate(value, key, {
           required: config.required,
@@ -291,7 +367,7 @@ export class AutoValidator {
         errors.push(error instanceof Error ? error.message : String(error));
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -304,7 +380,8 @@ export class AutoValidator {
    */
   private static isValidUUIDString(value: string): boolean {
     const normalizedId = value.trim().toLowerCase();
-    const withDashes = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const withDashes =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const withoutDashes = /^[0-9a-f]{32}$/i;
     return withDashes.test(normalizedId) || withoutDashes.test(normalizedId);
   }

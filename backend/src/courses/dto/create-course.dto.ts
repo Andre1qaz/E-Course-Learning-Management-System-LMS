@@ -1,9 +1,9 @@
-import { 
-  IsString, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsHexColor, 
-  MaxLength
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsHexColor,
+  MaxLength,
 } from 'class-validator';
 
 // Heuristic #5: Error Prevention — validate course data before creation
