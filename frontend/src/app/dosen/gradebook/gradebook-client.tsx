@@ -92,7 +92,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch('http://localhost:3001/courses', {
+      const response = await fetch('http://localhost:3001/api/courses', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -111,7 +111,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -131,7 +131,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const fetchStatistics = async () => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/statistics`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/statistics`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -147,7 +147,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/recalculate`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/recalculate`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -167,7 +167,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const updateSettings = async () => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/settings`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/settings`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -190,7 +190,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const exportGradebook = async (format: string = 'excel') => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/export?format=${format}`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/export?format=${format}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -213,7 +213,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const fetchGradeHistory = async (studentId: string) => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/history/${studentId}`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/history/${studentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -234,7 +234,7 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const updateStudentGrade = async (studentId: string, field: string, value: number) => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/course/${selectedCourse}/student/${studentId}`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/student/${studentId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

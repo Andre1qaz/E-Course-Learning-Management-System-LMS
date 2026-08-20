@@ -8,8 +8,8 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -114,7 +114,7 @@ export class CalendarController {
   async getEventById(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id', ParseUUIDPipe) eventId: string,
+    @Param('id', ParseEntityIdPipe) eventId: string,
   ) {
     return this.calendarService.getEventById(eventId, userId, role);
   }
@@ -155,7 +155,7 @@ export class CalendarController {
   async updateEvent(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id', ParseUUIDPipe) eventId: string,
+    @Param('id', ParseEntityIdPipe) eventId: string,
     @Body() updateEventDto: UpdateEventDto,
   ) {
     return this.calendarService.updateEvent(userId, role, eventId, {
@@ -188,7 +188,7 @@ export class CalendarController {
   async deleteEvent(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id', ParseUUIDPipe) eventId: string,
+    @Param('id', ParseEntityIdPipe) eventId: string,
   ) {
     return this.calendarService.deleteEvent(userId, role, eventId);
   }
@@ -198,7 +198,7 @@ export class CalendarController {
   async toggleEventPublish(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('id', ParseUUIDPipe) eventId: string,
+    @Param('id', ParseEntityIdPipe) eventId: string,
   ) {
     return this.calendarService.toggleEventPublish(userId, role, eventId);
   }

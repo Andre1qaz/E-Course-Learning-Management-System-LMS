@@ -86,7 +86,7 @@ export function MyGradesClient({ token }: MyGradesClientProps) {
   const fetchAllGrades = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/gradebook/my-grades', {
+      const response = await fetch('http://localhost:3001/api/gradebook/my-grades', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -107,7 +107,7 @@ export function MyGradesClient({ token }: MyGradesClientProps) {
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/gradebook/my-grades/${selectedCourse}`, {
+      const response = await fetch(`http://localhost:3001/api/gradebook/my-grades/${selectedCourse}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

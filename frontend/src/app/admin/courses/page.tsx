@@ -9,7 +9,7 @@ export default async function AdminCoursesPage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[

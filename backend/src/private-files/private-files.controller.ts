@@ -8,8 +8,8 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -72,7 +72,7 @@ export class PrivateFilesController {
   @ApiOperation({ summary: 'Delete a private file' })
   async deleteFile(
     @CurrentUser('sub') userId: string,
-    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Param('fileId', ParseEntityIdPipe) fileId: string,
   ) {
     return this.privateFilesService.deleteFile(userId, fileId);
   }
@@ -99,7 +99,7 @@ export class PrivateFilesController {
   @ApiOperation({ summary: 'Get download URL for a private file' })
   async getDownloadUrl(
     @CurrentUser('sub') userId: string,
-    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Param('fileId', ParseEntityIdPipe) fileId: string,
   ) {
     return this.privateFilesService.getDownloadUrl(userId, fileId);
   }
@@ -117,7 +117,7 @@ export class PrivateFilesController {
   })
   async renameFile(
     @CurrentUser('sub') userId: string,
-    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Param('fileId', ParseEntityIdPipe) fileId: string,
     @Body() data: { newFileName: string },
   ) {
     return this.privateFilesService.renameFile(
@@ -140,7 +140,7 @@ export class PrivateFilesController {
   })
   async moveFile(
     @CurrentUser('sub') userId: string,
-    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Param('fileId', ParseEntityIdPipe) fileId: string,
     @Body() data: { newFolderPath: string },
   ) {
     return this.privateFilesService.moveFile(

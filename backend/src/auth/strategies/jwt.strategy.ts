@@ -23,10 +23,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
-    const user = await this.prisma.user.findUnique({
+    if (!payload.sub || typeof payload.sub !== 'string') {
+      throw new UnauthorizedException(
+        'Token tidak valid. Silakan login kembali.',
+      );
+    }
+
+    const select = { id: true, email: true, role: true, name: true } as const;
+
+    let user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, name: true },
+      select,
     });
+
+    // After migrate/reseed the JWT can still be valid but carry a stale user id.
+    if (!user && payload.email) {
+      user = await this.prisma.user.findUnique({
+        where: { email: payload.email },
+        select,
+      });
+    }
 
     if (!user) {
       throw new UnauthorizedException(

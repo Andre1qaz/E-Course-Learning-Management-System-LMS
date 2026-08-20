@@ -9,8 +9,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -48,7 +48,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Get gradebook for a course (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getCourseGradebook(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -61,8 +61,8 @@ export class GradebookController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getStudentGrades(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @Param('studentId', ParseEntityIdPipe) studentId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -80,7 +80,7 @@ export class GradebookController {
   })
   @Roles(Role.MAHASISWA)
   async getMyGrades(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.gradebookService.getMyGrades(courseId, userId);
@@ -99,8 +99,8 @@ export class GradebookController {
   @ApiOperation({ summary: 'Update student grade (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateGrade(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @Param('studentId', ParseEntityIdPipe) studentId: string,
     @Body() dto: UpdateGradeDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -118,7 +118,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Bulk update grades (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async bulkUpdateGrades(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: BulkUpdateGradesDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -132,7 +132,7 @@ export class GradebookController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateCourseSettings(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: UpdateCourseSettingsDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -148,7 +148,7 @@ export class GradebookController {
   @Get('course/:courseId/settings')
   @ApiOperation({ summary: 'Get course grading settings' })
   async getCourseSettings(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -161,7 +161,7 @@ export class GradebookController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getCourseStatistics(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -174,8 +174,8 @@ export class GradebookController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getGradeHistory(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @Param('studentId', ParseEntityIdPipe) studentId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -193,7 +193,7 @@ export class GradebookController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async recalculateGrades(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -210,7 +210,7 @@ export class GradebookController {
     description: 'Export format',
   })
   async exportGradebook(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Query('format') format: string = 'excel',
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -227,7 +227,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Export gradebook to PDF (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportGradebookPdf(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -238,7 +238,7 @@ export class GradebookController {
   @ApiOperation({ summary: 'Export gradebook via queue (Admin/Lecturer only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportGradebookQueue(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() body: { format: 'excel' | 'csv' },
     @CurrentUser('sub') userId: string,
   ) {
@@ -272,7 +272,7 @@ export class GradebookController {
   @Get('queue/job/:jobId')
   @ApiOperation({ summary: 'Get job status (Admin only)' })
   @Roles(Role.ADMIN)
-  async getJobStatus(@Param('jobId', ParseUUIDPipe) jobId: string) {
+  async getJobStatus(@Param('jobId', ParseEntityIdPipe) jobId: string) {
     const status = await this.gradebookQueueService.getJobStatus(jobId);
 
     if (!status) {

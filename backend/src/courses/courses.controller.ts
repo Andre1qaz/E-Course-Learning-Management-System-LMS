@@ -8,8 +8,8 @@ import {
   Body,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -89,7 +89,7 @@ export class CoursesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get course by ID' })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -110,7 +110,7 @@ export class CoursesController {
   @Put(':id')
   @ApiOperation({ summary: 'Update course (Admin/instructor only)' })
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: UpdateCourseDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -121,7 +121,7 @@ export class CoursesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete course (Admin/instructor only)' })
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -142,7 +142,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Unenroll from course (Students only)' })
   @Roles(Role.MAHASISWA)
   async unenroll(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.coursesService.unenroll(userId, courseId);
@@ -152,7 +152,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Direct enrollment by Admin/Lecturer' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async directEnroll(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: DirectEnrollDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -164,7 +164,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Update enrollment key (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async updateEnrollmentKey(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: UpdateEnrollmentKeyDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -176,7 +176,7 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get course participants (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getParticipants(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -189,8 +189,8 @@ export class CoursesController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async removeParticipant(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('participantId', ParseUUIDPipe) participantId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @Param('participantId', ParseEntityIdPipe) participantId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {

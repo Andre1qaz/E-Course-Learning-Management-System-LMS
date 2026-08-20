@@ -92,7 +92,7 @@ export class WeeksService {
       weekNumber: { type: 'number', required: true, min: 1 },
       startDate: { type: 'date', required: true },
       endDate: { type: 'date', required: true },
-      order: { type: 'number', required: false, min: 1 },
+      order: { type: 'number', required: false, min: 0 },
     });
 
     if (!result.valid) {
@@ -129,7 +129,7 @@ export class WeeksService {
       weekNumber: { type: 'number', required: false, min: 1 },
       startDate: { type: 'date', required: false },
       endDate: { type: 'date', required: false },
-      order: { type: 'number', required: false, min: 1 },
+      order: { type: 'number', required: false, min: 0 },
     });
 
     if (!result.valid) {

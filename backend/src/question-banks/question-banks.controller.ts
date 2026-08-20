@@ -8,8 +8,8 @@ import {
   Param,
   UseGuards,
   Res,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -55,7 +55,7 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Get question bank by ID (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -66,7 +66,7 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Update question bank (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: UpdateQuestionBankDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -78,7 +78,7 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Delete question bank (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async delete(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -89,7 +89,7 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Add question to question bank (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async addQuestion(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: any,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -103,7 +103,7 @@ export class QuestionBanksController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async removeQuestion(
-    @Param('questionId', ParseUUIDPipe) questionId: string,
+    @Param('questionId', ParseEntityIdPipe) questionId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -116,8 +116,8 @@ export class QuestionBanksController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async importFromBank(
-    @Param('id', ParseUUIDPipe) questionBankId: string,
-    @Param('examId', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) questionBankId: string,
+    @Param('examId', ParseEntityIdPipe) examId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -133,7 +133,7 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Export question bank (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportQuestionBank(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Param('format') format: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

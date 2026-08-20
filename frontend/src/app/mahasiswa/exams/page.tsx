@@ -10,7 +10,7 @@ export default async function MahasiswaExamsPage() {
   if (session.user.role !== "MAHASISWA") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[

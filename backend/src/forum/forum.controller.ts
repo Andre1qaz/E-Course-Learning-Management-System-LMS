@@ -7,8 +7,8 @@ import {
   Body,
   Param,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -35,7 +35,7 @@ export class ForumController {
   @ApiOperation({ summary: 'Get all forum threads for a course' })
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getCourseThreads(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -46,7 +46,7 @@ export class ForumController {
   @ApiOperation({ summary: 'Get a single forum thread with replies' })
   @ApiParam({ name: 'threadId', description: 'Thread ID' })
   async getThread(
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -82,7 +82,7 @@ export class ForumController {
   @ApiParam({ name: 'threadId', description: 'Thread ID' })
   async updateThread(
     @CurrentUser('sub') userId: string,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
     @Body() data: { title?: string; content?: string },
   ) {
     return this.forumService.updateThread(userId, threadId, data);
@@ -94,7 +94,7 @@ export class ForumController {
   async deleteThread(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
   ) {
     return this.forumService.deleteThread(userId, role, threadId);
   }
@@ -105,7 +105,7 @@ export class ForumController {
   async togglePinThread(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
   ) {
     return this.forumService.togglePinThread(userId, role, threadId);
   }
@@ -116,7 +116,7 @@ export class ForumController {
   async toggleLockThread(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
   ) {
     return this.forumService.toggleLockThread(userId, role, threadId);
   }
@@ -130,8 +130,8 @@ export class ForumController {
   async markBestAnswer(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
-    @Param('replyId', ParseUUIDPipe) replyId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
+    @Param('replyId', ParseEntityIdPipe) replyId: string,
   ) {
     return this.forumService.markBestAnswer(userId, role, threadId, replyId);
   }
@@ -142,7 +142,7 @@ export class ForumController {
   async removeBestAnswer(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
   ) {
     return this.forumService.removeBestAnswer(userId, role, threadId);
   }
@@ -152,7 +152,7 @@ export class ForumController {
   @ApiParam({ name: 'threadId', description: 'Thread ID' })
   async createReply(
     @CurrentUser('sub') userId: string,
-    @Param('threadId', ParseUUIDPipe) threadId: string,
+    @Param('threadId', ParseEntityIdPipe) threadId: string,
     @Body()
     data: {
       content: string;
@@ -172,7 +172,7 @@ export class ForumController {
   @ApiParam({ name: 'replyId', description: 'Reply ID' })
   async updateReply(
     @CurrentUser('sub') userId: string,
-    @Param('replyId', ParseUUIDPipe) replyId: string,
+    @Param('replyId', ParseEntityIdPipe) replyId: string,
     @Body() data: { content: string },
   ) {
     return this.forumService.updateReply(userId, replyId, data.content);
@@ -184,7 +184,7 @@ export class ForumController {
   async deleteReply(
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
-    @Param('replyId', ParseUUIDPipe) replyId: string,
+    @Param('replyId', ParseEntityIdPipe) replyId: string,
   ) {
     return this.forumService.deleteReply(userId, role, replyId);
   }

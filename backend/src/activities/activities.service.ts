@@ -79,9 +79,9 @@ export class ActivitiesService {
     const result = AutoValidator.validateObject(dto, {
       title: { type: 'string', required: true, maxLength: 200 },
       description: { type: 'string', required: false, maxLength: 2000 },
-      type: { type: 'string', required: false },
+      type: { type: 'string', required: true },
       status: { type: 'string', required: false },
-      order: { type: 'number', required: false, min: 1 },
+      order: { type: 'number', required: false, min: 0 },
     });
 
     if (!result.valid) {
@@ -110,17 +110,25 @@ export class ActivitiesService {
 
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
-    // ✅ Create dengan data yang sudah divalidasi
     const activity = await this.prisma.activity.create({
       data: {
         weekId: validatedWeekId,
-        ...result.sanitized,
+        type: result.sanitized.type,
+        title: result.sanitized.title,
+        description: result.sanitized.description,
+        status: result.sanitized.status,
+        order: result.sanitized.order ?? 0,
+        metadata: dto.metadata ?? undefined,
         publishedAt:
           result.sanitized.status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
-    await this.calendarService.createEventFromActivity(activity.id);
+    try {
+      await this.calendarService.createEventFromActivity(activity.id);
+    } catch {
+      // Activity is already created; calendar sync must not block Add Activity.
+    }
 
     if (result.sanitized.status === 'PUBLISHED') {
       await this.notifyActivityPublished(activity.id);

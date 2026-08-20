@@ -51,4 +51,8 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsOptionalUUID()
   courseId?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
 }

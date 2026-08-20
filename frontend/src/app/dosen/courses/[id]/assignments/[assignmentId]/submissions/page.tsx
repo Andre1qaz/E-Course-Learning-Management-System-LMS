@@ -7,15 +7,16 @@ import { AssignmentSubmissionsView } from "@/components/assignments/assignment-s
 export default async function AssignmentSubmissionsPage({
   params,
 }: {
-  params: { id: string; assignmentId: string };
+  params: Promise<{ id: string; assignmentId: string }>;
 }) {
+  const { id, assignmentId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.role !== "DOSEN" && session.user.role !== "ADMIN") redirect("/403");
 
   // Fetch assignment details to get title and maxScore
   const assignmentResponse = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/assignments/${params.assignmentId}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/assignments/${assignmentId}`,
     {
       headers: {
         Authorization: `Bearer ${session.accessToken}`,
@@ -32,21 +33,21 @@ export default async function AssignmentSubmissionsPage({
   const assignment = assignmentResult.data;
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
           { label: "Dashboard", href: "/dosen/dashboard" },
           { label: "Courses", href: "/dosen/courses" },
-          { label: "Course Detail", href: `/dosen/courses/${params.id}` },
+          { label: "Course Detail", href: `/dosen/courses/${id}` },
           { label: "Assignment Submissions" },
         ]}
       >
         <AssignmentSubmissionsView
-          assignmentId={params.assignmentId}
+          assignmentId={assignmentId}
           assignmentTitle={assignment.title}
           assignmentMaxScore={assignment.maxScore}
-          courseId={params.id}
+          courseId={id}
           token={session.accessToken}
         />
       </DashboardLayout>

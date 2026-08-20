@@ -9,7 +9,7 @@ export default async function AdminAnnouncementsPage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[{ label: "Dashboard", href: "/admin/dashboard" }, { label: "Pengumuman Global" }]}

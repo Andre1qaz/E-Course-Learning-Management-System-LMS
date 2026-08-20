@@ -5,6 +5,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
+import { AutoValidator } from '../base/validation-guide';
 
 // Custom validator for optional UUID fields
 @ValidatorConstraint({ name: 'isOptionalUUID', async: false })
@@ -14,14 +15,11 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
     if (value === undefined || value === null || value === '') {
       return true;
     }
-    // Otherwise, it must be a valid UUID
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(value);
+    return AutoValidator.isEntityId(String(value));
   }
 
   defaultMessage(args: ValidationArguments) {
-    return '${property} must be a valid UUID';
+    return '${property} harus berupa ID yang valid (CUID atau UUID)';
   }
 }
 

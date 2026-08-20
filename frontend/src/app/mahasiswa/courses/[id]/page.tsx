@@ -4,13 +4,18 @@ import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { CourseDetailClient } from "@/components/course-detail/course-detail-client";
 
-export default async function MahasiswaCourseDetailPage({ params }: { params: { id: string } }) {
+export default async function MahasiswaCourseDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.role !== "MAHASISWA") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
@@ -20,7 +25,7 @@ export default async function MahasiswaCourseDetailPage({ params }: { params: { 
         ]}
       >
         <CourseDetailClient
-          courseId={params.id}
+          courseId={id}
           token={session.accessToken}
           userRole={session.user.role}
         />

@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { User, Camera, Lock, Upload, X } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+import { apiFetch } from "@/lib/api";
 
 interface UserProfile {
   id: string;
@@ -25,7 +24,7 @@ interface UserProfile {
 }
 
 export function ProfilePage() {
-  const { data: session, update } = useSession();
+  const { data: session, status, update } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -45,22 +44,34 @@ export function ProfilePage() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (status !== "authenticated" || !session?.accessToken) {
+      setLoading(false);
+      return;
+    }
     fetchProfile();
-  }, [session]);
+  }, [status, session?.accessToken]);
 
   const fetchProfile = async () => {
+    if (!session?.accessToken) return;
+
     try {
-      const response = await fetch(`${API_URL}/auth/profile`, {
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setProfile(data.data);
+      setLoading(true);
+      const response = await apiFetch<UserProfile>(
+        "/auth/profile",
+        {},
+        session.accessToken,
+      );
+
+      if (response.success && response.data) {
+        setProfile(response.data);
+      } else {
+        toast.error(response.message || "Gagal memuat profil");
       }
     } catch (error) {
-      toast.error("Gagal memuat profil");
+      toast.error(
+        error instanceof Error ? error.message : "Gagal memuat profil",
+      );
     } finally {
       setLoading(false);
     }
@@ -93,27 +104,26 @@ export function ProfilePage() {
     setUploading(true);
     try {
       // Step 1: Get presigned upload URL
-      const uploadUrlResponse = await fetch(`${API_URL}/storage/upload-url`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
+      const uploadUrlResponse = await apiFetch<{ uploadUrl: string; fileUrl: string }>(
+        "/storage/upload-url",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            fileName: selectedFile.name,
+            fileType: selectedFile.type,
+            fileSize: selectedFile.size,
+            isPrivate: false,
+          }),
         },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-          fileSize: selectedFile.size,
-          isPrivate: false,
-        }),
-      });
+        session?.accessToken
+      );
 
-      const uploadUrlData = await uploadUrlResponse.json();
-      if (!uploadUrlData.success) {
-        throw new Error(uploadUrlData.message);
+      if (!uploadUrlResponse.success || !uploadUrlResponse.data) {
+        throw new Error(uploadUrlResponse.message || "Gagal mendapatkan URL upload");
       }
 
       // Step 2: Upload file to MinIO
-      await fetch(uploadUrlData.data.uploadUrl, {
+      await fetch(uploadUrlResponse.data.uploadUrl, {
         method: "PUT",
         body: selectedFile,
         headers: {
@@ -122,20 +132,19 @@ export function ProfilePage() {
       });
 
       // Step 3: Update user profile with new avatar URL
-      const updateResponse = await fetch(`${API_URL}/auth/profile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
+      const updateResponse = await apiFetch<{ avatarUrl: string }>(
+        "/auth/profile",
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            avatarUrl: uploadUrlResponse.data.fileUrl,
+          }),
         },
-        body: JSON.stringify({
-          avatarUrl: uploadUrlData.data.fileUrl,
-        }),
-      });
+        session?.accessToken
+      );
 
-      const updateData = await updateResponse.json();
-      if (!updateData.success) {
-        throw new Error(updateData.message);
+      if (!updateResponse.success) {
+        throw new Error(updateResponse.message);
       }
 
       // Update session
@@ -143,7 +152,7 @@ export function ProfilePage() {
         ...session,
         user: {
           ...session?.user,
-          avatarUrl: uploadUrlData.data.fileUrl,
+          avatarUrl: uploadUrlResponse.data.fileUrl,
         },
       });
 
@@ -180,18 +189,17 @@ export function ProfilePage() {
 
     setChangingPassword(true);
     try {
-      const response = await fetch(`${API_URL}/auth/change-password`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
+      const response = await apiFetch<null>(
+        "/auth/change-password",
+        {
+          method: "PATCH",
+          body: JSON.stringify(passwordData),
         },
-        body: JSON.stringify(passwordData),
-      });
+        session?.accessToken
+      );
 
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.message);
+      if (!response.success) {
+        throw new Error(response.message);
       }
 
       toast.success("Password berhasil diperbarui");

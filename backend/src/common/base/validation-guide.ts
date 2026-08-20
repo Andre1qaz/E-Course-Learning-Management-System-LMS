@@ -22,12 +22,30 @@ export class AutoValidator {
    * Validate UUID dengan auto-format handling
    * Menerima format: dengan dashes atau tanpa dashes
    */
+  private static isEmpty(value: any): boolean {
+    return value === undefined || value === null || value === '';
+  }
+
+  private static asString(value: any): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return String(value);
+  }
+
   static validateUUID(value: any, fieldName: string = 'ID'): string {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
 
-    const normalizedId = value.trim().toLowerCase();
+    const trimmed = this.asString(value).trim();
+
+    // Prisma default IDs are CUID (25 chars, start with "c"), not UUID.
+    if (this.isPrismaCuid(trimmed)) {
+      return trimmed;
+    }
+
+    const normalizedId = trimmed.toLowerCase();
 
     // Format dengan dashes: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     const withDashes =
@@ -50,7 +68,7 @@ export class AutoValidator {
     }
 
     throw new BadRequestException(
-      `${fieldName} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung`,
+      `${fieldName} harus berupa ID yang valid (CUID atau UUID).`,
     );
   }
 
@@ -61,7 +79,10 @@ export class AutoValidator {
     value: any,
     fieldName: string = 'ID',
   ): string | undefined {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
+      return undefined;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
       return undefined;
     }
 
@@ -73,11 +94,11 @@ export class AutoValidator {
    * Menerima berbagai format date
    */
   static validateDate(value: any, fieldName: string = 'tanggal'): Date {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
 
-    const date = new Date(value);
+    const date = value instanceof Date ? value : new Date(value);
 
     if (isNaN(date.getTime())) {
       throw new BadRequestException(
@@ -95,7 +116,10 @@ export class AutoValidator {
     value: any,
     fieldName: string = 'tanggal',
   ): Date | undefined {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
+      return undefined;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
       return undefined;
     }
 
@@ -110,11 +134,14 @@ export class AutoValidator {
     fieldName: string = 'teks',
     maxLength?: number,
   ): string {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
       throw new BadRequestException(`${fieldName} tidak boleh kosong`);
     }
 
-    const sanitized = value.trim();
+    const sanitized = this.asString(value).trim();
+    if (sanitized === '') {
+      throw new BadRequestException(`${fieldName} tidak boleh kosong`);
+    }
 
     if (maxLength && sanitized.length > maxLength) {
       throw new BadRequestException(
@@ -133,7 +160,10 @@ export class AutoValidator {
     fieldName: string = 'teks',
     maxLength?: number,
   ): string | undefined {
-    if (!value || value.trim() === '') {
+    if (this.isEmpty(value)) {
+      return undefined;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
       return undefined;
     }
 
@@ -376,14 +406,30 @@ export class AutoValidator {
   }
 
   /**
-   * Helper untuk cek jika string adalah UUID
+   * Helper untuk cek jika string adalah CUID Prisma atau UUID
    */
-  private static isValidUUIDString(value: string): boolean {
-    const normalizedId = value.trim().toLowerCase();
+  static isEntityId(value: string): boolean {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    const trimmed = value.trim();
+    if (this.isPrismaCuid(trimmed)) {
+      return true;
+    }
+    const normalizedId = trimmed.toLowerCase();
     const withDashes =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const withoutDashes = /^[0-9a-f]{32}$/i;
     return withDashes.test(normalizedId) || withoutDashes.test(normalizedId);
+  }
+
+  private static isValidUUIDString(value: string): boolean {
+    return this.isEntityId(value);
+  }
+
+  /** Prisma `@default(cuid())` — 25 characters starting with c */
+  private static isPrismaCuid(value: string): boolean {
+    return /^c[a-z0-9]{24}$/i.test(value);
   }
 }
 

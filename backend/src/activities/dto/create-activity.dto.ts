@@ -26,7 +26,8 @@ export class CreateActivityDto {
 
   @IsInt()
   @Min(0)
-  order: number;
+  @IsOptional()
+  order?: number;
 
   @IsObject()
   @IsOptional()

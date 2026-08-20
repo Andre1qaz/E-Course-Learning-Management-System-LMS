@@ -4,13 +4,18 @@ import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ExamResultsClient } from "./exam-results-client";
 
-export default async function ExamResultsPage({ params }: { params: { id: string; attemptId: string } }) {
+export default async function ExamResultsPage({
+  params,
+}: {
+  params: Promise<{ id: string; attemptId: string }>;
+}) {
+  const { id, attemptId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.role !== "MAHASISWA") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
@@ -19,7 +24,7 @@ export default async function ExamResultsPage({ params }: { params: { id: string
           { label: "Hasil Ujian" },
         ]}
       >
-        <ExamResultsClient examId={params.id} attemptId={params.attemptId} token={session.accessToken} />
+        <ExamResultsClient examId={id} attemptId={attemptId} token={session.accessToken} />
       </DashboardLayout>
     </AuthSessionProvider>
   );

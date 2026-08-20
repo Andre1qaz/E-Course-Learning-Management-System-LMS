@@ -76,7 +76,7 @@ export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, o
             body: JSON.stringify({
               title,
               description,
-              deadline,
+              deadline: new Date(deadline).toISOString(),
               maxScore: parseInt(maxScore),
             }),
           }

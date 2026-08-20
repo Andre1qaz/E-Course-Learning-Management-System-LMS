@@ -10,7 +10,7 @@ export default async function AdminQuestionBanksPage() {
   if (session.user.role !== "ADMIN" && session.user.role !== "DOSEN") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[

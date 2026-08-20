@@ -9,7 +9,7 @@ export default async function MahasiswaAnnouncementsPage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[{ label: "Dashboard", href: "/mahasiswa/dashboard" }, { label: "Pengumuman" }]}

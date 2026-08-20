@@ -7,8 +7,8 @@ import {
   Param,
   Body,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -36,7 +36,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Create new exam (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async create(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: CreateExamDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -47,7 +47,7 @@ export class ExamsController {
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get all exams for a course' })
   async findByCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -66,7 +66,7 @@ export class ExamsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get exam by ID' })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -77,7 +77,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Update exam (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: UpdateExamDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -89,7 +89,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Delete exam (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -100,7 +100,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Publish exam (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async publish(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -111,7 +111,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Add question to exam (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async addQuestion(
-    @Param('id', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) examId: string,
     @Body() dto: CreateQuestionDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -123,7 +123,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Auto-save answer during exam (Student only)' })
   @Roles(Role.ADMIN, Role.DOSEN, Role.MAHASISWA)
   async autoSaveAnswer(
-    @Param('attemptId', ParseUUIDPipe) attemptId: string,
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
     @Body() dto: any,
     @CurrentUser('sub') userId: string,
   ) {
@@ -133,7 +133,7 @@ export class ExamsController {
   @Get(':id/questions')
   @ApiOperation({ summary: 'Get all questions for an exam' })
   async getQuestions(
-    @Param('id', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) examId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -144,7 +144,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Start exam attempt (Students only)' })
   @Roles(Role.MAHASISWA)
   async startAttempt(
-    @Param('id', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) examId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.examsService.startAttempt(examId, userId);
@@ -154,7 +154,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Submit exam attempt (Students only)' })
   @Roles(Role.MAHASISWA)
   async submitAttempt(
-    @Param('attemptId', ParseUUIDPipe) attemptId: string,
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
     @Body() dto: SubmitExamDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -164,7 +164,7 @@ export class ExamsController {
   @Get('attempts/:attemptId')
   @ApiOperation({ summary: 'Get exam attempt by ID' })
   async getAttempt(
-    @Param('attemptId', ParseUUIDPipe) attemptId: string,
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -177,7 +177,7 @@ export class ExamsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getAttempts(
-    @Param('id', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) examId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -190,7 +190,7 @@ export class ExamsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async gradeAttempt(
-    @Param('attemptId', ParseUUIDPipe) attemptId: string,
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
     @Body()
     dto: {
       answers: Array<{ questionId: string; score: number; feedback?: string }>;
@@ -207,7 +207,7 @@ export class ExamsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async reorderQuestions(
-    @Param('id', ParseUUIDPipe) examId: string,
+    @Param('id', ParseEntityIdPipe) examId: string,
     @Body() dto: { questionOrders: { id: string; order: number }[] },
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

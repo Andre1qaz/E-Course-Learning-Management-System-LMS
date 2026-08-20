@@ -7,8 +7,8 @@ import {
   Param,
   Body,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,7 +33,7 @@ export class ModulesController {
   @ApiOperation({ summary: 'Create new module (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async create(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: CreateModuleDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -44,7 +44,7 @@ export class ModulesController {
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get all modules for a course' })
   async findByCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -54,7 +54,7 @@ export class ModulesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get module by ID' })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -64,7 +64,7 @@ export class ModulesController {
   @Put(':id')
   @ApiOperation({ summary: 'Update module (Admin/instructor only)' })
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: UpdateModuleDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -75,7 +75,7 @@ export class ModulesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete module (Admin/instructor only)' })
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -86,7 +86,7 @@ export class ModulesController {
   @ApiOperation({ summary: 'Add file to module (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async addFile(
-    @Param('moduleId', ParseUUIDPipe) moduleId: string,
+    @Param('moduleId', ParseEntityIdPipe) moduleId: string,
     @Body() dto: CreateModuleFileDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -97,7 +97,7 @@ export class ModulesController {
   @Delete('files/:fileId')
   @ApiOperation({ summary: 'Delete file from module (Admin/instructor only)' })
   async removeFile(
-    @Param('fileId', ParseUUIDPipe) fileId: string,
+    @Param('fileId', ParseEntityIdPipe) fileId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -108,7 +108,7 @@ export class ModulesController {
   @ApiOperation({ summary: 'Reorder modules (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async reorder(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() body: { moduleOrders: { id: string; order: number }[] },
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

@@ -8,8 +8,8 @@ import {
   Body,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -42,7 +42,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Create new assignment (Admin/instructor only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async create(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Body() dto: CreateAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -53,7 +53,7 @@ export class AssignmentsController {
   @Get('course/:courseId')
   @ApiOperation({ summary: 'Get all assignments for a course' })
   async findByCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -66,7 +66,7 @@ export class AssignmentsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getGradebook(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -76,7 +76,7 @@ export class AssignmentsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get assignment by ID' })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -86,7 +86,7 @@ export class AssignmentsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update assignment (Admin/instructor only)' })
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: UpdateAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
@@ -97,7 +97,7 @@ export class AssignmentsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete assignment (Admin/instructor only)' })
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -108,7 +108,7 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Submit assignment (Students only)' })
   @Roles(Role.MAHASISWA)
   async submit(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @Body() dto: SubmitAssignmentDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -126,7 +126,7 @@ export class AssignmentsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getSubmissions(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -136,7 +136,7 @@ export class AssignmentsController {
   @Get(':id/my-submission')
   @ApiOperation({ summary: "Get student's submission for an assignment" })
   async getStudentSubmission(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseEntityIdPipe) id: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.assignmentsService.getStudentSubmission(id, userId);
@@ -148,7 +148,7 @@ export class AssignmentsController {
   })
   @Roles(Role.ADMIN, Role.DOSEN)
   async grade(
-    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+    @Param('submissionId', ParseEntityIdPipe) submissionId: string,
     @Body() dto: GradeAssignmentDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,

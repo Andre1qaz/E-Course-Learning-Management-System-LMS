@@ -10,7 +10,7 @@ export default async function DosenExamsPage() {
   if (session.user.role !== "DOSEN" && session.user.role !== "ADMIN") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[

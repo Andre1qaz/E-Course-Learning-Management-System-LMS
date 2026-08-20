@@ -136,8 +136,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   const handleCreateNewEvent = async () => {
     try {
       // Handle attachments as URL string
-      const attachments = newEvent.attachments && newEvent.attachments.trim() !== '' 
-        ? { url: newEvent.attachments.trim() } 
+      const attachments = newEvent.attachments && newEvent.attachments.trim() !== ''
+        ? [{
+            fileName: "attachment",
+            fileUrl: newEvent.attachments.trim(),
+            fileSize: 0,
+            mimeType: "text/plain",
+          }]
         : undefined;
 
       // Create calendar event
@@ -162,7 +167,11 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         validFrom: newEvent.startDate,
         validUntil: newEvent.endDate || undefined,
         courseId: newEvent.courseId && newEvent.courseId.trim() !== '' ? newEvent.courseId : undefined,
-        attachments: attachments,
+        attachments: attachments?.map((file) => ({
+          fileName: file.fileName,
+          fileUrl: file.fileUrl,
+          fileSize: String(file.fileSize),
+        })),
       });
 
       toast.success("Event dan pengumuman berhasil dibuat");
@@ -193,8 +202,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     if (!editingEvent) return;
     
     // Handle attachments as URL string
-    const attachments = newEvent.attachments && newEvent.attachments.trim() !== '' 
-      ? { url: newEvent.attachments.trim() } 
+    const attachments = newEvent.attachments && newEvent.attachments.trim() !== ''
+      ? [{
+          fileName: "attachment",
+          fileUrl: newEvent.attachments.trim(),
+          fileSize: 0,
+          mimeType: "text/plain",
+        }]
       : undefined;
     
     await updateCalendarEvent(token, editingEvent.id, {

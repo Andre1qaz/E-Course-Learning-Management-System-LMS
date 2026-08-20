@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -296,7 +297,6 @@ export class AuthService {
   }
 
   async getProfile(userId: string): Promise<ApiResponse> {
-    // ✅ Validate userId dengan AutoValidator
     const validatedUserId = AutoValidator.validateUUID(userId, 'User ID');
 
     const user = await this.prisma.user.findUnique({
@@ -313,15 +313,17 @@ export class AuthService {
       },
     });
 
+    if (!user) {
+      throw new NotFoundException('Profil tidak ditemukan.');
+    }
+
     return {
       success: true,
-      data: user
-        ? {
-            ...user,
-            storageQuotaUsed: user.storageQuotaUsed.toString(),
-            storageQuotaLimit: user.storageQuotaLimit.toString(),
-          }
-        : null,
+      data: {
+        ...user,
+        storageQuotaUsed: user.storageQuotaUsed.toString(),
+        storageQuotaLimit: user.storageQuotaLimit.toString(),
+      },
       message: 'Profil berhasil diambil.',
     };
   }

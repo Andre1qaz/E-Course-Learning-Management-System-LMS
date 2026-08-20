@@ -4,13 +4,18 @@ import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ExamTakingClient } from "./exam-taking-client";
 
-export default async function ExamTakingPage({ params }: { params: { id: string } }) {
+export default async function ExamTakingPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.role !== "MAHASISWA") redirect("/403");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
@@ -19,7 +24,7 @@ export default async function ExamTakingPage({ params }: { params: { id: string 
           { label: "Ujian" },
         ]}
       >
-        <ExamTakingClient examId={params.id} token={session.accessToken} />
+        <ExamTakingClient examId={id} token={session.accessToken} />
       </DashboardLayout>
     </AuthSessionProvider>
   );

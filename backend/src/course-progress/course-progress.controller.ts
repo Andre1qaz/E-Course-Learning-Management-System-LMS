@@ -6,8 +6,8 @@ import {
   Body,
   UseGuards,
   Query,
-  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -49,7 +49,7 @@ export class CourseProgressController {
   @Roles(Role.MAHASISWA)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getStudentCourseProgress(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return {
@@ -69,7 +69,7 @@ export class CourseProgressController {
   @Roles(Role.DOSEN, Role.ADMIN)
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getCourseStudentsProgress(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
   ) {
     return {
       success: true,
@@ -86,8 +86,8 @@ export class CourseProgressController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   @ApiParam({ name: 'studentId', description: 'Student ID' })
   async getStudentProgressInCourse(
-    @Param('courseId', ParseUUIDPipe) courseId: string,
-    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @Param('studentId', ParseEntityIdPipe) studentId: string,
   ) {
     return {
       success: true,

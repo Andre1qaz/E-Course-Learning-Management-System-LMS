@@ -15,6 +15,7 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from 'class-validator';
+import { AutoValidator } from './validation-guide';
 
 /**
  * Custom decorators untuk DTO yang sering digunakan
@@ -30,23 +31,11 @@ export class IsOptionalUUIDConstraint implements ValidatorConstraintInterface {
       return true;
     }
 
-    // Handle berbagai UUID format
-    const normalizedId = value.trim().toLowerCase();
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    // Coba format dengan dashes
-    if (uuidRegex.test(normalizedId)) return true;
-
-    // Coba format tanpa dashes (32 hex chars)
-    const noDashRegex = /^[0-9a-f]{32}$/i;
-    if (noDashRegex.test(normalizedId)) return true;
-
-    return false;
+    return AutoValidator.isEntityId(String(value));
   }
 
   defaultMessage(args: ValidationArguments) {
-    return '${property} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung';
+    return '${property} harus berupa ID yang valid (CUID atau UUID)';
   }
 }
 
@@ -66,24 +55,15 @@ export function IsOptionalUUID(validationOptions?: ValidationOptions) {
 @ValidatorConstraint({ name: 'isUUID', async: false })
 export class IsUUIDConstraint implements ValidatorConstraintInterface {
   validate(value: any, args: ValidationArguments) {
-    if (!value || value.trim() === '') {
+    if (value === undefined || value === null || value === '') {
       return false;
     }
 
-    const normalizedId = value.trim().toLowerCase();
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    if (uuidRegex.test(normalizedId)) return true;
-
-    const noDashRegex = /^[0-9a-f]{32}$/i;
-    if (noDashRegex.test(normalizedId)) return true;
-
-    return false;
+    return AutoValidator.isEntityId(String(value));
   }
 
   defaultMessage(args: ValidationArguments) {
-    return '${property} harus berupa UUID yang valid. Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx atau 32 karakter hex tanpa tanda hubung';
+    return '${property} harus berupa ID yang valid (CUID atau UUID)';
   }
 }
 

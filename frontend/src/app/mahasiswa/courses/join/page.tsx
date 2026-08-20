@@ -8,7 +8,7 @@ export default async function JoinCoursePage() {
   if (!session?.user) redirect("/login");
 
   return (
-    <AuthSessionProvider>
+    <AuthSessionProvider session={session}>
       <JoinCourseClient token={session.accessToken} />
     </AuthSessionProvider>
   );
