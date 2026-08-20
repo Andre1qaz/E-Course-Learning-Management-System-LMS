@@ -49,7 +49,7 @@ async function bootstrap() {
   const port =
     configService.get<number>('PORT') ??
     configService.get<number>('BACKEND_PORT') ??
-    3001;
+    3000;
   await app.listen(port);
   console.log(`Backend running on http://localhost:${port}`);
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);

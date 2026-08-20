@@ -368,12 +368,6 @@ export function CalendarView({
                       ))}
                     </div>
                   </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="text-sm">
                       Batal

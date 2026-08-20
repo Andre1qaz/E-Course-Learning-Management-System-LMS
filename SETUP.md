@@ -111,8 +111,8 @@ npm run db:seed
 npm run start:dev
 ```
 
-**Backend akan berjalan di:** http://localhost:3001  
-**Swagger Documentation:** http://localhost:3001/api/docs
+**Backend akan berjalan di:** http://localhost:3000  
+**Swagger Documentation:** http://localhost:3000/api/docs
 
 ### 5. Setup Frontend
 
@@ -287,7 +287,7 @@ Jika ada error "port already in use":
 # Cek process yang menggunakan port
 # Windows (PowerShell)
 netstat -ano | findstr :5433
-netstat -ano | findstr :3001
+netstat -ano | findstr :3000
 netstat -ano | findstr :3000
 
 # Kill process
@@ -388,8 +388,8 @@ Setelah setup selesai:
 | Service | URL |
 |---------|-----|
 | **Frontend** | http://localhost:3000 |
-| **Backend API** | http://localhost:3001 |
-| **Swagger Docs** | http://localhost:3001/api/docs |
+| **Backend API** | http://localhost:3000 |
+| **Swagger Docs** | http://localhost:3000/api/docs |
 | **MinIO Console** | http://localhost:9001 |
 | **MinIO API** | http://localhost:9000 |
 
@@ -422,7 +422,7 @@ Untuk development sehari-hari:
 
 4. **Buka browser**:
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001/api/docs
+   - Backend API: http://localhost:3000/api/docs
 
 5. **Setelah selesai**:
    ```bash
@@ -436,7 +436,7 @@ Untuk development sehari-hari:
 
 Untuk dokumentasi lengkap tentang fitur, arsitektur, dan API endpoints, lihat:
 - **README.md** - Dokumentasi lengkap project
-- **Backend** - http://localhost:3001/api/docs (Swagger)
+- **Backend** - http://localhost:3000/api/docs (Swagger)
 
 ---
 

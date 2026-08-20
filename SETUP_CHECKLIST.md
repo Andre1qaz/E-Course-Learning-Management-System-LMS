@@ -188,7 +188,7 @@ ts-node scripts/generate-resource.ts --name=ResourceName --fields="field1:string
 1. ✅ Dependencies installed
 2. ✅ TypeScript compilation successful
 3. ✅ Frontend server starts without errors
-4. ✅ Can access application at `http://localhost:3001`
+4. ✅ Can access application at `http://localhost:3000`
 5. ✅ API calls working to backend
 
 ### **Integration Verification:**
