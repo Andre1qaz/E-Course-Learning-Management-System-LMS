@@ -86,8 +86,9 @@ export class StorageService {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'image/jpeg',
-      'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
       'image/gif',
       'video/mp4',
       'video/webm',
@@ -103,19 +104,22 @@ export class StorageService {
     const bucket = result.sanitized.isPrivate
       ? this.privateBucket
       : this.publicBucket;
-    const key = `${Date.now()}-${result.sanitized.fileName}`;
+    const safeFileName = String(result.sanitized.fileName)
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 180);
+    const key = `${Date.now()}-${safeFileName}`;
 
+    // Do not sign ContentLength: browser PUT headers can mismatch and fail the upload.
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       ContentType: result.sanitized.fileType,
-      ContentLength: result.sanitized.fileSize,
     });
 
     const uploadUrl = await getSignedUrl(this.s3Client, command, {
       expiresIn: 3600,
     }); // 1 hour
-    const fileUrl = `${this.configService.get('MINIO_ENDPOINT')}:${this.configService.get('MINIO_PORT')}/${bucket}/${key}`;
+    const fileUrl = this.buildPublicFileUrl(bucket, key);
 
     return { uploadUrl, fileUrl };
   }
@@ -151,6 +155,19 @@ export class StorageService {
     });
 
     await this.s3Client.send(command);
+  }
+
+  private buildPublicFileUrl(bucket: string, key: string): string {
+    const rawEndpoint =
+      this.configService.get<string>('MINIO_ENDPOINT') || 'localhost';
+    const port = this.configService.get<string>('MINIO_PORT') || '9000';
+    const useSsl =
+      String(this.configService.get('MINIO_USE_SSL') || 'false') === 'true' ||
+      rawEndpoint.startsWith('https://');
+    const host = rawEndpoint.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const protocol = useSsl ? 'https' : 'http';
+
+    return `${protocol}://${host}:${port}/${bucket}/${key}`;
   }
 
   /**

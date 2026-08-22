@@ -121,15 +121,15 @@ export function DashboardContent({
 
       {/* Upcoming Events Panel */}
       {upcomingEvents.length > 0 && (
-        <Card className="p-4 md:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
+        <Card className="p-4 md:p-6 bg-secondary/70 border-border">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="font-semibold text-base md:text-lg text-blue-900 dark:text-blue-100">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-base md:text-lg text-foreground">
                 Event Mendatang
               </h3>
             </div>
-            <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400" onClick={() => window.location.href = `${basePath}/calendar`}>
+            <Button variant="ghost" size="sm" className="text-primary" onClick={() => window.location.href = `${basePath}/calendar`}>
               <span className="hidden sm:inline">Lihat Semua</span>
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
@@ -140,7 +140,7 @@ export function DashboardContent({
               return (
                 <div
                   key={event.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer gap-2 sm:gap-3"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-card rounded-lg border border-border hover:border-primary/30 hover:shadow-sm transition-colors cursor-pointer gap-2 sm:gap-3"
                   onClick={() => window.location.href = `${basePath}/calendar`}
                 >
                   <div className="flex items-center gap-3">
@@ -148,9 +148,9 @@ export function DashboardContent({
                       className={`w-2 h-2 rounded-full ${catInfo.bgClass}`}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm md:text-base truncate">{event.title}</p>
+                      <p className="font-medium text-sm md:text-base truncate text-foreground">{event.title}</p>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className={`text-xs ${catInfo.textClass}`}>
+                        <Badge variant="outline" className={`text-xs ${catInfo.lightBgClass} ${catInfo.textClass}`}>
                           {catInfo.label}
                         </Badge>
                         {event.course && (
@@ -162,7 +162,7 @@ export function DashboardContent({
                     </div>
                   </div>
                   <div className="text-right sm:text-left">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    <p className="text-sm font-medium text-primary">
                       {new Date(event.startDate).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "short",

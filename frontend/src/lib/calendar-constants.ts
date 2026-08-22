@@ -1,17 +1,23 @@
 import { EventCategory } from "@/lib/api";
 
-export const EVENT_CATEGORIES: { value: EventCategory; label: string; bgClass: string; textClass: string }[] = [
-  { value: "PERKULIAHAN", label: "Perkuliahan", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue" },
-  { value: "MATERI_BARU", label: "Materi Baru", bgClass: "bg-semantic-green", textClass: "text-semantic-green" },
-  { value: "ASSIGNMENT", label: "Assignment", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber" },
-  { value: "QUIZ", label: "Quiz", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange" },
-  { value: "UTS", label: "UTS", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange" },
-  { value: "UAS", label: "UAS", bgClass: "bg-semantic-red", textClass: "text-semantic-red" },
-  { value: "SEMINAR", label: "Seminar", bgClass: "bg-semantic-indigo", textClass: "text-semantic-indigo" },
-  { value: "PROJECT", label: "Project", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate" },
-  { value: "MEETING", label: "Meeting", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate" },
-  { value: "DEADLINE", label: "Deadline", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber" },
-  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue" },
+export const EVENT_CATEGORIES: {
+  value: EventCategory;
+  label: string;
+  bgClass: string;
+  textClass: string;
+  lightBgClass: string;
+}[] = [
+  { value: "PERKULIAHAN", label: "Perkuliahan", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue", lightBgClass: "bg-semantic-blue-light" },
+  { value: "MATERI_BARU", label: "Materi Baru", bgClass: "bg-semantic-green", textClass: "text-semantic-green", lightBgClass: "bg-semantic-green-light" },
+  { value: "ASSIGNMENT", label: "Assignment", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber", lightBgClass: "bg-semantic-amber-light" },
+  { value: "QUIZ", label: "Quiz", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange", lightBgClass: "bg-semantic-orange-light" },
+  { value: "UTS", label: "UTS", bgClass: "bg-semantic-orange", textClass: "text-semantic-orange", lightBgClass: "bg-semantic-orange-light" },
+  { value: "UAS", label: "UAS", bgClass: "bg-semantic-red", textClass: "text-semantic-red", lightBgClass: "bg-semantic-red-light" },
+  { value: "SEMINAR", label: "Seminar", bgClass: "bg-semantic-indigo", textClass: "text-semantic-indigo", lightBgClass: "bg-semantic-indigo-light" },
+  { value: "PROJECT", label: "Project", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate", lightBgClass: "bg-semantic-slate-light" },
+  { value: "MEETING", label: "Meeting", bgClass: "bg-semantic-slate", textClass: "text-semantic-slate", lightBgClass: "bg-semantic-slate-light" },
+  { value: "DEADLINE", label: "Deadline", bgClass: "bg-semantic-amber", textClass: "text-semantic-amber", lightBgClass: "bg-semantic-amber-light" },
+  { value: "PENGUMUMAN_AKADEMIK", label: "Pengumuman Akademik", bgClass: "bg-semantic-blue", textClass: "text-semantic-blue", lightBgClass: "bg-semantic-blue-light" },
 ];
 
 export function getCategoryInfo(category: EventCategory) {
@@ -20,12 +26,10 @@ export function getCategoryInfo(category: EventCategory) {
 
 export function getCategoryClasses(category: EventCategory, customBgClass?: string) {
   const info = getCategoryInfo(category);
-  const bgClass = customBgClass || info.bgClass;
-  const textClass = info.textClass;
   return {
-    bgClass,
-    textClass,
-    lightBgClass: bgClass.replace('bg-', 'bg-').replace('bg-', '-light'),
+    bgClass: customBgClass || info.bgClass,
+    textClass: info.textClass,
+    lightBgClass: info.lightBgClass,
   };
 }
 

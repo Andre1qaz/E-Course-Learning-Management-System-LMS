@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
+import { UpcomingEventsPanel } from "@/components/calendar/upcoming-events-panel";
 import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, getUpcomingEvents, EventCategory } from "@/lib/api";
-import { getCategoryInfo, EVENT_CATEGORIES } from "@/lib/calendar-constants";
+import { getCategoryInfo } from "@/lib/calendar-constants";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Clock, Calendar as CalendarIcon, Search } from "lucide-react";
+import { AlertCircle, Calendar as CalendarIcon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CategoryNativeSelect } from "@/components/calendar/calendar-selects";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 // Heuristic #1: Visibility of System Status — loading states and error handling
 // Heuristic #6: Recognition Rather Than Recall — clear upcoming deadlines section
@@ -26,6 +30,8 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -114,80 +120,22 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter Kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Semua Kategori</SelectItem>
-              {EVENT_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
-                    {cat.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CategoryNativeSelect
+            className="w-full sm:w-[220px]"
+            includeAll
+            value={selectedCategory}
+            onChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}
+          />
         </div>
       </div>
 
-      {/* Upcoming Events */}
-      {upcomingEvents.length > 0 && (
-        <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-              Event Mendatang (7 Hari ke Depan)
-            </h3>
-            <Badge variant="secondary" className="ml-auto">
-              {upcomingEvents.length} event
-            </Badge>
-          </div>
-          <div className="space-y-2">
-            {upcomingEvents.map((event) => {
-              const catInfo = getCategoryInfo(event.category);
-              return (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full ${catInfo.bgClass}`}
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`text-xs ${catInfo.textClass}`}>
-                          {catInfo.label}
-                        </Badge>
-                        {event.course && (
-                          <p className="text-xs text-muted-foreground">
-                            {event.course.code} - {event.course.name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      {new Date(event.startDate).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {event.timeRemaining || new Date(event.startDate).toLocaleDateString("id-ID", { weekday: "short" })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      <UpcomingEventsPanel
+        events={upcomingEvents}
+        onEventClick={(event) => {
+          setSelectedEvent(event);
+          setIsViewDialogOpen(true);
+        }}
+      />
 
       {/* Calendar */}
       <CalendarView
@@ -198,6 +146,91 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         userRole={role}
         courses={[]}
       />
+
+      {/* Event View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-md w-[95%] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Detail Event</DialogTitle>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm">Judul</Label>
+                <p className="font-medium text-sm md:text-base">{selectedEvent.title}</p>
+              </div>
+              <div>
+                <Label className="text-sm">Tanggal</Label>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  {new Date(selectedEvent.startDate).toLocaleDateString("id-ID", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm">Kategori</Label>
+                <Badge className="text-xs">
+                  {getCategoryInfo(selectedEvent.category).label}
+                </Badge>
+              </div>
+              {selectedEvent.description && (
+                <div>
+                  <Label className="text-sm">Deskripsi</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">{selectedEvent.description}</p>
+                </div>
+              )}
+              {selectedEvent.location && (
+                <div>
+                  <Label className="text-sm">Lokasi</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">{selectedEvent.location}</p>
+                </div>
+              )}
+              {selectedEvent.isOnline && selectedEvent.meetingLink && (
+                <div>
+                  <Label className="text-sm">Tautan Meeting</Label>
+                  <a
+                    href={selectedEvent.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs md:text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                  >
+                    {selectedEvent.meetingLink}
+                  </a>
+                </div>
+              )}
+              {selectedEvent.startTime && (
+                <div>
+                  <Label className="text-sm">Waktu</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    {selectedEvent.startTime} {selectedEvent.endTime ? `- ${selectedEvent.endTime}` : ''}
+                  </p>
+                </div>
+              )}
+              {selectedEvent.course && (
+                <div>
+                  <Label className="text-sm">Course</Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${selectedEvent.course.thumbnailColor || 'bg-muted'}`}
+                    />
+                    <p className="text-xs md:text-sm font-medium">
+                      {selectedEvent.course.code} - {selectedEvent.course.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="text-xs md:text-sm">
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

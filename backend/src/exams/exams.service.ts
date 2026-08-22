@@ -9,7 +9,7 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
-import { Role, QuestionType, ExamAttemptStatus } from '@prisma/client';
+import { Role, QuestionType, ExamAttemptStatus, GradingStatus } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 import { AutoValidator } from '../common/base/validation-guide';
@@ -163,20 +163,36 @@ export class ExamsService {
       throw new ForbiddenException('You do not have access to this exam');
     }
 
-    // Hide correct answers for students
+    const hideAnswers = userRole === Role.MAHASISWA;
+    const mappedQuestions = exam.questions.map((q: any) =>
+      this.mapQuestionForClient(q, hideAnswers),
+    );
+
+    let myAttempt = null;
     if (userRole === Role.MAHASISWA) {
-      exam.questions = exam.questions.map((q: any) => ({
-        ...q,
-        options: q.options.map((o: any) => ({
-          ...o,
-          isCorrect: false,
-        })),
-      }));
+      myAttempt = await this.prisma.examAttempt.findFirst({
+        where: { examId: id, studentId: userId },
+        orderBy: { attemptNumber: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+          submittedAt: true,
+          totalScore: true,
+        },
+      });
     }
+
+    const { questions: _questions, ...examData } = exam;
 
     return {
       success: true,
-      data: exam,
+      data: {
+        ...examData,
+        questions: hideAnswers ? [] : mappedQuestions,
+        questionCount: exam.questions.length,
+        myAttempt,
+      },
       message: 'Exam retrieved successfully',
     };
   }
@@ -406,6 +422,14 @@ export class ExamsService {
       orderBy: { startTime: 'asc' },
     });
 
+    if (userRole === Role.MAHASISWA) {
+      return {
+        success: true,
+        data: await this.attachMyAttempts(exams, userId),
+        message: 'Exams retrieved successfully',
+      };
+    }
+
     return {
       success: true,
       data: exams,
@@ -460,6 +484,14 @@ export class ExamsService {
       },
       orderBy: { startTime: 'asc' },
     });
+
+    if (userRole === Role.MAHASISWA) {
+      return {
+        success: true,
+        data: await this.attachMyAttempts(exams, userId),
+        message: 'Exams retrieved successfully',
+      };
+    }
 
     return {
       success: true,
@@ -532,8 +564,12 @@ export class ExamsService {
       },
     });
 
-    // Add options for multiple choice
-    if (dto.type === QuestionType.MULTIPLE_CHOICE && dto.options) {
+    // Add options for multiple choice and true/false
+    if (
+      (dto.type === QuestionType.MULTIPLE_CHOICE ||
+        dto.type === QuestionType.TRUE_FALSE) &&
+      dto.options
+    ) {
       for (let i = 0; i < dto.options.length; i++) {
         await this.prisma.questionOption.create({
           data: {
@@ -590,19 +626,34 @@ export class ExamsService {
       orderBy: { order: 'asc' },
     });
 
-    // Hide correct answers for students
     if (userRole === Role.MAHASISWA) {
-      questions.forEach((q: any) => {
-        q.options = q.options.map((o: any) => ({
-          ...o,
-          isCorrect: false,
-        }));
+      const attempt = await this.prisma.examAttempt.findFirst({
+        where: { examId, studentId: userId },
+        orderBy: { attemptNumber: 'desc' },
+        select: { status: true },
       });
+
+      const canSeeQuestions =
+        attempt &&
+        (attempt.status === ExamAttemptStatus.IN_PROGRESS ||
+          attempt.status === ExamAttemptStatus.SUBMITTED ||
+          attempt.status === ExamAttemptStatus.GRADED);
+
+      if (!canSeeQuestions) {
+        throw new ForbiddenException(
+          'Soal hanya tersedia setelah ujian dimulai',
+        );
+      }
     }
+
+    const hideAnswers = userRole === Role.MAHASISWA;
+    const mapped = questions.map((q) =>
+      this.mapQuestionForClient(q, hideAnswers),
+    );
 
     return {
       success: true,
-      data: questions,
+      data: mapped,
       message: 'Questions retrieved successfully',
     };
   }
@@ -620,6 +671,10 @@ export class ExamsService {
             enrollments: true,
           },
         },
+        questions: {
+          include: { options: true },
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
@@ -627,56 +682,66 @@ export class ExamsService {
       throw new NotFoundException('Exam not found');
     }
 
-    // Check if student is enrolled
     const isEnrolled = exam.course.enrollments.some(
       (e: any) => e.userId === userId,
     );
     if (!isEnrolled) {
       throw new ForbiddenException(
-        'You must be enrolled in this course to take the exam',
+        'Anda harus terdaftar di course ini untuk mengikuti ujian',
       );
     }
 
-    // Check if exam is published
     if (!exam.isPublished) {
-      throw new ForbiddenException('This exam is not yet published');
+      throw new ForbiddenException('Ujian ini belum dipublikasikan');
     }
 
-    // Check if exam is within time window
+    if (exam.questions.length === 0) {
+      throw new BadRequestException('Ujian ini belum memiliki soal');
+    }
+
     const now = new Date();
     if (now < exam.startTime) {
-      throw new ForbiddenException('Exam has not started yet');
-    }
-    if (now > exam.deadline) {
-      throw new ForbiddenException('Exam deadline has passed');
+      throw new ForbiddenException('Ujian belum dimulai');
     }
 
-    // Check if student already has an attempt
     const existingAttempt = await this.prisma.examAttempt.findFirst({
-      where: {
-        examId,
-        studentId: userId,
-      },
+      where: { examId, studentId: userId },
+      include: { answers: true },
+      orderBy: { attemptNumber: 'desc' },
     });
 
-    if (
+    const isClosedStatus =
       existingAttempt &&
-      existingAttempt.status === ExamAttemptStatus.SUBMITTED
-    ) {
-      throw new ForbiddenException('You have already submitted this exam');
+      (existingAttempt.status === ExamAttemptStatus.SUBMITTED ||
+        existingAttempt.status === ExamAttemptStatus.GRADED);
+
+    if (isClosedStatus) {
+      return {
+        success: true,
+        data: {
+          ...existingAttempt,
+          alreadySubmitted: true,
+          remainingSeconds: 0,
+          questions: [],
+          savedAnswers: {},
+          exam: {
+            id: exam.id,
+            title: exam.title,
+            duration: exam.duration,
+            startTime: exam.startTime,
+            deadline: exam.deadline,
+          },
+        },
+        message: 'Ujian sudah dikumpulkan sebelumnya',
+      };
     }
 
-    // Create or update attempt
-    let attempt;
-    if (existingAttempt) {
-      attempt = await this.prisma.examAttempt.update({
-        where: { id: existingAttempt.id },
-        data: {
-          status: ExamAttemptStatus.IN_PROGRESS,
-          startedAt: existingAttempt.startedAt || now,
-        },
-      });
-    } else {
+    if (now > exam.deadline && !existingAttempt) {
+      throw new ForbiddenException('Batas waktu ujian sudah lewat');
+    }
+
+    let attempt = existingAttempt;
+    if (!attempt) {
       attempt = await this.prisma.examAttempt.create({
         data: {
           examId,
@@ -685,18 +750,61 @@ export class ExamsService {
           startedAt: now,
           examCheatLog: [],
         },
+        include: { answers: true },
+      });
+    } else if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) {
+      attempt = await this.prisma.examAttempt.update({
+        where: { id: attempt.id },
+        data: {
+          status: ExamAttemptStatus.IN_PROGRESS,
+          startedAt: attempt.startedAt || now,
+        },
+        include: { answers: true },
+      });
+    }
+
+    const startedAt = attempt.startedAt || now;
+    const remainingSeconds = this.remainingSeconds(
+      startedAt,
+      exam.duration,
+      exam.deadline,
+    );
+
+    if (remainingSeconds <= 0) {
+      const savedAnswers = this.collectSavedAnswers(attempt);
+      const autoAnswers = Object.entries(savedAnswers).map(
+        ([questionId, answer]) => ({ questionId, answer }),
+      );
+      return this.submitAttempt(attempt.id, userId, {
+        answers: autoAnswers,
+        autoSubmitted: true,
       });
     }
 
     return {
       success: true,
-      data: attempt,
-      message: 'Exam attempt started successfully',
+      data: {
+        ...attempt,
+        alreadySubmitted: false,
+        remainingSeconds,
+        questions: exam.questions.map((q) =>
+          this.mapQuestionForClient(q, true),
+        ),
+        savedAnswers: this.collectSavedAnswers(attempt),
+        exam: {
+          id: exam.id,
+          title: exam.title,
+          description: exam.description,
+          duration: exam.duration,
+          startTime: exam.startTime,
+          deadline: exam.deadline,
+        },
+      },
+      message: 'Ujian dimulai',
     };
   }
 
   async autoSaveAnswer(attemptId: string, userId: string, dto: any) {
-    // Verify the attempt belongs to the user
     const attempt = await this.prisma.examAttempt.findUnique({
       where: { id: attemptId },
     });
@@ -706,55 +814,63 @@ export class ExamsService {
     }
 
     if (attempt.studentId !== userId) {
-      throw new ForbiddenException('You can only save your own answers');
+      throw new ForbiddenException('Anda hanya dapat menyimpan jawaban sendiri');
     }
 
-    if (attempt.status === ExamAttemptStatus.SUBMITTED) {
-      throw new ForbiddenException('Cannot save answers for submitted exam');
+    if (
+      attempt.status === ExamAttemptStatus.SUBMITTED ||
+      attempt.status === ExamAttemptStatus.GRADED
+    ) {
+      throw new ForbiddenException(
+        'Tidak dapat menyimpan jawaban setelah ujian dikumpulkan',
+      );
     }
 
-    // Check if answer already exists
-    const existingAnswer = await this.prisma.answer.findUnique({
+    if (!dto?.questionId) {
+      throw new BadRequestException('questionId wajib diisi');
+    }
+
+    const question = await this.prisma.question.findUnique({
+      where: { id: dto.questionId },
+      include: { options: true },
+    });
+
+    if (!question || question.examId !== attempt.examId) {
+      throw new BadRequestException('Soal tidak valid untuk ujian ini');
+    }
+
+    const rawAnswer = (dto.answer ?? dto.essayAnswer ?? '').toString();
+    const { answerText, selectedOptionId } = this.resolveAnswerFields(
+      question,
+      rawAnswer,
+    );
+
+    const answer = await this.prisma.answer.upsert({
       where: {
         attemptId_questionId: {
           attemptId,
           questionId: dto.questionId,
         },
       },
+      update: {
+        answerText,
+        selectedOptionId,
+      },
+      create: {
+        attemptId,
+        questionId: dto.questionId,
+        answerText,
+        selectedOptionId,
+      },
     });
 
-    let answer;
-    if (existingAnswer) {
-      // Update existing answer
-      answer = await this.prisma.answer.update({
-        where: { id: existingAnswer.id },
-        data: {
-          answerText:
-            dto.answer || dto.essayAnswer || existingAnswer.answerText,
-          selectedOptionId: dto.answer || existingAnswer.selectedOptionId,
-        },
-      });
-    } else {
-      // Create new answer
-      answer = await this.prisma.answer.create({
-        data: {
-          attemptId,
-          questionId: dto.questionId,
-          answerText: dto.answer || dto.essayAnswer,
-          selectedOptionId: dto.answer,
-        },
-      });
-    }
-
-    // Update attempt's autoSavedData
     await this.prisma.examAttempt.update({
       where: { id: attemptId },
       data: {
         autoSavedData: {
-          ...(attempt.autoSavedData as any),
+          ...((attempt.autoSavedData as Record<string, unknown>) || {}),
           [dto.questionId]: {
-            answer: dto.answer,
-            essayAnswer: dto.essayAnswer,
+            answer: rawAnswer,
             savedAt: new Date().toISOString(),
           },
         },
@@ -764,7 +880,7 @@ export class ExamsService {
     return {
       success: true,
       data: answer,
-      message: 'Answer auto-saved successfully',
+      message: 'Jawaban tersimpan',
     };
   }
 
@@ -776,6 +892,7 @@ export class ExamsService {
     const attempt = await this.prisma.examAttempt.findUnique({
       where: { id: attemptId },
       include: {
+        answers: true,
         exam: {
           include: {
             questions: {
@@ -792,118 +909,94 @@ export class ExamsService {
       throw new NotFoundException('Exam attempt not found');
     }
 
-    // Verify ownership
     if (attempt.studentId !== userId) {
-      throw new ForbiddenException('You can only submit your own attempts');
+      throw new ForbiddenException('Anda hanya dapat mengumpulkan ujian sendiri');
     }
 
-    // Check if already submitted
-    if (attempt.status === ExamAttemptStatus.SUBMITTED) {
-      throw new ForbiddenException('This attempt has already been submitted');
+    if (
+      attempt.status === ExamAttemptStatus.SUBMITTED ||
+      attempt.status === ExamAttemptStatus.GRADED
+    ) {
+      return {
+        success: true,
+        data: {
+          ...attempt,
+          alreadySubmitted: true,
+          maxPossibleScore: this.sumQuestionPoints(attempt.exam.questions),
+        },
+        message: 'Ujian sudah dikumpulkan sebelumnya',
+      };
     }
 
-    // Check deadline
+    const mergedAnswers = this.mergeSubmissionAnswers(attempt, dto.answers || []);
     const now = new Date();
-    if (now > attempt.exam.deadline) {
-      throw new ForbiddenException('Exam deadline has passed');
-    }
-
-    // Save answers and auto-grade
     let totalScore = 0;
-    const answers = [];
+    let needsManualGrading = false;
 
-    for (const answerDto of dto.answers) {
-      const question = attempt.exam.questions.find(
-        (q: any) => q.id === answerDto.questionId,
+    for (const question of attempt.exam.questions) {
+      const answerDto = mergedAnswers.get(question.id);
+      const rawAnswer = answerDto
+        ? (answerDto.answer ?? answerDto.essayAnswer ?? '').toString()
+        : '';
+      const { answerText, selectedOptionId } = this.resolveAnswerFields(
+        question,
+        rawAnswer,
       );
-      if (!question) continue;
+      const { score, feedback, pendingManual } = this.gradeQuestion(
+        question,
+        rawAnswer,
+        selectedOptionId,
+      );
 
-      let score = 0;
-      let feedback = '';
-
-      // Auto-grade multiple choice
-      if (question.type === QuestionType.MULTIPLE_CHOICE && answerDto.answer) {
-        const correctOption = question.options.find((o: any) => o.isCorrect);
-        if (correctOption && answerDto.answer === correctOption.id) {
-          score = question.points;
-          feedback = 'Correct answer';
-        } else {
-          feedback = 'Incorrect answer';
-        }
-      }
-
-      // Auto-grade true/false
-      if (question.type === 'TRUE_FALSE' && answerDto.answer) {
-        const userAnswer = answerDto.answer.toLowerCase();
-        const correctOption = question.options.find((o: any) => o.isCorrect);
-
-        if (correctOption) {
-          const correctAnswer = correctOption.optionText.toLowerCase();
-          if (userAnswer === correctAnswer) {
-            score = question.points;
-            feedback = 'Correct answer';
-          } else {
-            feedback = 'Incorrect answer';
-          }
-        } else {
-          feedback = 'Pending manual grading';
-        }
-      }
-
-      // Auto-grade short answer
-      if (question.type === QuestionType.SHORT_ANSWER && answerDto.answer) {
-        const userAnswer = answerDto.answer.trim();
-        const correctOption = question.options.find((o: any) => o.isCorrect);
-
-        if (correctOption) {
-          const correctAnswer = correctOption.optionText.trim();
-          // Case-insensitive comparison for short answers
-          if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-            score = question.points;
-            feedback = 'Correct answer';
-          } else {
-            feedback = 'Incorrect answer';
-          }
-        } else {
-          feedback = 'Pending manual grading';
-        }
-      }
-
-      // Essay questions need manual grading
-      if (question.type === QuestionType.ESSAY) {
-        feedback = 'Pending manual grading';
-      }
-
+      if (pendingManual) needsManualGrading = true;
       totalScore += score;
 
-      const answer = await this.prisma.answer.create({
-        data: {
+      await this.prisma.answer.upsert({
+        where: {
+          attemptId_questionId: {
+            attemptId,
+            questionId: question.id,
+          },
+        },
+        update: {
+          answerText,
+          selectedOptionId,
+          score,
+          feedback,
+        },
+        create: {
           attemptId,
-          questionId: answerDto.questionId,
-          answerText: answerDto.answer || answerDto.essayAnswer || '',
-          selectedOptionId: answerDto.answer || null,
+          questionId: question.id,
+          answerText,
+          selectedOptionId,
           score,
           feedback,
         },
       });
-
-      answers.push(answer);
     }
 
-    // Update attempt
     const submittedAttempt = await this.prisma.examAttempt.update({
       where: { id: attemptId },
       data: {
         status: ExamAttemptStatus.SUBMITTED,
         submittedAt: now,
         totalScore,
+        gradingStatus: needsManualGrading
+          ? GradingStatus.PENDING
+          : GradingStatus.COMPLETED,
       },
     });
 
     return {
       success: true,
-      data: submittedAttempt,
-      message: 'Exam submitted successfully',
+      data: {
+        ...submittedAttempt,
+        alreadySubmitted: true,
+        maxPossibleScore: this.sumQuestionPoints(attempt.exam.questions),
+      },
+      message: dto.autoSubmitted
+        ? 'Waktu habis. Ujian dikumpulkan otomatis'
+        : 'Ujian berhasil dikumpulkan',
     };
   }
 
@@ -1122,5 +1215,252 @@ export class ExamsService {
       data: null,
       message: 'Questions reordered successfully',
     };
+  }
+
+  private async attachMyAttempts<T extends { id: string }>(
+    exams: T[],
+    userId: string,
+  ) {
+    const myAttempts = await this.prisma.examAttempt.findMany({
+      where: {
+        studentId: userId,
+        examId: { in: exams.map((exam) => exam.id) },
+      },
+      orderBy: { attemptNumber: 'desc' },
+      select: {
+        id: true,
+        examId: true,
+        status: true,
+        startedAt: true,
+        submittedAt: true,
+        totalScore: true,
+      },
+    });
+
+    const latestByExam = new Map<string, (typeof myAttempts)[number]>();
+    for (const attempt of myAttempts) {
+      if (!latestByExam.has(attempt.examId)) {
+        latestByExam.set(attempt.examId, attempt);
+      }
+    }
+
+    return exams.map((exam) => ({
+      ...exam,
+      myAttempt: latestByExam.get(exam.id) ?? null,
+    }));
+  }
+
+  private remainingSeconds(
+    startedAt: Date,
+    durationMinutes: number,
+    deadline: Date,
+  ) {
+    const durationEnd = new Date(
+      startedAt.getTime() + durationMinutes * 60 * 1000,
+    );
+    const hardEnd = deadline.getTime() < durationEnd.getTime() ? deadline : durationEnd;
+    return Math.max(0, Math.floor((hardEnd.getTime() - Date.now()) / 1000));
+  }
+
+  private mapQuestionForClient(question: any, hideAnswers: boolean) {
+    return {
+      id: question.id,
+      type: question.type,
+      questionText: question.questionText,
+      points: question.points,
+      order: question.order,
+      attachmentUrl: question.attachmentUrl,
+      maxChars: question.maxChars,
+      explanation: hideAnswers ? undefined : question.explanation,
+      options: (question.options || []).map((option: any) => ({
+        id: option.id,
+        text: option.optionText ?? option.text,
+        optionText: option.optionText ?? option.text,
+        order: option.order,
+        isCorrect: hideAnswers ? undefined : option.isCorrect,
+      })),
+    };
+  }
+
+  private collectSavedAnswers(attempt: {
+    answers?: Array<{
+      questionId: string;
+      answerText?: string | null;
+      selectedOptionId?: string | null;
+    }>;
+    autoSavedData?: unknown;
+  }): Record<string, string> {
+    const saved: Record<string, string> = {};
+    const autoSaved = attempt.autoSavedData;
+
+    if (autoSaved && typeof autoSaved === 'object' && !Array.isArray(autoSaved)) {
+      for (const [questionId, value] of Object.entries(
+        autoSaved as Record<string, unknown>,
+      )) {
+        if (typeof value === 'string' && value) {
+          saved[questionId] = value;
+        } else if (value && typeof value === 'object' && 'answer' in value) {
+          const answer = (value as { answer?: unknown }).answer;
+          if (answer != null && String(answer) !== '') {
+            saved[questionId] = String(answer);
+          }
+        }
+      }
+    }
+
+    for (const answer of attempt.answers || []) {
+      const value = answer.selectedOptionId || answer.answerText || '';
+      if (value) {
+        saved[answer.questionId] = value;
+      }
+    }
+
+    return saved;
+  }
+
+  private resolveAnswerFields(
+    question: any,
+    rawAnswer: string,
+  ): { answerText: string | null; selectedOptionId: string | null } {
+    const trimmed = (rawAnswer || '').trim();
+    if (!trimmed) {
+      return { answerText: null, selectedOptionId: null };
+    }
+
+    if (
+      question.type === QuestionType.MULTIPLE_CHOICE ||
+      question.type === QuestionType.TRUE_FALSE
+    ) {
+      const options = question.options || [];
+      const byId = options.find((option: any) => option.id === trimmed);
+      if (byId) {
+        return {
+          answerText: byId.optionText ?? trimmed,
+          selectedOptionId: byId.id,
+        };
+      }
+
+      const byText = options.find(
+        (option: any) =>
+          String(option.optionText ?? option.text ?? '')
+            .trim()
+            .toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (byText) {
+        return {
+          answerText: byText.optionText ?? trimmed,
+          selectedOptionId: byText.id,
+        };
+      }
+
+      return { answerText: trimmed, selectedOptionId: null };
+    }
+
+    return { answerText: trimmed, selectedOptionId: null };
+  }
+
+  private gradeQuestion(
+    question: any,
+    rawAnswer: string,
+    selectedOptionId: string | null,
+  ): { score: number; feedback: string; pendingManual: boolean } {
+    if (question.type === QuestionType.ESSAY) {
+      return {
+        score: 0,
+        feedback: 'Menunggu penilaian manual',
+        pendingManual: true,
+      };
+    }
+
+    if (
+      question.type === QuestionType.MULTIPLE_CHOICE ||
+      question.type === QuestionType.TRUE_FALSE
+    ) {
+      const correct = (question.options || []).find(
+        (option: any) => option.isCorrect,
+      );
+      if (!correct) {
+        return {
+          score: 0,
+          feedback: 'Menunggu penilaian manual',
+          pendingManual: true,
+        };
+      }
+
+      const isCorrect =
+        selectedOptionId === correct.id ||
+        rawAnswer.trim().toLowerCase() ===
+          String(correct.optionText ?? '').trim().toLowerCase();
+
+      return {
+        score: isCorrect ? question.points : 0,
+        feedback: isCorrect ? 'Jawaban benar' : 'Jawaban salah',
+        pendingManual: false,
+      };
+    }
+
+    if (question.type === QuestionType.SHORT_ANSWER) {
+      const correct = (question.options || []).find(
+        (option: any) => option.isCorrect,
+      );
+      if (!correct) {
+        return {
+          score: 0,
+          feedback: 'Menunggu penilaian manual',
+          pendingManual: true,
+        };
+      }
+
+      const userAnswer = question.caseSensitive
+        ? rawAnswer.trim()
+        : rawAnswer.trim().toLowerCase();
+      const expected = question.caseSensitive
+        ? String(correct.optionText ?? '').trim()
+        : String(correct.optionText ?? '').trim().toLowerCase();
+
+      const isCorrect = userAnswer === expected;
+      return {
+        score: isCorrect ? question.points : 0,
+        feedback: isCorrect ? 'Jawaban benar' : 'Jawaban salah',
+        pendingManual: false,
+      };
+    }
+
+    return { score: 0, feedback: '', pendingManual: false };
+  }
+
+  private mergeSubmissionAnswers(
+    attempt: {
+      answers?: Array<{
+        questionId: string;
+        answerText?: string | null;
+        selectedOptionId?: string | null;
+      }>;
+      autoSavedData?: unknown;
+    },
+    answers: Array<{ questionId: string; answer?: string; essayAnswer?: string }>,
+  ) {
+    const merged = new Map<
+      string,
+      { questionId: string; answer?: string; essayAnswer?: string }
+    >();
+    const saved = this.collectSavedAnswers(attempt);
+
+    for (const [questionId, answer] of Object.entries(saved)) {
+      merged.set(questionId, { questionId, answer });
+    }
+
+    for (const item of answers || []) {
+      const value = (item.answer ?? item.essayAnswer ?? '').toString();
+      if (value !== '') {
+        merged.set(item.questionId, item);
+      }
+    }
+
+    return merged;
+  }
+
+  private sumQuestionPoints(questions: Array<{ points: number }>) {
+    return questions.reduce((sum, question) => sum + (question.points || 0), 0);
   }
 }

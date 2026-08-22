@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Match next-themes class strategy — do not follow OS dark mode unless `.dark` is set */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Design Tokens — E-Course LMS
  * Primary: Deep Navy (#1a365d) — academic identity
@@ -31,6 +34,8 @@
   --border: #dee2e6;
   --input: #dee2e6;
   --ring: #e07a5f;
+  --popover: #ffffff;
+  --popover-foreground: #1a202c;
   --radius: 0.625rem;
   --sidebar-width: 16rem;
   --sidebar-collapsed-width: 4.5rem;
@@ -60,6 +65,8 @@
   --border: #2d3748;
   --input: #2d3748;
   --ring: #e07a5f;
+  --popover: #1a2332;
+  --popover-foreground: #e8edf4;
 }
 
 @theme inline {
@@ -86,6 +93,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --font-sans: var(--font-inter);
   --font-display: var(--font-space-grotesk);
   --radius-lg: var(--radius);
@@ -242,9 +251,16 @@ body {
 .z-hierarchy-base { z-index: 1; }
 .z-hierarchy-sidebar { z-index: 30; }
 .z-hierarchy-navbar { z-index: 35; }
-.z-hierarchy-dropdown { z-index: 50; }
-.z-hierarchy-modal { z-index: 60; }
-.z-hierarchy-modal-overlay { z-index: 59; }
-.z-hierarchy-toast { z-index: 70; }
-.z-hierarchy-tooltip { z-index: 80; }
-.z-hierarchy-loading { z-index: 100; }
+.z-hierarchy-dropdown { z-index: 40; }
+.z-hierarchy-modal-overlay { z-index: 149; }
+.z-hierarchy-modal { z-index: 150; }
+.z-hierarchy-popover { z-index: 160; }
+.z-hierarchy-toast { z-index: 200; }
+.z-hierarchy-tooltip { z-index: 250; }
+.z-hierarchy-loading { z-index: 300; }
+
+/* Radix Select/Dropdown portaled to body while a Dialog is open */
+[data-radix-popper-content-wrapper] {
+  z-index: 160 !important;
+  pointer-events: auto !important;
+}

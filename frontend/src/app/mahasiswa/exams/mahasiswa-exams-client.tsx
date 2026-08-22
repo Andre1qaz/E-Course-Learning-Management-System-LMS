@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
+import { apiFetch, ApiError } from "@/lib/api";
 
 interface Exam {
   id: string;
@@ -26,6 +27,13 @@ interface Exam {
     questions: number;
     attempts: number;
   };
+  myAttempt?: {
+    id: string;
+    status: string;
+    startedAt: string | null;
+    submittedAt: string | null;
+    totalScore: number | null;
+  } | null;
 }
 
 interface MahasiswaExamsClientProps {
@@ -43,24 +51,21 @@ export function MahasiswaExamsClient({ token }: MahasiswaExamsClientProps) {
 
   const fetchExams = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/exams?search=${searchQuery}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const result = await apiFetch<Exam[]>("/exams", {}, token);
+      const list = result.data || [];
+      const query = searchQuery.trim().toLowerCase();
+      setExams(
+        query
+          ? list.filter(
+              (exam) =>
+                exam.title.toLowerCase().includes(query) ||
+                exam.course.name.toLowerCase().includes(query) ||
+                exam.course.code.toLowerCase().includes(query),
+            )
+          : list,
       );
-
-      const result = await response.json();
-
-      if (result.success) {
-        setExams(result.data);
-      } else {
-        toast.error(result.message || "Gagal memuat ujian");
-      }
     } catch (error) {
-      toast.error("Terjadi kesalahan saat memuat ujian");
+      toast.error(error instanceof ApiError ? error.message : "Terjadi kesalahan saat memuat ujian");
     } finally {
       setLoading(false);
     }
@@ -98,16 +103,21 @@ export function MahasiswaExamsClient({ token }: MahasiswaExamsClientProps) {
     }
   };
 
-  const canStartExam = (exam: Exam) => {
+  const canAccessExam = (exam: Exam) => {
     const now = new Date();
     const start = new Date(exam.startTime);
     const end = new Date(exam.deadline);
-    return exam.isPublished && now >= start && now <= end;
+    const status = exam.myAttempt?.status;
+    if (status === "IN_PROGRESS") return true;
+    return exam.isPublished && now >= start && now <= end && status !== "SUBMITTED" && status !== "GRADED";
   };
 
-  const hasAttemptedExam = (exam: Exam) => {
-    return exam._count.attempts > 0;
+  const isSubmitted = (exam: Exam) => {
+    const status = exam.myAttempt?.status;
+    return status === "SUBMITTED" || status === "GRADED";
   };
+
+  const isInProgress = (exam: Exam) => exam.myAttempt?.status === "IN_PROGRESS";
 
   return (
     <div className="space-y-6">
@@ -185,23 +195,23 @@ export function MahasiswaExamsClient({ token }: MahasiswaExamsClientProps) {
                       <p>s/d {formatDate(exam.deadline)}</p>
                     </div>
                     <div className="flex gap-2">
-                      {canStartExam(exam) && !hasAttemptedExam(exam) && (
+                      {canAccessExam(exam) && (
                         <Link href={`/mahasiswa/exams/${exam.id}`}>
                           <Button>
                             <Play className="mr-2 h-4 w-4" />
-                            Mulai Ujian
+                            {isInProgress(exam) ? "Lanjutkan Ujian" : "Mulai Ujian"}
                           </Button>
                         </Link>
                       )}
-                      {hasAttemptedExam(exam) && (
-                        <Link href={`/mahasiswa/exams/${exam.id}/results`}>
+                      {isSubmitted(exam) && exam.myAttempt && (
+                        <Link href={`/mahasiswa/exams/${exam.id}/results/${exam.myAttempt.id}`}>
                           <Button variant="outline">
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Lihat Hasil
                           </Button>
                         </Link>
                       )}
-                      {!canStartExam(exam) && !hasAttemptedExam(exam) && (
+                      {!canAccessExam(exam) && !isSubmitted(exam) && (
                         <Button disabled>
                           <Clock className="mr-2 h-4 w-4" />
                           Belum Dapat Dimulai

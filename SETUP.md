@@ -101,7 +101,7 @@ The frontend will run on `http://localhost:3000`
 ## Default Users (if seeded)
 
 The database seed includes the following default users:
-
+      
 **Admin:**
 - Email: admin@ecourse.ac.id
 - Password: Password123!

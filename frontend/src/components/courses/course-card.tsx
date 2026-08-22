@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, getBackgroundFillProps } from "@/lib/utils";
 
 interface CourseCardProps {
   id: string;
@@ -47,6 +47,7 @@ export function CourseCard({
 }: CourseCardProps) {
   const progressValue = progress ?? 0;
   const isComplete = progressValue >= 100;
+  const thumbnailFill = getBackgroundFillProps(thumbnailColor, "bg-primary");
 
   return (
     <div className="group relative">
@@ -58,7 +59,11 @@ export function CourseCard({
           )}
         >
           <div
-            className={`h-20 md:h-24 px-4 md:px-5 py-3 md:py-4 text-white ${thumbnailColor} relative`}
+            className={cn(
+              "h-20 md:h-24 px-4 md:px-5 py-3 md:py-4 text-white relative",
+              thumbnailFill.className,
+            )}
+            style={thumbnailFill.style}
           >
             <div className="absolute inset-0 bg-black/20" />
             <div className="relative z-10">

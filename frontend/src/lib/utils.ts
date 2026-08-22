@@ -34,3 +34,40 @@ export function getDashboardPath(role: string): string {
       return "/login";
   }
 }
+
+export function isCssColor(value?: string | null): boolean {
+  if (!value) return false;
+  const v = value.trim();
+  return (
+    /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(v) ||
+    v.startsWith("rgb") ||
+    v.startsWith("hsl")
+  );
+}
+
+export function getBackgroundFillProps(
+  value?: string | null,
+  fallbackClass = "bg-primary",
+): { className: string; style?: { backgroundColor: string } } {
+  if (isCssColor(value)) {
+    return { className: "", style: { backgroundColor: value!.trim() } };
+  }
+  if (value && !value.startsWith("#")) {
+    return { className: value };
+  }
+  return { className: fallbackClass };
+}
+
+export function getEventColorStyle(color?: string | null): {
+  backgroundColor: string;
+  color: string;
+  borderColor: string;
+} | undefined {
+  if (!isCssColor(color)) return undefined;
+  const hex = color!.trim();
+  return {
+    backgroundColor: hex,
+    color: "#ffffff",
+    borderColor: hex,
+  };
+}

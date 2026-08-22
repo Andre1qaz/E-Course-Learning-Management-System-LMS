@@ -23,6 +23,19 @@ interface UserProfile {
   createdAt: string;
 }
 
+function toAbsoluteMediaUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  return `http://${url}`;
+}
+
 export function ProfilePage() {
   const { data: session, status, update } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -81,9 +94,9 @@ export function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!allowedTypes.includes(file.type)) {
+    const normalizedType = file.type === "image/jpg" ? "image/jpeg" : file.type;
+    const allowedTypes = ["image/jpeg", "image/png"];
+    if (!allowedTypes.includes(normalizedType)) {
       toast.error("Format file harus JPG, JPEG, atau PNG");
       return;
     }
@@ -103,6 +116,9 @@ export function ProfilePage() {
 
     setUploading(true);
     try {
+      const fileType =
+        selectedFile.type === "image/jpg" ? "image/jpeg" : selectedFile.type;
+
       // Step 1: Get presigned upload URL
       const uploadUrlResponse = await apiFetch<{ uploadUrl: string; fileUrl: string }>(
         "/storage/upload-url",
@@ -110,7 +126,7 @@ export function ProfilePage() {
           method: "POST",
           body: JSON.stringify({
             fileName: selectedFile.name,
-            fileType: selectedFile.type,
+            fileType,
             fileSize: selectedFile.size,
             isPrivate: false,
           }),
@@ -122,14 +138,23 @@ export function ProfilePage() {
         throw new Error(uploadUrlResponse.message || "Gagal mendapatkan URL upload");
       }
 
+      const { uploadUrl, fileUrl } = uploadUrlResponse.data;
+      const publicFileUrl = fileUrl.startsWith("http")
+        ? fileUrl
+        : `http://${fileUrl}`;
+
       // Step 2: Upload file to MinIO
-      await fetch(uploadUrlResponse.data.uploadUrl, {
+      const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
         body: selectedFile,
         headers: {
-          "Content-Type": selectedFile.type,
+          "Content-Type": fileType,
         },
       });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Gagal mengunggah file ke penyimpanan. Coba lagi.");
+      }
 
       // Step 3: Update user profile with new avatar URL
       const updateResponse = await apiFetch<{ avatarUrl: string }>(
@@ -137,7 +162,7 @@ export function ProfilePage() {
         {
           method: "PATCH",
           body: JSON.stringify({
-            avatarUrl: uploadUrlResponse.data.fileUrl,
+            avatarUrl: publicFileUrl,
           }),
         },
         session?.accessToken
@@ -147,22 +172,32 @@ export function ProfilePage() {
         throw new Error(updateResponse.message);
       }
 
-      // Update session
+      const savedAvatarUrl =
+        (updateResponse.data as { avatarUrl?: string } | null)?.avatarUrl ||
+        publicFileUrl;
+
       await update({
         ...session,
         user: {
           ...session?.user,
-          avatarUrl: uploadUrlResponse.data.fileUrl,
+          avatarUrl: savedAvatarUrl,
         },
       });
 
+      setProfile((prev) =>
+        prev ? { ...prev, avatarUrl: `${savedAvatarUrl}?t=${Date.now()}` } : prev,
+      );
       toast.success("Foto profil berhasil diperbarui");
       setUploadDialogOpen(false);
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setPreviewUrl("");
-      fetchProfile();
-    } catch (error: any) {
-      toast.error(error.message || "Gagal mengunggah foto");
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : "Gagal mengunggah foto",
+      );
     } finally {
       setUploading(false);
     }
@@ -274,7 +309,7 @@ export function ProfilePage() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                <AvatarImage src={profile.avatarUrl || undefined} alt={profile.name} />
+                <AvatarImage src={toAbsoluteMediaUrl(profile.avatarUrl)} alt={profile.name} />
                 <AvatarFallback className="text-3xl font-display bg-primary text-primary-foreground">
                   {profile.name
                     .split(" ")

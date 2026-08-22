@@ -170,7 +170,29 @@ export function ExamsClient({ token }: ExamsClientProps) {
   };
 
   const handleCreateExam = async () => {
+    if (!formData.courseId) {
+      toast.error("Pilih course terlebih dahulu");
+      return;
+    }
+    if (!formData.title.trim() || !formData.startTime || !formData.deadline) {
+      toast.error("Lengkapi judul, waktu mulai, dan deadline");
+      return;
+    }
+    if (!Number.isFinite(formData.duration) || formData.duration < 1) {
+      toast.error("Durasi ujian tidak valid");
+      return;
+    }
+
     try {
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim() || undefined,
+        startTime: new Date(formData.startTime).toISOString(),
+        deadline: new Date(formData.deadline).toISOString(),
+        duration: formData.duration,
+        isPublished: formData.isPublished,
+      };
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/exams/course/${formData.courseId}`,
         {
@@ -179,7 +201,7 @@ export function ExamsClient({ token }: ExamsClientProps) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -464,8 +486,14 @@ export function ExamsClient({ token }: ExamsClientProps) {
               <Input
                 id="duration"
                 type="number"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                value={Number.isFinite(formData.duration) ? formData.duration : ""}
+                onChange={(e) => {
+                  const next = parseInt(e.target.value, 10);
+                  setFormData({
+                    ...formData,
+                    duration: Number.isNaN(next) ? Number.NaN : next,
+                  });
+                }}
                 min="1"
                 required
               />

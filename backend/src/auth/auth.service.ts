@@ -374,7 +374,7 @@ export class AuthService {
 
     // ✅ Auto-validation semua field dengan AutoValidator
     const result = AutoValidator.validateObject(dto, {
-      avatarUrl: { type: 'string', required: true, maxLength: 500 },
+      avatarUrl: { type: 'string', required: true, maxLength: 1000 },
     });
 
     if (!result.valid) {

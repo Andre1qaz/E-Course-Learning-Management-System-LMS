@@ -6,6 +6,620 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  password              String
+  role                  Role                   @default(MAHASISWA)
+  avatarUrl             String?
+  storageQuotaUsed      BigInt                 @default(0)
+  storageQuotaLimit     BigInt                 @default(52428800)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  resetToken            String?                @unique
+  resetTokenExpires     DateTime?
+  activityLogs          ActivityLog[]
+  announcementReads     AnnouncementRead[]
+  announcements         Announcement[]         @relation("AnnouncementAuthor")
+  assignmentSubmissions AssignmentSubmission[]
+  calendarEvents        CalendarEvent[]
+  coursesTaught         Course[]               @relation("CourseInstructor")
+  enrollments           Enrollment[]
+  examAttempts          ExamAttempt[]
+  forumMentions         ForumMention[]         @relation("Mentioner")
+  mentionedInForum      ForumMention[]         @relation("MentionedUser")
+  forumReplies          ForumReply[]
+  forumThreads          ForumThread[]
+  lockedThreads         ForumThread[]          @relation("ThreadLocker")
+  gradeChanges          GradeHistory[]
+  grades                Grade[]
+  notifications         Notification[]
+  privateFiles          PrivateFile[]
+
+  @@map("users")
+}
+
+model CourseCategory {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  academicYear String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  courses      Course[]
+
+  @@map("course_categories")
+}
+
+model Course {
+  id                 String          @id @default(cuid())
+  name               String
+  code               String          @unique
+  enrollmentCode     String          @unique @default(cuid())
+  description        String?
+  learningObjectives String?
+  thumbnailColor     String          @default("#1a365d")
+  isLinear           Boolean         @default(false)
+  isActive           Boolean         @default(true)
+  instructorId       String
+  categoryId         String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  enrollmentEnabled  Boolean         @default(true)
+  announcements      Announcement[]
+  assignments        Assignment[]
+  calendarEvents     CalendarEvent[]
+  settings           CourseSettings?
+  category           CourseCategory? @relation(fields: [categoryId], references: [id])
+  instructor         User            @relation("CourseInstructor", fields: [instructorId], references: [id])
+  enrollments        Enrollment[]
+  exams              Exam[]
+  forumThreads       ForumThread[]
+  grades             Grade[]
+  modules            Module[]
+  questionBanks      QuestionBank[]
+  weeks              Week[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id       String         @id @default(cuid())
+  userId   String
+  courseId String
+  role     EnrollmentRole @default(STUDENT)
+  joinedAt DateTime       @default(now())
+  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Week {
+  id         String     @id @default(cuid())
+  courseId   String
+  weekNumber Int
+  title      String
+  startDate  DateTime
+  endDate    DateTime
+  order      Int
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  activities Activity[]
+  exams      Exam[]
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, weekNumber])
+  @@map("weeks")
+}
+
+model Activity {
+  id          String         @id @default(cuid())
+  weekId      String
+  type        ActivityType
+  title       String
+  description String?
+  status      ActivityStatus @default(DRAFT)
+  order       Int
+  metadata    Json?
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  week        Week           @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model Module {
+  id                 String       @id @default(cuid())
+  courseId           String
+  title              String
+  description        String?
+  learningObjectives String?
+  order              Int
+  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime     @default(now())
+  files              ModuleFile[]
+  course             Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("modules")
+}
+
+model ModuleFile {
+  id         String         @id @default(cuid())
+  moduleId   String
+  fileName   String
+  fileUrl    String
+  fileType   ModuleFileType @default(OTHER)
+  fileSize   BigInt         @default(0)
+  uploadedAt DateTime       @default(now())
+  module     Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("module_files")
+}
+
+model Assignment {
+  id          String                 @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  deadline    DateTime
+  maxScore    Float                  @default(100)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  submissions AssignmentSubmission[]
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rubric      Rubric?
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id                String                     @id @default(cuid())
+  assignmentId      String
+  studentId         String
+  fileUrl           String?
+  fileName          String?
+  submittedAt       DateTime?
+  score             Float?
+  feedback          String?
+  rubricNotes       String?
+  status            AssignmentSubmissionStatus @default(NOT_SUBMITTED)
+  assignment        Assignment                 @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student           User                       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rubricAssessments RubricAssessment[]
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
+}
+
+model RubricAssessment {
+  id                     String                @id @default(cuid())
+  submissionId           String
+  rubricCriterionId      String
+  rubricCriterionLevelId String?
+  score                  Float
+  feedback               String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  criterion              RubricCriterion       @relation(fields: [rubricCriterionId], references: [id], onDelete: Cascade)
+  level                  RubricCriterionLevel? @relation(fields: [rubricCriterionLevelId], references: [id])
+  submission             AssignmentSubmission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, rubricCriterionId])
+  @@map("rubric_assessments")
+}
+
+model Rubric {
+  id           String            @id @default(cuid())
+  assignmentId String            @unique
+  name         String
+  description  String?
+  totalPoints  Float             @default(100)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  criteria     RubricCriterion[]
+  assignment   Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id          String                 @id @default(cuid())
+  rubricId    String
+  name        String
+  description String?
+  maxPoints   Float
+  order       Int
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  assessments RubricAssessment[]
+  rubric      Rubric                 @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  levels      RubricCriterionLevel[]
+
+  @@map("rubric_criteria")
+}
+
+model RubricCriterionLevel {
+  id          String             @id @default(cuid())
+  criterionId String
+  name        String
+  description String
+  points      Float
+  order       Int
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  assessments RubricAssessment[]
+  criterion   RubricCriterion    @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@map("rubric_criterion_levels")
+}
+
+model Exam {
+  id               String        @id @default(cuid())
+  courseId         String
+  title            String
+  description      String?
+  startTime        DateTime
+  duration         Int
+  deadline         DateTime
+  isPublished      Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  allowBack        Boolean       @default(true)
+  allowReview      Boolean       @default(false)
+  autoSubmit       Boolean       @default(true)
+  category         ExamCategory  @default(GENERAL)
+  maxAttempts      Int           @default(1)
+  maxScore         Float         @default(100)
+  passingGrade     Float         @default(60)
+  showExplanation  Boolean       @default(false)
+  showResults      Boolean       @default(true)
+  shuffleOptions   Boolean       @default(false)
+  shuffleQuestions Boolean       @default(false)
+  weekId           String?
+  attempts         ExamAttempt[]
+  course           Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  week             Week?         @relation(fields: [weekId], references: [id])
+  questions        Question[]
+
+  @@map("exams")
+}
+
+model Question {
+  id             String           @id @default(cuid())
+  examId         String?
+  type           QuestionType
+  questionText   String
+  attachmentUrl  String?
+  points         Float            @default(1)
+  order          Int              @default(0)
+  allowMultiple  Boolean          @default(false)
+  caseSensitive  Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  difficulty     DifficultyLevel  @default(MEDIUM)
+  explanation    String?
+  isFromBank     Boolean          @default(false)
+  maxChars       Int?
+  questionBankId String?
+  rubric         String?
+  tolerance      Float?
+  updatedAt      DateTime         @updatedAt
+  answers        Answer[]
+  options        QuestionOption[]
+  tags           QuestionTag[]
+  exam           Exam?            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionBank   QuestionBank?    @relation(fields: [questionBankId], references: [id])
+
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  optionText String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+  answers    Answer[]
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_options")
+}
+
+model QuestionBank {
+  id           String          @id @default(cuid())
+  courseId     String?
+  title        String
+  description  String?
+  topic        String?
+  difficulty   DifficultyLevel @default(MEDIUM)
+  questionType QuestionType
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  course       Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions    Question[]
+
+  @@map("question_banks")
+}
+
+model QuestionTag {
+  id         String   @id @default(cuid())
+  questionId String
+  tag        String
+  createdAt  DateTime @default(now())
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, tag])
+  @@map("question_tags")
+}
+
+model ExamAttempt {
+  id            String            @id @default(cuid())
+  examId        String
+  studentId     String
+  startedAt     DateTime?
+  submittedAt   DateTime?
+  totalScore    Float?
+  status        ExamAttemptStatus @default(NOT_STARTED)
+  examCheatLog  Json              @default("[]")
+  attemptNumber Int               @default(1)
+  autoSavedData Json?
+  createdAt     DateTime          @default(now())
+  gradingStatus GradingStatus     @default(PENDING)
+  passed        Boolean?
+  updatedAt     DateTime          @updatedAt
+  answers       Answer[]
+  exam          Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student       User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId, attemptNumber])
+  @@map("exam_attempts")
+}
+
+model Answer {
+  id               String          @id @default(cuid())
+  attemptId        String
+  questionId       String
+  answerText       String?
+  selectedOptionId String?
+  score            Float?
+  feedback         String?
+  attempt          ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@map("answers")
+}
+
+model CalendarEvent {
+  id                  String              @id @default(cuid())
+  title               String
+  description         String?
+  type                CalendarEventType   @default(ANNOUNCEMENT)
+  userId              String?
+  courseId            String?
+  createdAt           DateTime            @default(now())
+  attachments         Json?
+  category            EventCategory       @default(PENGUMUMAN_AKADEMIK)
+  color               String              @default("#1a365d")
+  endDate             DateTime?
+  endTime             String?
+  isOnline            Boolean             @default(false)
+  isPublished         Boolean             @default(true)
+  location            String?
+  meetingLink         String?
+  relatedActivityId   String?
+  relatedActivityType RelatedActivityType @default(NONE)
+  startDate           DateTime
+  startTime           String?
+  targetAudience      EventTargetAudience @default(COURSE_STUDENTS)
+  updatedAt           DateTime            @updatedAt
+  course              Course?             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user                User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
+
+model PrivateFile {
+  id         String   @id @default(cuid())
+  userId     String
+  fileName   String
+  fileUrl    String
+  fileSize   BigInt
+  folderPath String   @default("/")
+  mimeType   String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("private_files")
+}
+
+model ForumThread {
+  id          String            @id @default(cuid())
+  courseId    String
+  authorId    String
+  title       String
+  content     String
+  isPinned    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  bestReplyId String?           @unique
+  isLocked    Boolean           @default(false)
+  lockedAt    DateTime?
+  lockedBy    String?
+  attachments ForumAttachment[]
+  mentions    ForumMention[]
+  replies     ForumReply[]
+  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  bestReply   ForumReply?       @relation("BestReply", fields: [bestReplyId], references: [id])
+  course      Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  locker      User?             @relation("ThreadLocker", fields: [lockedBy], references: [id])
+
+  @@map("forum_threads")
+}
+
+model ForumReply {
+  id          String            @id @default(cuid())
+  threadId    String
+  authorId    String
+  content     String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  attachments ForumAttachment[]
+  mentions    ForumMention[]
+  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  thread      ForumThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  bestThread  ForumThread?      @relation("BestReply")
+
+  @@map("forum_replies")
+}
+
+model ForumAttachment {
+  id         String       @id @default(cuid())
+  threadId   String?
+  replyId    String?
+  fileName   String
+  fileUrl    String
+  fileSize   BigInt
+  mimeType   String
+  uploadedAt DateTime     @default(now())
+  reply      ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  thread     ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("forum_attachments")
+}
+
+model ForumMention {
+  id              String       @id @default(cuid())
+  threadId        String?
+  replyId         String?
+  mentionedUserId String
+  mentionedBy     String
+  createdAt       DateTime     @default(now())
+  mentioner       User         @relation("Mentioner", fields: [mentionedBy], references: [id], onDelete: Cascade)
+  mentionedUser   User         @relation("MentionedUser", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  reply           ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  thread          ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("forum_mentions")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
+
+model CourseSettings {
+  id               String   @id @default(cuid())
+  courseId         String   @unique
+  passingGrade     Float    @default(60)
+  assignmentWeight Float    @default(0.3)
+  quizWeight       Float    @default(0.2)
+  utsWeight        Float    @default(0.2)
+  uasWeight        Float    @default(0.3)
+  otherWeight      Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_settings")
+}
+
+model Grade {
+  id                   String         @id @default(cuid())
+  courseId             String
+  studentId            String
+  assignmentScore      Float?         @default(0)
+  quizScore            Float?         @default(0)
+  utsScore             Float?         @default(0)
+  uasScore             Float?         @default(0)
+  otherScore           Float?         @default(0)
+  finalScore           Float?         @default(0)
+  passed               Boolean?
+  completionPercentage Float          @default(0)
+  calculatedAt         DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  histories            GradeHistory[]
+  course               Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student              User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, studentId])
+  @@map("grades")
+}
+
+model GradeHistory {
+  id           String   @id @default(cuid())
+  gradeId      String
+  changedBy    String
+  fieldName    String
+  oldValue     Float?
+  newValue     Float?
+  changeReason String?
+  changedAt    DateTime @default(now())
+  changer      User     @relation(fields: [changedBy], references: [id], onDelete: Cascade)
+  grade        Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@map("grade_histories")
+}
+
+model Announcement {
+  id          String             @id @default(cuid())
+  title       String
+  content     String
+  attachments Json?
+  publishedAt DateTime           @default(now())
+  validFrom   DateTime           @default(now())
+  validUntil  DateTime?
+  isPublished Boolean            @default(true)
+  priority    String             @default("normal")
+  courseId    String?
+  authorId    String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  readStatus  AnnouncementRead[]
+  author      User               @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  course      Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
+}
+
 enum Role {
   ADMIN
   DOSEN
@@ -27,8 +641,8 @@ enum AssignmentSubmissionStatus {
 enum QuestionType {
   MULTIPLE_CHOICE
   ESSAY
-  TRUE_FALSE
   SHORT_ANSWER
+  TRUE_FALSE
 }
 
 enum ExamCategory {
@@ -96,6 +710,7 @@ enum NotificationType {
   GRADE_RELEASED
   FORUM_REPLY
   SYSTEM
+  ANNOUNCEMENT_CREATED
   COURSE_CREATED
   MATERIAL_PUBLISHED
   ASSIGNMENT_CREATED
@@ -103,7 +718,6 @@ enum NotificationType {
   EXAM_CREATED
   EVENT_CREATED
   SCHEDULE_CHANGED
-  ANNOUNCEMENT_CREATED
 }
 
 enum ModuleFileType {
@@ -126,654 +740,4 @@ enum ActivityType {
 enum ActivityStatus {
   DRAFT
   PUBLISHED
-}
-
-model User {
-  id                String   @id @default(cuid())
-  name              String
-  email             String   @unique
-  password          String
-  role              Role     @default(MAHASISWA)
-  avatarUrl         String?
-  storageQuotaUsed  BigInt   @default(0)
-  storageQuotaLimit BigInt   @default(52428800) // 50MB default
-  resetToken        String?  @unique
-  resetTokenExpires DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  coursesTaught       Course[]              @relation("CourseInstructor")
-  enrollments         Enrollment[]
-  assignmentSubmissions AssignmentSubmission[]
-  examAttempts        ExamAttempt[]
-  calendarEvents      CalendarEvent[]
-  privateFiles        PrivateFile[]
-  forumThreads        ForumThread[]
-  forumReplies        ForumReply[]
-  notifications       Notification[]
-  activityLogs        ActivityLog[]
-  mentionedInForum    ForumMention[]        @relation("MentionedUser")
-  forumMentions       ForumMention[]        @relation("Mentioner")
-  lockedThreads       ForumThread[]         @relation("ThreadLocker")
-  grades              Grade[]
-  gradeChanges        GradeHistory[]
-  announcements       Announcement[]        @relation("AnnouncementAuthor")
-  announcementReads   AnnouncementRead[]
-
-  @@map("users")
-}
-
-model CourseCategory {
-  id           String   @id @default(cuid())
-  name         String   @unique // e.g. "2025/2026"
-  academicYear String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  courses Course[]
-
-  @@map("course_categories")
-}
-
-model Course {
-  id                 String   @id @default(cuid())
-  name               String
-  code               String   @unique
-  enrollmentCode     String   @unique @default(cuid())
-  enrollmentEnabled  Boolean  @default(true) // Allow enrollment via key
-  description        String?
-  learningObjectives String?
-  thumbnailColor     String   @default("#1a365d")
-  isLinear           Boolean  @default(false) // Heuristic #19: learner control
-  isActive           Boolean  @default(true)
-  instructorId       String
-  categoryId         String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  instructor   User            @relation("CourseInstructor", fields: [instructorId], references: [id])
-  category     CourseCategory? @relation(fields: [categoryId], references: [id])
-  enrollments  Enrollment[]
-  modules      Module[]
-  assignments  Assignment[]
-  exams        Exam[]
-  calendarEvents CalendarEvent[]
-  forumThreads ForumThread[]
-  weeks        Week[]
-  questionBanks QuestionBank[]
-  settings     CourseSettings?
-  grades       Grade[]
-  announcements Announcement[]
-
-  @@map("courses")
-}
-
-model Enrollment {
-  id        String         @id @default(cuid())
-  userId    String
-  courseId  String
-  role      EnrollmentRole @default(STUDENT)
-  joinedAt  DateTime       @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@map("enrollments")
-}
-
-model Week {
-  id          String   @id @default(cuid())
-  courseId    String
-  weekNumber  Int
-  title       String
-  startDate   DateTime
-  endDate     DateTime
-  order       Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  activities Activity[]
-  exams      Exam[]
-
-  @@unique([courseId, weekNumber])
-  @@map("weeks")
-}
-
-model Activity {
-  id          String         @id @default(cuid())
-  weekId      String
-  type        ActivityType
-  title       String
-  description String?
-  status      ActivityStatus @default(DRAFT)
-  order       Int
-  metadata    Json?          // Stores type-specific data (assignment deadline, quiz settings, etc.)
-  publishedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  week Week @relation(fields: [weekId], references: [id], onDelete: Cascade)
-
-  @@map("activities")
-}
-
-model Module {
-  id                 String   @id @default(cuid())
-  courseId           String
-  title              String
-  description        String?
-  learningObjectives String?  // Heuristic #12: clarity of goals
-  order              Int
-  updatedAt          DateTime @updatedAt // Heuristic #23: relevancy
-  createdAt          DateTime @default(now())
-
-  course Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  files  ModuleFile[]
-
-  @@map("modules")
-}
-
-model ModuleFile {
-  id         String         @id @default(cuid())
-  moduleId   String
-  fileName   String
-  fileUrl    String
-  fileType   ModuleFileType @default(OTHER)
-  fileSize   BigInt         @default(0)
-  uploadedAt DateTime       @default(now())
-
-  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-
-  @@map("module_files")
-}
-
-model Assignment {
-  id          String   @id @default(cuid())
-  courseId    String
-  title       String
-  description String?
-  deadline    DateTime
-  maxScore    Float    @default(100)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  submissions AssignmentSubmission[]
-  rubric      Rubric?
-
-  @@map("assignments")
-}
-
-model AssignmentSubmission {
-  id           String                     @id @default(cuid())
-  assignmentId String
-  studentId    String
-  fileUrl      String?
-  fileName     String?
-  submittedAt  DateTime?
-  score        Float?
-  feedback     String?                    // Heuristic #16: instructional assessment
-  rubricNotes  String?
-  status       AssignmentSubmissionStatus @default(NOT_SUBMITTED)
-
-  assignment          Assignment                      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student             User                            @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  rubricAssessments   RubricAssessment[]
-
-  @@unique([assignmentId, studentId])
-  @@map("assignment_submissions")
-}
-
-// Heuristic #16: Instructional Assessment — detailed rubric assessment tracking
-model RubricAssessment {
-  id                    String @id @default(cuid())
-  submissionId          String
-  rubricCriterionId     String
-  rubricCriterionLevelId String?
-  score                 Float
-  feedback              String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  submission AssignmentSubmission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  criterion  RubricCriterion       @relation(fields: [rubricCriterionId], references: [id], onDelete: Cascade)
-  level      RubricCriterionLevel? @relation(fields: [rubricCriterionLevelId], references: [id], onDelete: SetNull)
-
-  @@unique([submissionId, rubricCriterionId])
-  @@map("rubric_assessments")
-}
-
-// Heuristic #16: Instructional Assessment — structured rubric system for grading
-model Rubric {
-  id           String   @id @default(cuid())
-  assignmentId String   @unique
-  name         String
-  description  String?
-  totalPoints  Float    @default(100)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  assignment Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  criteria  RubricCriterion[]
-
-  @@map("rubrics")
-}
-
-model RubricCriterion {
-  id          String   @id @default(cuid())
-  rubricId    String
-  name        String
-  description String?
-  maxPoints   Float
-  order       Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  rubric   Rubric             @relation(fields: [rubricId], references: [id], onDelete: Cascade)
-  levels   RubricCriterionLevel[]
-  assessments RubricAssessment[]
-
-  @@map("rubric_criteria")
-}
-
-model RubricCriterionLevel {
-  id          String   @id @default(cuid())
-  criterionId String
-  name        String
-  description String
-  points      Float
-  order       Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  criterion   RubricCriterion  @relation(fields: [criterionId], references: [id], onDelete: Cascade)
-  assessments RubricAssessment[]
-
-  @@map("rubric_criterion_levels")
-}
-
-model Exam {
-  id              String       @id @default(cuid())
-  courseId        String
-  weekId          String?
-  title           String
-  description     String?
-  category        ExamCategory @default(GENERAL)
-  startTime       DateTime
-  deadline        DateTime
-  duration        Int          // minutes
-  maxScore        Float        @default(100)
-  maxAttempts     Int          @default(1)
-  passingGrade    Float        @default(60)
-  isPublished     Boolean      @default(false)
-  showResults     Boolean      @default(true)
-  showExplanation Boolean      @default(false)
-  shuffleQuestions Boolean     @default(false)
-  shuffleOptions  Boolean      @default(false)
-  allowReview     Boolean      @default(false)
-  allowBack       Boolean      @default(true)
-  autoSubmit      Boolean      @default(true)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  week      Week?         @relation(fields: [weekId], references: [id], onDelete: SetNull)
-  questions Question[]
-  attempts  ExamAttempt[]
-
-  @@map("exams")
-}
-
-model Question {
-  id               String          @id @default(cuid())
-  examId           String?
-  questionBankId   String?
-  type             QuestionType
-  questionText     String
-  attachmentUrl    String?
-  points           Float           @default(1)
-  order            Int             @default(0)
-  difficulty       DifficultyLevel @default(MEDIUM)
-  explanation      String?         // Explanation shown after exam
-  rubric           String?         // For essay grading guide
-  maxChars         Int?            // For short answer/essay character limit
-  caseSensitive    Boolean         @default(false) // For short answer
-  tolerance        Float?          // For short answer tolerance
-  allowMultiple    Boolean         @default(false) // For MCQ multiple answers
-  isFromBank       Boolean         @default(false)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  exam         Exam?           @relation(fields: [examId], references: [id], onDelete: Cascade)
-  questionBank QuestionBank?   @relation(fields: [questionBankId], references: [id], onDelete: SetNull)
-  options      QuestionOption[]
-  answers      Answer[]
-  tags         QuestionTag[]
-
-  @@map("questions")
-}
-
-model QuestionOption {
-  id         String  @id @default(cuid())
-  questionId String
-  optionText String
-  isCorrect  Boolean @default(false)
-  order      Int     @default(0)
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answers  Answer[]
-
-  @@map("question_options")
-}
-
-model QuestionBank {
-  id          String   @id @default(cuid())
-  courseId    String?
-  title       String
-  description String?
-  topic       String?
-  difficulty  DifficultyLevel @default(MEDIUM)
-  questionType QuestionType
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  course    Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  questions Question[]
-
-  @@map("question_banks")
-}
-
-model QuestionTag {
-  id         String   @id @default(cuid())
-  questionId String
-  tag        String
-  createdAt  DateTime @default(now())
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, tag])
-  @@map("question_tags")
-}
-
-model ExamAttempt {
-  id              String            @id @default(cuid())
-  examId          String
-  studentId       String
-  attemptNumber   Int               @default(1)
-  startedAt       DateTime?
-  submittedAt     DateTime?
-  totalScore      Float?
-  passed          Boolean?
-  gradingStatus   GradingStatus     @default(PENDING)
-  status          ExamAttemptStatus @default(NOT_STARTED)
-  examCheatLog    Json              @default("[]") // anti-cheat tab switch log
-  autoSavedData   Json?             // auto-save answers
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers Answer[]
-
-  @@unique([examId, studentId, attemptNumber])
-  @@map("exam_attempts")
-}
-
-model Answer {
-  id               String  @id @default(cuid())
-  attemptId        String
-  questionId       String
-  answerText       String?
-  selectedOptionId String?
-  score            Float?
-  feedback         String?
-
-  attempt        ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id])
-
-  @@unique([attemptId, questionId])
-  @@map("answers")
-}
-
-model CalendarEvent {
-  id                  String               @id @default(cuid())
-  title               String
-  description         String?
-  startDate           DateTime
-  endDate             DateTime?
-  startTime           String?
-  endTime             String?
-  location            String?
-  isOnline            Boolean              @default(false)
-  meetingLink         String?
-  category            EventCategory        @default(PENGUMUMAN_AKADEMIK)
-  color               String               @default("#1a365d")
-  type                CalendarEventType    @default(ANNOUNCEMENT)
-  targetAudience      EventTargetAudience  @default(COURSE_STUDENTS)
-  relatedActivityType RelatedActivityType  @default(NONE)
-  relatedActivityId   String?
-  isPublished         Boolean              @default(true)
-  attachments         Json?
-  userId              String?
-  courseId            String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@map("calendar_events")
-}
-
-model PrivateFile {
-  id         String   @id @default(cuid())
-  userId     String
-  fileName   String
-  fileUrl    String
-  fileSize   BigInt
-  folderPath String   @default("/")
-  mimeType   String?
-  createdAt  DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("private_files")
-}
-
-model ForumThread {
-  id           String   @id @default(cuid())
-  courseId     String
-  authorId     String
-  title        String
-  content      String
-  isPinned     Boolean  @default(false)
-  isLocked     Boolean  @default(false)
-  lockedAt     DateTime?
-  lockedBy     String?
-  bestReplyId  String?  @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  course     Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  replies    ForumReply[]
-  attachments ForumAttachment[]
-  mentions   ForumMention[]
-  bestReply  ForumReply?     @relation("BestReply", fields: [bestReplyId], references: [id], onDelete: SetNull)
-  locker     User?           @relation("ThreadLocker", fields: [lockedBy], references: [id], onDelete: SetNull)
-
-  @@map("forum_threads")
-}
-
-model ForumReply {
-  id        String   @id @default(cuid())
-  threadId  String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  thread      ForumThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  attachments ForumAttachment[]
-  mentions    ForumMention[]
-  bestThread  ForumThread?      @relation("BestReply")
-
-  @@map("forum_replies")
-}
-
-model ForumAttachment {
-  id          String   @id @default(cuid())
-  threadId    String?
-  replyId     String?
-  fileName    String
-  fileUrl     String
-  fileSize    BigInt
-  mimeType    String
-  uploadedAt  DateTime @default(now())
-
-  thread ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  reply  ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
-
-  @@map("forum_attachments")
-}
-
-model ForumMention {
-  id        String   @id @default(cuid())
-  threadId  String?
-  replyId   String?
-  mentionedUserId String
-  mentionedBy   String
-  createdAt DateTime @default(now())
-
-  thread         ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  reply          ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
-  mentionedUser  User         @relation("MentionedUser", fields: [mentionedUserId], references: [id], onDelete: Cascade)
-  mentioner      User         @relation("Mentioner", fields: [mentionedBy], references: [id], onDelete: Cascade)
-
-  @@map("forum_mentions")
-}
-
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  message   String
-  link      String?
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-}
-
-model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  action    String
-  entity    String?
-  entityId  String?
-  metadata  Json?
-  ipAddress String?
-  createdAt DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@map("activity_logs")
-}
-
-model CourseSettings {
-  id            String   @id @default(cuid())
-  courseId      String   @unique
-  passingGrade  Float    @default(60)
-  assignmentWeight Float @default(0.3)
-  quizWeight    Float    @default(0.2)
-  utsWeight     Float    @default(0.2)
-  uasWeight     Float    @default(0.3)
-  otherWeight   Float    @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@map("course_settings")
-}
-
-model Grade {
-  id              String   @id @default(cuid())
-  courseId        String
-  studentId       String
-  assignmentScore Float?   @default(0)
-  quizScore       Float?   @default(0)
-  utsScore        Float?   @default(0)
-  uasScore        Float?   @default(0)
-  otherScore      Float?   @default(0)
-  finalScore      Float?   @default(0)
-  passed          Boolean?
-  completionPercentage Float @default(0)
-  calculatedAt    DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  course   Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student  User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  histories GradeHistory[]
-
-  @@unique([courseId, studentId])
-  @@map("grades")
-}
-
-model GradeHistory {
-  id          String   @id @default(cuid())
-  gradeId     String
-  changedBy   String
-  fieldName   String
-  oldValue    Float?
-  newValue    Float?
-  changeReason String?
-  changedAt   DateTime @default(now())
-
-  grade  Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  changer User @relation(fields: [changedBy], references: [id], onDelete: Cascade)
-
-  @@map("grade_histories")
-}
-
-model Announcement {
-  id          String   @id @default(cuid())
-  title       String
-  content     String
-  attachments Json?
-  publishedAt DateTime @default(now())
-  validFrom   DateTime @default(now())
-  validUntil  DateTime?
-  isPublished Boolean  @default(true)
-  priority    String   @default("normal")
-  courseId    String?
-  authorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  author      User              @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  course      Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  readStatus  AnnouncementRead[]
-
-  @@map("announcements")
-}
-
-model AnnouncementRead {
-  id             String   @id @default(cuid())
-  announcementId String
-  userId         String
-  readAt         DateTime @default(now())
-
-  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([announcementId, userId])
-  @@map("announcement_reads")
 }

@@ -96,25 +96,39 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
   };
 
   const handleAddQuestion = async () => {
+    if (!formData.questionText.trim()) {
+      toast.error("Teks soal wajib diisi");
+      return;
+    }
+    if (!Number.isFinite(formData.points) || formData.points < 1) {
+      toast.error("Poin soal tidak valid");
+      return;
+    }
+
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         type: selectedQuestionType,
-        questionText: formData.questionText,
+        questionText: formData.questionText.trim(),
         points: formData.points,
-        explanation: formData.explanation,
       };
 
+      if (formData.explanation.trim()) {
+        payload.explanation = formData.explanation.trim();
+      }
+
       if (selectedQuestionType === "MULTIPLE_CHOICE") {
-        payload.options = formData.options.map((opt) => opt.text);
-        const correctIndex = formData.options.findIndex((opt) => opt.isCorrect);
-        if (correctIndex >= 0) {
-          payload.correctAnswer = formData.options[correctIndex].text;
-        }
+        payload.options = formData.options
+          .filter((opt) => opt.text.trim())
+          .map((opt) => ({
+            text: opt.text.trim(),
+            isCorrect: opt.isCorrect,
+          }));
       } else if (selectedQuestionType === "TRUE_FALSE") {
         payload.options = [
           { text: "True", isCorrect: formData.correctAnswer === "true" },
           { text: "False", isCorrect: formData.correctAnswer === "false" },
         ];
+        payload.correctAnswer = formData.correctAnswer;
       }
 
       const response = await fetch(
@@ -474,8 +488,14 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
                 <Input
                   id="points"
                   type="number"
-                  value={formData.points}
-                  onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
+                  value={Number.isFinite(formData.points) ? formData.points : ""}
+                  onChange={(e) => {
+                    const next = parseInt(e.target.value, 10);
+                    setFormData({
+                      ...formData,
+                      points: Number.isNaN(next) ? Number.NaN : next,
+                    });
+                  }}
                   min="1"
                   required
                 />

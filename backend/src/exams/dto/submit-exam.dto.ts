@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsArray, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  IsOptional,
+  IsBoolean,
+  ValidateNested,
+} from 'class-validator';
 
 // Heuristic #5: Error Prevention — validate submission data
 
@@ -18,6 +26,11 @@ export class AnswerDto {
 
 export class SubmitExamDto {
   @IsArray()
-  @IsNotEmpty()
-  answers: AnswerDto[];
+  @ValidateNested({ each: true })
+  @Type(() => AnswerDto)
+  answers: AnswerDto[] = [];
+
+  @IsBoolean()
+  @IsOptional()
+  autoSubmitted?: boolean;
 }

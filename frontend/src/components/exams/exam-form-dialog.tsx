@@ -111,13 +111,22 @@ export function ExamFormDialog({
         ? `${process.env.NEXT_PUBLIC_API_URL}/exams/${exam.id}`
         : `${process.env.NEXT_PUBLIC_API_URL}/exams/course/${courseId}`;
 
+      const payload = {
+        title: values.title,
+        description: values.description?.trim() || undefined,
+        startTime: new Date(values.startTime).toISOString(),
+        deadline: new Date(values.deadline).toISOString(),
+        duration: values.duration,
+        isPublished: values.isPublished,
+      };
+
       const response = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -220,8 +229,11 @@ export function ExamFormDialog({
                       type="number"
                       min="1"
                       max="300"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={Number.isFinite(field.value) ? field.value : ""}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        field.onChange(Number.isNaN(next) ? undefined : next);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

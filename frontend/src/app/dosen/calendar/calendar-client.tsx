@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { CalendarView } from "@/components/calendar/calendar-view";
+import { UpcomingEventsPanel } from "@/components/calendar/upcoming-events-panel";
 import { CalendarEvent, getCalendarEvents, createCalendarEvent, deleteCalendarEvent, updateCalendarEvent, toggleEventPublish, getUpcomingEvents, EventCategory, EventTargetAudience, getCourses, createAnnouncement } from "@/lib/api";
-import { getCategoryInfo, EVENT_CATEGORIES } from "@/lib/calendar-constants";
+import { AlertCircle, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Clock, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CategoryNativeSelect, CourseNativeSelect } from "@/components/calendar/calendar-selects";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +46,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
     isOnline: false,
     meetingLink: "",
     category: "PERKULIAHAN" as EventCategory,
+    type: "ANNOUNCEMENT" as CalendarEvent["type"],
     courseId: "",
     targetAudience: "COURSE_STUDENTS" as EventTargetAudience,
     attachments: "",
@@ -126,6 +127,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       isOnline: event.isOnline,
       meetingLink: event.meetingLink || "",
       category: event.category,
+      type: event.type,
       courseId: event.courseId || "",
       targetAudience: event.targetAudience,
       attachments: event.attachments && Array.isArray(event.attachments) && event.attachments.length > 0
@@ -189,6 +191,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         isOnline: false,
         meetingLink: "",
         category: "PERKULIAHAN",
+        type: "ANNOUNCEMENT",
         courseId: "",
         targetAudience: "COURSE_STUDENTS",
         attachments: "",
@@ -234,6 +237,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
       isOnline: false,
       meetingLink: "",
       category: "PERKULIAHAN",
+      type: "ANNOUNCEMENT",
       courseId: "",
       targetAudience: "COURSE_STUDENTS",
       attachments: "",
@@ -297,22 +301,12 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter Kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Semua Kategori</SelectItem>
-              {EVENT_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
-                    {cat.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CategoryNativeSelect
+            className="w-full sm:w-[220px]"
+            includeAll
+            value={selectedCategory}
+            onChange={(value) => setSelectedCategory(value as EventCategory | "ALL")}
+          />
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -320,13 +314,13 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                 Buat Event & Pengumuman
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-hierarchy-modal">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
               <DialogHeader>
                 <DialogTitle>Buat Event Baru</DialogTitle>
                 <p className="text-sm text-muted-foreground">Event ini akan otomatis ditampilkan di kalender dan pengumuman</p>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Judul Event</Label>
                     <Input
@@ -336,25 +330,25 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Kategori</Label>
-                    <Select value={newEvent.category} onValueChange={(value) => {
-                      setNewEvent({ ...newEvent, category: value as EventCategory });
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EVENT_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
-                              {cat.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="create-category">Kategori</Label>
+                    <CategoryNativeSelect
+                      id="create-category"
+                      value={newEvent.category}
+                      onChange={(value) => setNewEvent({ ...newEvent, category: value as EventCategory })}
+                    />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-type">Tipe Event</Label>
+                  <NativeSelect
+                    id="create-type"
+                    value={newEvent.type}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent["type"] })}
+                  >
+                    <option value="ANNOUNCEMENT">Pengumuman</option>
+                    <option value="DEADLINE">Deadline</option>
+                    <option value="PERSONAL_NOTE">Catatan Pribadi</option>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-2">
                   <Label>Deskripsi</Label>
@@ -433,31 +427,22 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                 )}
                 <div className="space-y-2">
                   <Label>Course (Opsional)</Label>
-                  <Select value={newEvent.courseId} onValueChange={(value) => setNewEvent({ ...newEvent, courseId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.code} - {course.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CourseNativeSelect
+                    value={newEvent.courseId}
+                    onChange={(value) => setNewEvent({ ...newEvent, courseId: value })}
+                    courses={courses}
+                  />
                 </div>
                 {newEvent.courseId && (
                   <div className="space-y-2">
                     <Label>Target Audience</Label>
-                    <Select value={newEvent.targetAudience} onValueChange={(value) => setNewEvent({ ...newEvent, targetAudience: value as EventTargetAudience })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="COURSE_STUDENTS">Mahasiswa Course Ini</SelectItem>
-                        <SelectItem value="ALL_STUDENTS">Semua Mahasiswa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect
+                      value={newEvent.targetAudience}
+                      onChange={(e) => setNewEvent({ ...newEvent, targetAudience: e.target.value as EventTargetAudience })}
+                    >
+                      <option value="COURSE_STUDENTS">Mahasiswa Course Ini</option>
+                      <option value="ALL_STUDENTS">Semua Mahasiswa</option>
+                    </NativeSelect>
                   </div>
                 )}
                 <div className="space-y-2">
@@ -510,12 +495,12 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
 
           {/* Edit Event Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-hierarchy-modal">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
               <DialogHeader>
                 <DialogTitle>Edit Event</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Judul Event</Label>
                     <Input
@@ -526,24 +511,22 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                   </div>
                   <div className="space-y-2">
                     <Label>Kategori</Label>
-                    <Select value={newEvent.category} onValueChange={(value) => {
-                      setNewEvent({ ...newEvent, category: value as EventCategory });
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EVENT_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${cat.bgClass}`} />
-                              {cat.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CategoryNativeSelect
+                      value={newEvent.category}
+                      onChange={(value) => setNewEvent({ ...newEvent, category: value as EventCategory })}
+                    />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipe Event</Label>
+                  <NativeSelect
+                    value={newEvent.type}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as CalendarEvent["type"] })}
+                  >
+                    <option value="ANNOUNCEMENT">Pengumuman</option>
+                    <option value="DEADLINE">Deadline</option>
+                    <option value="PERSONAL_NOTE">Catatan Pribadi</option>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-2">
                   <Label>Deskripsi</Label>
@@ -622,31 +605,22 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
                 )}
                 <div className="space-y-2">
                   <Label>Course (Opsional)</Label>
-                  <Select value={newEvent.courseId} onValueChange={(value) => setNewEvent({ ...newEvent, courseId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.code} - {course.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CourseNativeSelect
+                    value={newEvent.courseId}
+                    onChange={(value) => setNewEvent({ ...newEvent, courseId: value })}
+                    courses={courses}
+                  />
                 </div>
                 {newEvent.courseId && (
                   <div className="space-y-2">
                     <Label>Target Audience</Label>
-                    <Select value={newEvent.targetAudience} onValueChange={(value) => setNewEvent({ ...newEvent, targetAudience: value as EventTargetAudience })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="COURSE_STUDENTS">Mahasiswa Course Ini</SelectItem>
-                        <SelectItem value="ALL_STUDENTS">Semua Mahasiswa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect
+                      value={newEvent.targetAudience}
+                      onChange={(e) => setNewEvent({ ...newEvent, targetAudience: e.target.value as EventTargetAudience })}
+                    >
+                      <option value="COURSE_STUDENTS">Mahasiswa Course Ini</option>
+                      <option value="ALL_STUDENTS">Semua Mahasiswa</option>
+                    </NativeSelect>
                   </div>
                 )}
                 <div className="space-y-2">
@@ -699,61 +673,7 @@ export function CalendarClient({ role, token, userId }: CalendarClientProps) {
         </div>
       </div>
 
-      {/* Upcoming Events */}
-      {upcomingEvents.length > 0 && (
-        <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-              Event Mendatang (7 Hari ke Depan)
-            </h3>
-            <Badge variant="secondary" className="ml-auto">
-              {upcomingEvents.length} event
-            </Badge>
-          </div>
-          <div className="space-y-2">
-            {upcomingEvents.map((event) => {
-              const catInfo = getCategoryInfo(event.category);
-              return (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full ${catInfo.bgClass}`}
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{event.title}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`text-xs ${catInfo.textClass}`}>
-                          {catInfo.label}
-                        </Badge>
-                        {event.course && (
-                          <p className="text-xs text-muted-foreground">
-                            {event.course.code} - {event.course.name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      {new Date(event.startDate).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {event.timeRemaining || new Date(event.startDate).toLocaleDateString("id-ID", { weekday: "short" })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      <UpcomingEventsPanel events={upcomingEvents} onEventClick={handleEditEvent} />
 
       {/* Calendar */}
       <CalendarView

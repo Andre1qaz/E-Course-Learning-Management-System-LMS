@@ -270,7 +270,7 @@ export function WeekAccordion({
                             asChild
                           >
                             <a href={`/mahasiswa/exams/${exam.id}`}>
-                              Mulai Ujian
+                              Buka Ujian
                             </a>
                           </Button>
                         )}

@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import { CalendarEvent } from "@/lib/api";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getBackgroundFillProps, getEventColorStyle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
+import { CourseNativeSelect } from "@/components/calendar/calendar-selects";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ interface CalendarViewProps {
     startDate: string;
     type: "DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT";
     courseId?: string;
+    color?: string;
   }) => Promise<void>;
   onEventUpdate?: (eventId: string, data: any) => Promise<void>;
   onEventDelete?: (eventId: string) => Promise<void>;
@@ -160,6 +162,9 @@ export function CalendarView({
         color: eventColor,
       });
       setIsCreateDialogOpen(false);
+      setEventColor("#3B82F6");
+      setEventCourseId("");
+      setEventType("PERSONAL_NOTE");
       toast.success("Event berhasil dibuat");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal membuat event");
@@ -186,23 +191,20 @@ export function CalendarView({
   ];
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-  const getEventTypeColor = (type: string, color?: string) => {
-    if (color) {
-      return {
-        backgroundColor: `${color}20`,
-        color: color,
-        borderColor: `${color}40`,
-      };
+  const getEventAppearance = (type: string, color?: string) => {
+    const style = getEventColorStyle(color);
+    if (style) {
+      return { className: "", style };
     }
     switch (type) {
       case "DEADLINE":
-        return "bg-semantic-red/10 text-semantic-red border-semantic-red/20";
+        return { className: "bg-semantic-red/10 text-semantic-red border-semantic-red/20", style: undefined };
       case "PERSONAL_NOTE":
-        return "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/20";
+        return { className: "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/20", style: undefined };
       case "ANNOUNCEMENT":
-        return "bg-semantic-amber/10 text-semantic-amber border-semantic-amber/20";
+        return { className: "bg-semantic-amber/10 text-semantic-amber border-semantic-amber/20", style: undefined };
       default:
-        return "bg-muted/10 text-muted-foreground border-border/20";
+        return { className: "bg-muted/10 text-muted-foreground border-border/20", style: undefined };
     }
   };
 
@@ -232,17 +234,24 @@ export function CalendarView({
               : `${currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
             }
           </h2>
-          <Button variant="outline" size="sm" onClick={goToToday}>
-            Hari Ini
-          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
-            <ChevronLeft className="icon-md" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
-            <ChevronRight className="icon-md" />
-          </Button>
+          <div className="flex items-center gap-1 border rounded-xl p-1">
+            <Button
+              variant="outline" 
+              size="sm" 
+              onClick={goToToday}
+              className="text-xs md:text-sm"
+            >
+              Hari Ini
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
+              <ChevronLeft className="icon-md" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
+              <ChevronRight className="icon-md" />
+            </Button>
+          </div>
           <div className="flex items-center gap-1 border rounded-xl p-1">
             <Button
               variant={viewMode === "monthly" ? "default" : "ghost"}
@@ -281,17 +290,17 @@ export function CalendarView({
                   <span className="sm:hidden">Buat</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md w-[95%]">
+              <DialogContent className="max-w-md w-[95%] overflow-visible">
                 <DialogHeader>
                   <DialogTitle className="text-base md:text-lg">Buat Event Baru</DialogTitle>
                   <p className="text-sm text-muted-foreground">Event ini akan otomatis ditampilkan di kalender dan pengumuman</p>
                 </DialogHeader>
                 <form onSubmit={handleCreateEvent} className="space-y-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="title" className="text-sm">Judul *</Label>
                     <Input id="title" name="title" required placeholder="Masukkan judul event" className="text-sm" />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="description" className="text-sm">Deskripsi</Label>
                     <Textarea
                       id="description"
@@ -301,7 +310,7 @@ export function CalendarView({
                       className="text-sm"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="startDate" className="text-sm">Tanggal *</Label>
                     <Input
                       id="startDate"
@@ -312,34 +321,29 @@ export function CalendarView({
                       className="text-sm"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="type" className="text-sm">Tipe Event</Label>
-                    <Select value={eventType} onValueChange={(value) => setEventType(value as typeof eventType)}>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PERSONAL_NOTE">Catatan Pribadi</SelectItem>
-                        <SelectItem value="DEADLINE">Deadline</SelectItem>
-                        <SelectItem value="ANNOUNCEMENT">Pengumuman</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <NativeSelect
+                      id="type"
+                      className="text-sm"
+                      value={eventType}
+                      onChange={(e) => setEventType(e.target.value as typeof eventType)}
+                    >
+                      <option value="PERSONAL_NOTE">Catatan Pribadi</option>
+                      <option value="DEADLINE">Deadline</option>
+                      <option value="ANNOUNCEMENT">Pengumuman</option>
+                    </NativeSelect>
                   </div>
                   {(userRole === "DOSEN" || userRole === "ADMIN") && courses.length > 0 && (
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="courseId" className="text-sm">Course (Opsional)</Label>
-                      <Select value={eventCourseId} onValueChange={setEventCourseId}>
-                        <SelectTrigger className="text-sm">
-                          <SelectValue placeholder="Pilih course" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {courses.map((course) => (
-                            <SelectItem key={course.id} value={course.id}>
-                              {course.code} - {course.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CourseNativeSelect
+                        id="courseId"
+                        className="text-sm"
+                        value={eventCourseId}
+                        onChange={setEventCourseId}
+                        courses={courses}
+                      />
                     </div>
                   )}
                   <div>
@@ -407,12 +411,12 @@ export function CalendarView({
                     key={index}
                     onClick={() => handleDateClick(date)}
                     className={cn(
-                      "min-h-20 sm:h-32 rounded-xl border p-2 cursor-pointer transition-all hover:border-accent/50",
-                      isToday && "bg-accent/5 border-accent/30",
+                      "min-h-24 sm:h-32 rounded-xl border p-2 cursor-pointer transition-all hover:border-accent/50 hover:shadow-sm",
+                      isToday && "bg-accent/10 border-accent/50 shadow-sm",
                       isSelected && "ring-2 ring-accent",
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-2">
                       <span className={cn(
                         "text-sm font-medium",
                         isToday && "text-accent font-bold"
@@ -425,8 +429,10 @@ export function CalendarView({
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-1 overflow-y-auto max-h-16 sm:max-h-24">
-                      {dayEvents.slice(0, 3).map((event) => (
+                    <div className="space-y-1.5 overflow-y-auto max-h-20 sm:max-h-24">
+                      {dayEvents.slice(0, 3).map((event) => {
+                        const appearance = getEventAppearance(event.type, event.color);
+                        return (
                         <div
                           key={event.id}
                           onClick={(e) => {
@@ -434,21 +440,20 @@ export function CalendarView({
                             handleEventClick(event);
                           }}
                           className={cn(
-                            "text-xs p-1.5 rounded border truncate cursor-pointer hover:opacity-80",
-                            typeof getEventTypeColor(event.type, event.color) === 'object' 
-                              ? '' 
-                              : getEventTypeColor(event.type, event.color)
+                            "text-xs p-1.5 rounded-md border truncate cursor-pointer hover:opacity-80 transition-opacity",
+                            appearance.className,
                           )}
-                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
+                          style={appearance.style}
                         >
                           <div className="flex items-center gap-1">
                             {getEventTypeIcon(event.type)}
                             <span className="truncate">{event.title}</span>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       {dayEvents.length > 3 && (
-                        <div className="text-xs text-muted-foreground text-center">
+                        <div className="text-xs text-muted-foreground text-center pt-1">
                           +{dayEvents.length - 3} lagi
                         </div>
                       )}
@@ -479,12 +484,12 @@ export function CalendarView({
                     key={index}
                     onClick={() => handleDateClick(date)}
                     className={cn(
-                      "min-h-40 sm:min-h-64 rounded-xl border p-3 cursor-pointer transition-all hover:border-accent/50",
-                      isToday && "bg-accent/5 border-accent/30",
+                      "min-h-48 sm:min-h-64 rounded-xl border p-3 cursor-pointer transition-all hover:border-accent/50 hover:shadow-sm",
+                      isToday && "bg-accent/10 border-accent/50 shadow-sm",
                       isSelected && "ring-2 ring-accent",
                     )}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-3">
                       <span className={cn(
                         "text-sm font-medium",
                         isToday && "text-accent font-bold"
@@ -497,7 +502,7 @@ export function CalendarView({
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-2 overflow-y-auto max-h-32 sm:max-h-48">
+                    <div className="space-y-2 overflow-y-auto max-h-36 sm:max-h-48">
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
@@ -506,7 +511,7 @@ export function CalendarView({
                             handleEventClick(event);
                           }}
                           className={cn(
-                            "text-xs p-2 rounded border cursor-pointer hover:opacity-80",
+                            "text-xs p-2 rounded-md border cursor-pointer hover:opacity-80 transition-opacity",
                             typeof getEventTypeColor(event.type, event.color) === 'object' 
                               ? '' 
                               : getEventTypeColor(event.type, event.color)
@@ -557,7 +562,7 @@ export function CalendarView({
                           key={event.id}
                           onClick={() => handleEventClick(event)}
                           className={cn(
-                            "p-3 md:p-4 rounded-xl border cursor-pointer transition-all hover:border-accent/50 mb-3",
+                            "p-4 md:p-5 rounded-xl border cursor-pointer transition-all hover:border-accent/50 hover:shadow-sm mb-3",
                             typeof getEventTypeColor(event.type, event.color) === 'object' 
                               ? '' 
                               : getEventTypeColor(event.type, event.color)
