@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Calendar, ChevronDown, ChevronRight, Plus, Settings } from "lucide-react";
+import { Calendar, ChevronDown, ChevronRight, Plus, Settings, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,7 @@ interface CourseDetailClientProps {
 
 export function CourseDetailClient({ courseId, token, userRole }: CourseDetailClientProps) {
   const [weeks, setWeeks] = useState<Week[]>([]);
+  const [allExams, setAllExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [showCreateWeek, setShowCreateWeek] = useState(false);
@@ -70,6 +71,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
 
   useEffect(() => {
     fetchWeeks();
+    fetchAllExams();
   }, [courseId]);
 
   const fetchWeeks = async () => {
@@ -97,6 +99,27 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
     }
   };
 
+  const fetchAllExams = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/course/${courseId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAllExams(result.data);
+      }
+    } catch (error) {
+      console.error("Terjadi kesalahan saat memuat exams");
+    }
+  };
+
   const toggleWeek = (weekNumber: number) => {
     const newExpanded = new Set(expandedWeeks);
     if (newExpanded.has(weekNumber)) {
@@ -116,6 +139,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
     setShowAddActivity(false);
     setSelectedWeekId(null);
     fetchWeeks();
+    fetchAllExams();
   };
 
   const formatDate = (dateString: string) => {
@@ -228,13 +252,83 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
             onToggle={() => toggleWeek(week.weekNumber)}
             canEdit={canEdit}
             onAddActivity={() => handleAddActivity(week.id)}
-            onActivityChange={fetchWeeks}
+            onActivityChange={() => {
+              fetchWeeks();
+              fetchAllExams();
+            }}
             token={token}
             userRole={userRole}
             courseId={courseId}
           />
         ))}
       </div>
+
+      {/* All Course Exams Section */}
+      {allExams.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Semua Ujian Course</h2>
+            {canEdit && (
+              <Button className="gap-2" asChild>
+                <a href={userRole === "ADMIN" ? `/admin/exams` : `/dosen/exams`}>
+                  <Plus className="h-4 w-4" />
+                  Kelola Ujian
+                </a>
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-4">
+            {allExams.map((exam) => (
+              <Card key={exam.id} className="border-l-4 border-l-primary">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold">{exam.title}</h4>
+                        {!exam.isPublished && (
+                          <Badge variant="secondary">Draft</Badge>
+                        )}
+                      </div>
+                      {exam.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{exam.description}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="icon-xs" />
+                          <span>{exam.duration} menit</span>
+                        </div>
+                        <span>{exam._count.questions} soal</span>
+                        <span>{formatDate(exam.startTime)}</span>
+                      </div>
+                    </div>
+                    {userRole === "MAHASISWA" && exam.isPublished && (
+                      <Button
+                        size="sm"
+                        asChild
+                      >
+                        <a href={`/mahasiswa/exams/${exam.id}`}>
+                          Buka Ujian
+                        </a>
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        asChild
+                      >
+                        <a href={userRole === "ADMIN" ? `/admin/exams/${exam.id}/questions` : `/dosen/exams/${exam.id}/questions`}>
+                          Kelola Soal
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showAddActivity && selectedWeekId && (
         <AddActivityDialog

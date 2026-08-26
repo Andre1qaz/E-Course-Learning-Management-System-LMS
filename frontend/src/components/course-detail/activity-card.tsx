@@ -218,6 +218,54 @@ export function ActivityCard({
     return null;
   };
 
+  const getActivityLink = () => {
+    switch (activity.type) {
+      case "MATERIAL":
+        if (activity.metadata?.fileUrl) return activity.metadata.fileUrl;
+        if (activity.metadata?.videoUrl) return activity.metadata.videoUrl;
+        return null;
+      case "ASSIGNMENT":
+        if (userRole === "MAHASISWA") {
+          return `/mahasiswa/courses/${courseId}/assignments/${activity.metadata?.assignmentId}`;
+        } else if (canEdit) {
+          return `/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`;
+        }
+        return null;
+      case "QUIZ":
+        return `/mahasiswa/courses/${courseId}/quizzes/${activity.id}`;
+      case "FORUM":
+        return `/mahasiswa/courses/${courseId}/forums/${activity.id}`;
+      case "VIDEO":
+        return activity.metadata?.videoUrl;
+      case "EXTERNAL_LINK":
+        return activity.metadata?.url;
+      default:
+        return null;
+    }
+  };
+
+  const getActionLabel = () => {
+    switch (activity.type) {
+      case "MATERIAL":
+        return "Buka Materi";
+      case "ASSIGNMENT":
+        return userRole === "MAHASISWA" ? "Kerjakan Tugas" : "Lihat Submissions";
+      case "QUIZ":
+        return "Mulai Kuis";
+      case "FORUM":
+        return "Buka Forum";
+      case "VIDEO":
+        return "Tonton Video";
+      case "EXTERNAL_LINK":
+        return "Buka Link";
+      default:
+        return "Buka";
+    }
+  };
+
+  const activityLink = getActivityLink();
+  const actionLabel = getActionLabel();
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -256,6 +304,32 @@ export function ActivityCard({
                   <span>Created: {formatDate(activity.createdAt)}</span>
                 </div>
               </div>
+              {activityLink && !isDraft && (
+                <div className="mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    asChild={activity.type !== "MATERIAL" && activity.type !== "VIDEO" && activity.type !== "EXTERNAL_LINK"}
+                    onClick={(e) => {
+                      if (activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK") {
+                        e.preventDefault();
+                        window.open(activityLink, '_blank');
+                      }
+                    }}
+                    href={activityLink}
+                  >
+                    {activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK" ? (
+                      <>
+                        <ExternalLink className="mr-1 icon-xs" />
+                        {actionLabel}
+                      </>
+                    ) : (
+                      actionLabel
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           {canEdit && (

@@ -15,10 +15,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PrivateFilesService } from './private-files.service';
 
-// Heuristic #1: Visibility of System Status — clear API responses for file operations
-// Heuristic #13: Storage Capability — quota tracking endpoints
-// Heuristic #5: Error Prevention — validate file operations before execution
-
 @ApiTags('Private Files')
 @Controller('private-files')
 @UseGuards(JwtAuthGuard)

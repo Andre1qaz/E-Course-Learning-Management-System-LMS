@@ -4,13 +4,16 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { PrivateFile } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { AutoValidator } from '../common/base/validation-guide';
 
-// Heuristic #1: Visibility of System Status — clear file operation responses
-// Heuristic #13: Storage Capability — quota tracking and visual indicators
-// Heuristic #5: Error Prevention — validate file operations before execution
+const FOLDER_MIME = 'application/x-folder';
+
+type SerializedPrivateFile = Omit<PrivateFile, 'fileSize'> & {
+  fileSize: number;
+};
 
 @Injectable()
 export class PrivateFilesService {
@@ -19,19 +22,9 @@ export class PrivateFilesService {
     private storageService: StorageService,
   ) {}
 
-  /**
-   * Get all private files for a user
-   */
   async getUserFiles(userId: string, folderPath = '/') {
-    const files = await this.prisma.privateFile.findMany({
-      where: {
-        userId,
-        folderPath,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const currentPath = this.normalizeFolderPath(folderPath);
 
-    // Get user's current quota usage
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -40,22 +33,47 @@ export class PrivateFilesService {
       },
     });
 
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    const records = await this.prisma.privateFile.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const files = records
+      .filter(
+        (file) =>
+          file.folderPath === currentPath && !this.isFolderRecord(file),
+      )
+      .map((file) => this.serializeFile(file));
+
+    const folders = records
+      .filter(
+        (file) =>
+          this.isFolderRecord(file) &&
+          this.parentPath(file.folderPath) === currentPath,
+      )
+      .map((file) => ({
+        ...this.serializeFile(file),
+        fileName: this.folderDisplayName(file.folderPath),
+        mimeType: FOLDER_MIME,
+      }));
+
     return {
       success: true,
       data: {
-        files,
+        files: [...folders, ...files],
         quota: {
-          used: Number(user?.storageQuotaUsed || 0),
-          limit: Number(user?.storageQuotaLimit || 52428800), // 50MB default
+          used: Number(user.storageQuotaUsed || 0),
+          limit: Number(user.storageQuotaLimit || 52428800),
         },
       },
       message: 'Private files retrieved successfully',
     };
   }
 
-  /**
-   * Get user's quota information
-   */
   async getUserQuota(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -66,7 +84,7 @@ export class PrivateFilesService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User tidak ditemukan');
     }
 
     return {
@@ -79,9 +97,6 @@ export class PrivateFilesService {
     };
   }
 
-  /**
-   * Upload a private file
-   */
   async uploadFile(
     userId: string,
     data: {
@@ -91,7 +106,6 @@ export class PrivateFilesService {
       folderPath?: string;
     },
   ) {
-    // Check user's quota
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -101,7 +115,7 @@ export class PrivateFilesService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User tidak ditemukan');
     }
 
     const newQuotaUsed = Number(user.storageQuotaUsed) + data.fileSize;
@@ -109,31 +123,33 @@ export class PrivateFilesService {
       const remaining =
         Number(user.storageQuotaLimit) - Number(user.storageQuotaUsed);
       throw new ForbiddenException(
-        `Storage quota exceeded. Maximum size for new files: ${(remaining / 1024 / 1024).toFixed(2)}MB, overall limit: ${(Number(user.storageQuotaLimit) / 1024 / 1024).toFixed(2)}MB`,
+        `Kuota penyimpanan penuh. Ukuran maksimal untuk file baru: ${(remaining / 1024 / 1024).toFixed(2)}MB, batas total: ${(Number(user.storageQuotaLimit) / 1024 / 1024).toFixed(2)}MB`,
       );
     }
 
-    // Generate presigned URL for upload
-    const { uploadUrl, fileUrl } = await this.storageService.generateUploadUrl(
-      data.fileName,
+    const fileType = this.storageService.resolveFileType(
       data.fileType,
-      data.fileSize,
-      true, // isPrivate
+      data.fileName,
     );
 
-    // Create file record in database
+    const { uploadUrl, fileUrl } = await this.storageService.generateUploadUrl(
+      data.fileName,
+      fileType,
+      data.fileSize,
+      true,
+    );
+
     const file = await this.prisma.privateFile.create({
       data: {
         userId,
         fileName: data.fileName,
         fileUrl,
         fileSize: BigInt(data.fileSize),
-        folderPath: data.folderPath || '/',
-        mimeType: data.fileType,
+        folderPath: this.normalizeFolderPath(data.folderPath || '/'),
+        mimeType: fileType,
       },
     });
 
-    // Update user's quota
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -146,15 +162,12 @@ export class PrivateFilesService {
       data: {
         uploadUrl,
         fileUrl,
-        file,
+        file: this.serializeFile(file),
       },
-      message: 'File upload URL generated successfully',
+      message: 'URL upload berhasil dibuat',
     };
   }
 
-  /**
-   * Delete a private file
-   */
   async deleteFile(userId: string, fileId: string) {
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
@@ -168,19 +181,44 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only delete your own files');
     }
 
-    // Delete from storage
-    const key = this.storageService.extractKeyFromUrl(file.fileUrl);
-    await this.storageService.deleteFile(key, true);
+    const targets = this.isFolderRecord(file)
+      ? await this.prisma.privateFile.findMany({
+          where: {
+            userId,
+            OR: [
+              { id: file.id },
+              { folderPath: file.folderPath },
+              {
+                folderPath: {
+                  startsWith:
+                    file.folderPath === '/' ? '/' : `${file.folderPath}/`,
+                },
+              },
+            ],
+          },
+        })
+      : [file];
 
-    // Update user's quota
+    let freed = 0;
+    for (const target of targets) {
+      if (target.fileUrl) {
+        const key = this.storageService.extractKeyFromUrl(target.fileUrl);
+        await this.storageService.deleteFile(key, true);
+      }
+      freed += Number(target.fileSize);
+    }
+
+    await this.prisma.privateFile.deleteMany({
+      where: { id: { in: targets.map((target) => target.id) } },
+    });
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { storageQuotaUsed: true },
     });
 
     if (user) {
-      const newQuotaUsed =
-        Number(user.storageQuotaUsed) - Number(file.fileSize);
+      const newQuotaUsed = Number(user.storageQuotaUsed) - freed;
       await this.prisma.user.update({
         where: { id: userId },
         data: {
@@ -189,11 +227,6 @@ export class PrivateFilesService {
       });
     }
 
-    // Delete file record
-    await this.prisma.privateFile.delete({
-      where: { id: fileId },
-    });
-
     return {
       success: true,
       data: null,
@@ -201,12 +234,7 @@ export class PrivateFilesService {
     };
   }
 
-  /**
-   * Create a folder (virtual - just a path marker)
-   * ✅ MENGGUNAKAN AutoValidator untuk otomatis format handling
-   */
   async createFolder(userId: string, folderPath: string) {
-    // ✅ Auto-validation folderPath
     const result = AutoValidator.validateObject(
       { folderPath },
       {
@@ -218,32 +246,30 @@ export class PrivateFilesService {
       throw new BadRequestException(result.errors.join(', '));
     }
 
-    // Normalize folder path
-    const normalizedPath = result.sanitized.folderPath.startsWith('/')
-      ? result.sanitized.folderPath
-      : `/${result.sanitized.folderPath}`;
+    const normalizedPath = this.normalizeFolderPath(
+      String(result.sanitized.folderPath),
+    );
 
-    // Check if folder already exists (by checking if any file exists in this path)
-    const existingFile = await this.prisma.privateFile.findFirst({
+    const existingFolder = await this.prisma.privateFile.findFirst({
       where: {
         userId,
         folderPath: normalizedPath,
+        mimeType: FOLDER_MIME,
       },
     });
 
-    if (existingFile) {
+    if (existingFolder) {
       throw new ForbiddenException('Folder already exists');
     }
 
-    // Create a placeholder file to mark the folder
     await this.prisma.privateFile.create({
       data: {
         userId,
-        fileName: '.folder',
+        fileName: this.folderDisplayName(normalizedPath),
         fileUrl: '',
         fileSize: BigInt(0),
         folderPath: normalizedPath,
-        mimeType: 'application/x-folder',
+        mimeType: FOLDER_MIME,
       },
     });
 
@@ -254,9 +280,6 @@ export class PrivateFilesService {
     };
   }
 
-  /**
-   * Get download URL for a private file
-   */
   async getDownloadUrl(userId: string, fileId: string) {
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
@@ -270,6 +293,10 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only download your own files');
     }
 
+    if (this.isFolderRecord(file) || !file.fileUrl) {
+      throw new BadRequestException('Folder tidak dapat diunduh');
+    }
+
     const key = this.storageService.extractKeyFromUrl(file.fileUrl);
     const downloadUrl = await this.storageService.generateDownloadUrl(key);
 
@@ -280,9 +307,6 @@ export class PrivateFilesService {
     };
   }
 
-  /**
-   * Rename a file
-   */
   async renameFile(userId: string, fileId: string, newFileName: string) {
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
@@ -296,6 +320,10 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only rename your own files');
     }
 
+    if (this.isFolderRecord(file)) {
+      throw new BadRequestException('Gunakan nama folder saat membuat folder');
+    }
+
     const updatedFile = await this.prisma.privateFile.update({
       where: { id: fileId },
       data: { fileName: newFileName },
@@ -303,14 +331,11 @@ export class PrivateFilesService {
 
     return {
       success: true,
-      data: updatedFile,
+      data: this.serializeFile(updatedFile),
       message: 'File renamed successfully',
     };
   }
 
-  /**
-   * Move a file to a different folder
-   */
   async moveFile(userId: string, fileId: string, newFolderPath: string) {
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
@@ -324,19 +349,50 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only move your own files');
     }
 
-    const normalizedPath = newFolderPath.startsWith('/')
-      ? newFolderPath
-      : `/${newFolderPath}`;
-
     const updatedFile = await this.prisma.privateFile.update({
       where: { id: fileId },
-      data: { folderPath: normalizedPath },
+      data: { folderPath: this.normalizeFolderPath(newFolderPath) },
     });
 
     return {
       success: true,
-      data: updatedFile,
+      data: this.serializeFile(updatedFile),
       message: 'File moved successfully',
     };
+  }
+
+  private serializeFile(file: PrivateFile): SerializedPrivateFile {
+    return {
+      ...file,
+      fileSize: Number(file.fileSize),
+    };
+  }
+
+  private isFolderRecord(file: Pick<PrivateFile, 'mimeType' | 'fileName'>) {
+    return file.mimeType === FOLDER_MIME || file.fileName === '.folder';
+  }
+
+  private normalizeFolderPath(folderPath: string) {
+    const trimmed = folderPath.trim() || '/';
+    const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    const collapsed = withSlash.replace(/\/+/g, '/');
+    if (collapsed.length > 1 && collapsed.endsWith('/')) {
+      return collapsed.slice(0, -1);
+    }
+    return collapsed || '/';
+  }
+
+  private folderDisplayName(folderPath: string) {
+    const parts = folderPath.split('/').filter(Boolean);
+    return parts[parts.length - 1] || 'Folder';
+  }
+
+  private parentPath(folderPath: string) {
+    if (folderPath === '/') {
+      return '/';
+    }
+    const parts = folderPath.split('/').filter(Boolean);
+    parts.pop();
+    return parts.length > 0 ? `/${parts.join('/')}` : '/';
   }
 }

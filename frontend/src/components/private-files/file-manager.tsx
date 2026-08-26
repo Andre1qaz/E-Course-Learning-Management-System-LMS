@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PrivateFile, QuotaInfo, getPrivateFiles, getPrivateFilesQuota, uploadPrivateFile, deletePrivateFile, createPrivateFolder, getPrivateFileDownloadUrl, renamePrivateFile, movePrivateFile } from "@/lib/api";
+import { PrivateFile, QuotaInfo, getPrivateFiles, getPrivateFilesQuota, uploadPrivateFile, deletePrivateFile, createPrivateFolder, getPrivateFileDownloadUrl, renamePrivateFile } from "@/lib/api";
 import { HardDrive, Upload, Folder, File, Trash2, Download, Edit2, FolderPlus, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,33 @@ import { toast } from "sonner";
 interface FileManagerProps {
   token: string;
   userId: string;
+}
+
+function inferMimeType(file: File): string {
+  if (file.type) {
+    return file.type;
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const byExtension: Record<string, string> = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    zip: "application/zip",
+    txt: "text/plain",
+  };
+  return byExtension[ext] || "application/octet-stream";
+}
+
+function isFolderFile(file: PrivateFile) {
+  return file.mimeType === "application/x-folder" || file.fileName === ".folder";
 }
 
 export function FileManager({ token, userId }: FileManagerProps) {
@@ -78,33 +105,38 @@ export function FileManager({ token, userId }: FileManagerProps) {
 
     try {
       setUploading(true);
-      
-      // Get upload URL
+      const fileType = inferMimeType(file);
+
       const uploadData = await uploadPrivateFile(token, {
         fileName: file.name,
-        fileType: file.type,
+        fileType,
         fileSize: file.size,
         folderPath: currentPath,
       });
 
       if (!uploadData.data?.uploadUrl) {
-        throw new Error("Gagal mendapatkan URL upload");
+        throw new Error("Gagal mendapatkan URL upload dari server");
       }
 
-      // Upload file to MinIO
-      await fetch(uploadData.data.uploadUrl, {
+      const contentType = uploadData.data.file?.mimeType || fileType;
+      const uploadResponse = await fetch(uploadData.data.uploadUrl, {
         method: "PUT",
         body: file,
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": contentType,
         },
       });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Gagal upload file ke storage (status: ${uploadResponse.status})`);
+      }
 
       toast.success("File berhasil diupload");
       setIsUploadDialogOpen(false);
       await fetchFiles();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal upload file");
+      const errorMessage = error instanceof Error ? error.message : "Gagal upload file";
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -113,12 +145,21 @@ export function FileManager({ token, userId }: FileManagerProps) {
     }
   };
 
-  const handleDeleteFile = async (fileId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus file ini?")) return;
-    
+  const handleDeleteFile = async (file: PrivateFile) => {
+    const folder = isFolderFile(file);
+    if (
+      !confirm(
+        folder
+          ? "Hapus folder ini beserta seluruh isinya?"
+          : "Apakah Anda yakin ingin menghapus file ini?",
+      )
+    ) {
+      return;
+    }
+
     try {
-      await deletePrivateFile(token, fileId);
-      toast.success("File berhasil dihapus");
+      await deletePrivateFile(token, file.id);
+      toast.success(folder ? "Folder berhasil dihapus" : "File berhasil dihapus");
       await fetchFiles();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menghapus file");
@@ -336,14 +377,24 @@ export function FileManager({ token, userId }: FileManagerProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => (
+            {files.map((file) => {
+              const folder = isFolderFile(file);
+              return (
               <Card
                 key={file.id}
-                className="p-4 hover:border-accent/50 transition-colors group"
+                className={cn(
+                  "p-4 hover:border-accent/50 transition-colors group",
+                  folder && "cursor-pointer",
+                )}
+                onClick={() => {
+                  if (folder) {
+                    navigateToPath(file.folderPath);
+                  }
+                }}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
-                    {file.fileName === ".folder" ? (
+                    {folder ? (
                       <Folder className="h-8 w-8 text-amber-500" />
                     ) : (
                       <File className="h-8 w-8 text-blue-500" />
@@ -352,14 +403,17 @@ export function FileManager({ token, userId }: FileManagerProps) {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{file.fileName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatFileSize(Number(file.fileSize))}
+                      {folder ? "Folder" : formatFileSize(Number(file.fileSize))}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(file.createdAt).toLocaleDateString("id-ID")}
                     </p>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {file.fileName !== ".folder" && (
+                  <div
+                    className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {!folder && (
                       <>
                         <Button
                           variant="ghost"
@@ -386,14 +440,15 @@ export function FileManager({ token, userId }: FileManagerProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteFile(file.id)}
+                      onClick={() => handleDeleteFile(file)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>

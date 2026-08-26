@@ -47,11 +47,36 @@ export async function apiFetch<T>(
 
     console.log(`Response status: ${response.status}`, response);
 
-    const data = (await response.json()) as ApiResponse<T>;
+    // Check if response is ok before parsing JSON
+    if (!response.ok) {
+      let errorMessage = "Terjadi kesalahan. Silakan coba lagi.";
+      try {
+        const errorData = await response.json() as ApiResponse<T>;
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      console.error(`API Error (${response.status}):`, errorMessage);
+      throw new ApiError(errorMessage, response.status);
+    }
+
+    // Parse JSON response with error handling
+    let data: ApiResponse<T>;
+    try {
+      const responseText = await response.text();
+      console.log(`Response text preview:`, responseText.substring(0, 200));
+      data = JSON.parse(responseText) as ApiResponse<T>;
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      throw new ApiError('Invalid response format from server', response.status);
+    }
+    
     console.log(`Response data:`, data);
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       // Heuristic #9: descriptive error messages
+      console.error(`API returned success=false:`, data.message);
       throw new ApiError(
         data.message || "Terjadi kesalahan. Silakan coba lagi.",
         response.status,
@@ -61,6 +86,9 @@ export async function apiFetch<T>(
     return data;
   } catch (error) {
     console.error(`Fetch error for ${proxyUrl}:`, error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
     if (error instanceof TypeError) {
       console.error('TypeError details:', error.message);
       throw new ApiError('Network error: Unable to connect to backend server', 0);

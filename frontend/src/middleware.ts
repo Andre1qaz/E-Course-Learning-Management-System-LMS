@@ -28,7 +28,8 @@ async function checkStudentEnrollment(token: string, courseId: string): Promise<
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
-  if (pathname.startsWith("/api/auth")) {
+  // Allow API proxy and auth routes without authentication
+  if (pathname.startsWith("/api/auth") || pathname.startsWith("/api/proxy")) {
     return NextResponse.next();
   }
 

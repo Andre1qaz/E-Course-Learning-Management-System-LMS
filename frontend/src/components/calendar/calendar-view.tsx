@@ -221,6 +221,23 @@ export function CalendarView({
     }
   };
 
+  const getEventTypeColor = (type: string, color?: string) => {
+    const style = getEventColorStyle(color);
+    if (style) {
+      return { style, className: "" };
+    }
+    switch (type) {
+      case "DEADLINE":
+        return { style: undefined, className: "bg-semantic-red/10 text-semantic-red border-semantic-red/20" };
+      case "PERSONAL_NOTE":
+        return { style: undefined, className: "bg-semantic-blue/10 text-semantic-blue border-semantic-blue/20" };
+      case "ANNOUNCEMENT":
+        return { style: undefined, className: "bg-semantic-amber/10 text-semantic-amber border-semantic-amber/20" };
+      default:
+        return { style: undefined, className: "bg-muted/10 text-muted-foreground border-border/20" };
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Calendar Header */}
@@ -503,32 +520,33 @@ export function CalendarView({
                       )}
                     </div>
                     <div className="space-y-2 overflow-y-auto max-h-36 sm:max-h-48">
-                      {dayEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEventClick(event);
-                          }}
-                          className={cn(
-                            "text-xs p-2 rounded-md border cursor-pointer hover:opacity-80 transition-opacity",
-                            typeof getEventTypeColor(event.type, event.color) === 'object' 
-                              ? '' 
-                              : getEventTypeColor(event.type, event.color)
-                          )}
-                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
-                        >
-                          <div className="flex items-center gap-1 mb-1">
-                            {getEventTypeIcon(event.type)}
-                            <span className="font-medium truncate">{event.title}</span>
-                          </div>
-                          {event.startTime && (
-                            <div className="text-xs text-muted-foreground">
-                              {event.startTime}
+                      {dayEvents.map((event) => {
+                        const colorStyle = getEventTypeColor(event.type, event.color);
+                        return (
+                          <div
+                            key={event.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEventClick(event);
+                            }}
+                            className={cn(
+                              "text-xs p-2 rounded-md border cursor-pointer hover:opacity-80 transition-opacity",
+                              colorStyle?.className
+                            )}
+                            style={colorStyle?.style}
+                          >
+                            <div className="flex items-center gap-1 mb-1">
+                              {getEventTypeIcon(event.type)}
+                              <span className="font-medium truncate">{event.title}</span>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {event.startTime && (
+                              <div className="text-xs text-muted-foreground">
+                                {event.startTime}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -557,44 +575,45 @@ export function CalendarView({
                         Tidak ada event pada hari ini
                       </div>
                     ) : (
-                      dayEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          onClick={() => handleEventClick(event)}
-                          className={cn(
-                            "p-4 md:p-5 rounded-xl border cursor-pointer transition-all hover:border-accent/50 hover:shadow-sm mb-3",
-                            typeof getEventTypeColor(event.type, event.color) === 'object' 
-                              ? '' 
-                              : getEventTypeColor(event.type, event.color)
-                          )}
-                          style={typeof getEventTypeColor(event.type, event.color) === 'object' ? getEventTypeColor(event.type, event.color) : undefined}
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2">
-                              {getEventTypeIcon(event.type)}
-                              <span className="font-medium text-sm md:text-base">{event.title}</span>
+                      dayEvents.map((event) => {
+                        const colorStyle = getEventTypeColor(event.type, event.color);
+                        return (
+                          <div
+                            key={event.id}
+                            onClick={() => handleEventClick(event)}
+                            className={cn(
+                              "p-4 md:p-5 rounded-xl border cursor-pointer transition-all hover:border-accent/50 hover:shadow-sm mb-3",
+                              colorStyle?.className
+                            )}
+                            style={colorStyle?.style}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                {getEventTypeIcon(event.type)}
+                                <span className="font-medium text-sm md:text-base">{event.title}</span>
+                              </div>
+                              {event.startTime && (
+                                <Badge variant="outline" className="text-xs">
+                                  {event.startTime} {event.endTime ? `- ${event.endTime}` : ''}
+                                </Badge>
+                              )}
                             </div>
-                            {event.startTime && (
-                              <Badge variant="outline" className="text-xs">
-                                {event.startTime} {event.endTime ? `- ${event.endTime}` : ''}
-                              </Badge>
+                            {event.description && (
+                              <p className="text-xs md:text-sm text-muted-foreground mb-2">{event.description}</p>
+                            )}
+                            {event.location && (
+                              <div className="text-xs text-muted-foreground mb-1">
+                                📍 {event.location}
+                              </div>
+                            )}
+                            {event.isOnline && event.meetingLink && (
+                              <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+                                🔗 {event.meetingLink}
+                              </div>
                             )}
                           </div>
-                          {event.description && (
-                            <p className="text-xs md:text-sm text-muted-foreground mb-2">{event.description}</p>
-                          )}
-                          {event.location && (
-                            <div className="text-xs text-muted-foreground mb-1">
-                              📍 {event.location}
-                            </div>
-                          )}
-                          {event.isOnline && event.meetingLink && (
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-                              🔗 {event.meetingLink}
-                            </div>
-                          )}
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 );
@@ -632,11 +651,9 @@ export function CalendarView({
                 <Badge 
                   className={cn(
                     "text-xs",
-                    typeof getEventTypeColor(selectedEvent.type, selectedEvent.color) === 'object' 
-                      ? '' 
-                      : getEventTypeColor(selectedEvent.type, selectedEvent.color)
+                    getEventTypeColor(selectedEvent.type, selectedEvent.color)?.className
                   )}
-                  style={typeof getEventTypeColor(selectedEvent.type, selectedEvent.color) === 'object' ? getEventTypeColor(selectedEvent.type, selectedEvent.color) : undefined}
+                  style={getEventTypeColor(selectedEvent.type, selectedEvent.color)?.style}
                 >
                   {getEventTypeIcon(selectedEvent.type)}
                   <span className="ml-1">
