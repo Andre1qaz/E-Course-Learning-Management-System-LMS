@@ -306,28 +306,28 @@ export function ActivityCard({
               </div>
               {activityLink && !isDraft && (
                 <div className="mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs"
-                    asChild={activity.type !== "MATERIAL" && activity.type !== "VIDEO" && activity.type !== "EXTERNAL_LINK"}
-                    onClick={(e) => {
-                      if (activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK") {
-                        e.preventDefault();
-                        window.open(activityLink, '_blank');
-                      }
-                    }}
-                    href={activityLink}
-                  >
-                    {activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK" ? (
-                      <>
-                        <ExternalLink className="mr-1 icon-xs" />
+                  {activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => window.open(activityLink, '_blank')}
+                    >
+                      <ExternalLink className="mr-1 icon-xs" />
+                      {actionLabel}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      asChild
+                    >
+                      <a href={activityLink}>
                         {actionLabel}
-                      </>
-                    ) : (
-                      actionLabel
-                    )}
-                  </Button>
+                      </a>
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
