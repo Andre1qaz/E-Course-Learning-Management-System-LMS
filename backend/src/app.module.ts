@@ -22,6 +22,7 @@ import { GradebookModule } from './gradebook/gradebook.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CourseProgressModule } from './course-progress/course-progress.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { CourseProgressModule } from './course-progress/course-progress.module';
     AnnouncementsModule,
     DashboardModule,
     CourseProgressModule,
+    QuizzesModule,
   ],
   providers: [
     {

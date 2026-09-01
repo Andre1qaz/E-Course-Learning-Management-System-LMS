@@ -156,7 +156,7 @@ export function ExamFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
+        <Form form={form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}

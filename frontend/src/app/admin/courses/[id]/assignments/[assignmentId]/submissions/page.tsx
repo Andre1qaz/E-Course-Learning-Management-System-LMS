@@ -11,6 +11,9 @@ export default async function AdminAssignmentSubmissionsPage({
 }) {
   const { id, assignmentId } = await params;
   const session = await auth();
+  
+  console.log('AdminAssignmentSubmissionsPage called:', { id, assignmentId, role: session?.user?.role });
+
   if (!session?.user) redirect("/login");
   if (session.user.role !== "ADMIN") redirect("/403");
 

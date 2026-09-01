@@ -12,7 +12,15 @@ export default async function AssignmentSubmissionsPage({
   const { id, assignmentId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "DOSEN") redirect("/403");
+  
+  // Allow both DOSEN and ADMIN to access this page
+  if (session.user.role !== "DOSEN" && session.user.role !== "ADMIN") redirect("/403");
+
+  // Dynamic breadcrumbs based on role
+  const isDashboard = session.user.role === "ADMIN";
+  const dashboardPath = isDashboard ? "/admin/dashboard" : "/dosen/dashboard";
+  const coursesPath = isDashboard ? "/admin/courses" : "/dosen/courses";
+  const courseDetailPath = isDashboard ? `/admin/courses/${id}` : `/dosen/courses/${id}`;
 
   // Fetch assignment details to get title and maxScore
   const assignmentResponse = await fetch(
@@ -27,7 +35,7 @@ export default async function AssignmentSubmissionsPage({
   const assignmentResult = await assignmentResponse.json();
 
   if (!assignmentResult.success) {
-    redirect("/dosen/courses");
+    redirect(coursesPath);
   }
 
   const assignment = assignmentResult.data;
@@ -37,9 +45,9 @@ export default async function AssignmentSubmissionsPage({
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
-          { label: "Dashboard", href: "/dosen/dashboard" },
-          { label: "Courses", href: "/dosen/courses" },
-          { label: "Course Detail", href: `/dosen/courses/${id}` },
+          { label: "Dashboard", href: dashboardPath },
+          { label: "Courses", href: coursesPath },
+          { label: "Course Detail", href: courseDetailPath },
           { label: "Assignment Submissions" },
         ]}
       >

@@ -36,6 +36,7 @@ model User {
   grades                Grade[]
   notifications         Notification[]
   privateFiles          PrivateFile[]
+  quizAttempts          QuizAttempt[]
 
   @@map("users")
 }
@@ -127,6 +128,7 @@ model Activity {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   week        Week           @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  quiz        Quiz?
 
   @@map("activities")
 }
@@ -585,6 +587,105 @@ model GradeHistory {
   grade        Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
 
   @@map("grade_histories")
+}
+
+model Quiz {
+  id                String        @id @default(cuid())
+  activityId        String        @unique
+  title             String
+  description       String?
+  duration          Int           @default(30)
+  passingScore      Float         @default(60)
+  allowRetake       Boolean       @default(false)
+  maxAttempts       Int           @default(1)
+  isPublished       Boolean       @default(false)
+  showResults       Boolean       @default(true)
+  showExplanation   Boolean       @default(false)
+  shuffleQuestions  Boolean       @default(false)
+  shuffleOptions    Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  activity          Activity      @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  questions         QuizQuestion[]
+  attempts          QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id             String           @id @default(cuid())
+  quizId         String
+  type           QuestionType
+  questionText   String
+  points         Float            @default(1)
+  order          Int              @default(0)
+  explanation    String?
+  difficulty     DifficultyLevel  @default(MEDIUM)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  quiz           Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options        QuizQuestionOption[]
+  answers        QuizAnswer[]
+
+  @@map("quiz_questions")
+}
+
+model QuizQuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  optionText String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+  answers    QuizAnswer[]
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_question_options")
+}
+
+model QuizAttempt {
+  id            String            @id @default(cuid())
+  quizId        String
+  studentId     String
+  startedAt     DateTime?
+  submittedAt   DateTime?
+  totalScore    Float?
+  status        QuizAttemptStatus @default(NOT_STARTED)
+  attemptNumber Int               @default(1)
+  autoSavedData Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  passed        Boolean?
+  quiz          Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student       User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers       QuizAnswer[]
+
+  @@unique([quizId, studentId, attemptNumber])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id               String           @id @default(cuid())
+  attemptId        String
+  questionId       String
+  answerText       String?
+  selectedOptionId String?
+  score            Float?
+  feedback         String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  attempt          QuizAttempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         QuizQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   QuizQuestionOption? @relation(fields: [selectedOptionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@map("quiz_answers")
+}
+
+enum QuizAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
 }
 
 model Announcement {

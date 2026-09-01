@@ -27,9 +27,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
-// Heuristic #16: Instructional Assessment — structured rubric creation
-// Heuristic #5: Error Prevention — validate rubric structure before submission
-
 const rubricLevelSchema = z.object({
   name: z.string().min(1, "Nama level harus diisi").max(200, "Nama level maksimal 200 karakter"),
   description: z.string().min(1, "Deskripsi harus diisi").max(500, "Deskripsi maksimal 500 karakter"),
@@ -61,6 +58,7 @@ interface RubricFormDialogProps {
   assignmentMaxScore: number;
   existingRubric?: any;
   onSuccess: () => void;
+  token: string;
 }
 
 export function RubricFormDialog({
@@ -70,6 +68,7 @@ export function RubricFormDialog({
   assignmentMaxScore,
   existingRubric,
   onSuccess,
+  token,
 }: RubricFormDialogProps) {
   const [loading, setLoading] = useState(false);
 
@@ -159,7 +158,7 @@ export function RubricFormDialog({
         method: existingRubric ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(values),
       });
@@ -202,7 +201,7 @@ export function RubricFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
+        <Form form={form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <FormField

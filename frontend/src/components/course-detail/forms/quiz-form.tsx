@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 interface Activity {
   id: string;
@@ -30,12 +32,19 @@ interface QuizFormProps {
 }
 
 export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizFormProps) {
+  const { data: session } = useSession();
+  const currentToken = session?.accessToken || token;
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("30");
   const [passingScore, setPassingScore] = useState("60");
   const [allowRetake, setAllowRetake] = useState(false);
+  const [maxAttempts, setMaxAttempts] = useState("1");
+  const [showResults, setShowResults] = useState(true);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [shuffleOptions, setShuffleOptions] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
 
   // Populate form with activity data if editing
@@ -46,6 +55,11 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
       setDuration(String(activity.metadata?.duration || 30));
       setPassingScore(String(activity.metadata?.passingScore || 60));
       setAllowRetake(activity.metadata?.allowRetake || false);
+      setMaxAttempts(String(activity.metadata?.maxAttempts || 1));
+      setShowResults(activity.metadata?.showResults !== undefined ? activity.metadata.showResults : true);
+      setShowExplanation(activity.metadata?.showExplanation || false);
+      setShuffleQuestions(activity.metadata?.shuffleQuestions || false);
+      setShuffleOptions(activity.metadata?.shuffleOptions || false);
       setIsPublished(activity.status === "PUBLISHED");
     }
   }, [activity]);
@@ -57,17 +71,13 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
     try {
       const isEdit = !!activity;
       const url = isEdit
-        ? `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activity.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities`;
+        ? `/weeks/${weekId}/activities/${activity.id}`
+        : `/weeks/${weekId}/activities`;
       
       const method = isEdit ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           type: "QUIZ",
           title,
@@ -78,18 +88,70 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
             duration: parseInt(duration),
             passingScore: parseInt(passingScore),
             allowRetake,
+            maxAttempts: parseInt(maxAttempts),
+            showResults,
+            showExplanation,
+            shuffleQuestions,
+            shuffleOptions,
           },
         }),
-      });
+      }, currentToken);
 
-      if (response.ok) {
+      if (response.success) {
+        // If creating a new activity, create the quiz record
+        if (!isEdit && response.data) {
+          const activityData = response.data as { id: string };
+          const quizResponse = await apiFetch<{ id: string }>(`/quizzes/activity/${activityData.id}`, {
+            method: "POST",
+            body: JSON.stringify({
+              title,
+              description,
+              duration: parseInt(duration),
+              passingScore: parseInt(passingScore),
+              allowRetake,
+              maxAttempts: parseInt(maxAttempts),
+              isPublished,
+              showResults,
+              showExplanation,
+              shuffleQuestions,
+              shuffleOptions,
+            }),
+          }, currentToken);
+          
+          if (quizResponse.success && quizResponse.data) {
+            // Update activity metadata with quiz ID
+            await apiFetch(`/weeks/${weekId}/activities/${activityData.id}`, {
+              method: "PUT",
+              body: JSON.stringify({
+                type: "QUIZ",
+                title,
+                description,
+                status: isPublished ? "PUBLISHED" : "DRAFT",
+                order: activity?.order || 0,
+                metadata: {
+                  quizId: quizResponse.data.id,
+                  duration: parseInt(duration),
+                  passingScore: parseInt(passingScore),
+                  allowRetake,
+                  maxAttempts: parseInt(maxAttempts),
+                  showResults,
+                  showExplanation,
+                  shuffleQuestions,
+                  shuffleOptions,
+                },
+              }),
+            }, currentToken);
+          }
+        }
+
         toast.success(isEdit ? "Quiz updated successfully" : "Quiz created successfully");
         onSuccess();
       } else {
-        toast.error(isEdit ? "Failed to update quiz" : "Failed to create quiz");
+        toast.error(response.message || (isEdit ? "Failed to update quiz" : "Failed to create quiz"));
       }
     } catch (error) {
-      toast.error("Error saving quiz");
+      console.error("Error saving quiz:", error);
+      toast.error(error instanceof Error ? error.message : "Error saving quiz");
     } finally {
       setLoading(false);
     }
@@ -123,6 +185,7 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
           value={duration}
           onChange={(e) => setDuration(e.target.value)}
           min="1"
+          max="480"
         />
       </div>
       <div className="space-y-2">
@@ -136,6 +199,17 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
           max="100"
         />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="maxAttempts">Max Attempts</Label>
+        <Input
+          id="maxAttempts"
+          type="number"
+          value={maxAttempts}
+          onChange={(e) => setMaxAttempts(e.target.value)}
+          min="1"
+          max="10"
+        />
+      </div>
       <div className="flex items-center space-x-2">
         <Switch
           id="allowRetake"
@@ -143,6 +217,38 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
           onCheckedChange={setAllowRetake}
         />
         <Label htmlFor="allowRetake">Allow Retake</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="showResults"
+          checked={showResults}
+          onCheckedChange={setShowResults}
+        />
+        <Label htmlFor="showResults">Show Results to Students</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="showExplanation"
+          checked={showExplanation}
+          onCheckedChange={setShowExplanation}
+        />
+        <Label htmlFor="showExplanation">Show Explanations</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="shuffleQuestions"
+          checked={shuffleQuestions}
+          onCheckedChange={setShuffleQuestions}
+        />
+        <Label htmlFor="shuffleQuestions">Shuffle Questions</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="shuffleOptions"
+          checked={shuffleOptions}
+          onCheckedChange={setShuffleOptions}
+        />
+        <Label htmlFor="shuffleOptions">Shuffle Options</Label>
       </div>
       <div className="flex items-center space-x-2">
         <Switch

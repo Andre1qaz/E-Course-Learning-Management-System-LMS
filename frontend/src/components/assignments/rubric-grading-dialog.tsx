@@ -25,11 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { FileText, Download, CheckCircle2 } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { toast } from "sonner";
-
-// Heuristic #16: Instructional Assessment — detailed rubric-based grading
-// Heuristic #5: Error Prevention — validate assessment before submission
 
 const rubricAssessmentSchema = z.object({
   assessments: z.array(
@@ -92,6 +89,7 @@ interface RubricGradingDialogProps {
     feedback: string | null;
   }>;
   onSuccess: () => void;
+  token: string;
 }
 
 export function RubricGradingDialog({
@@ -101,6 +99,7 @@ export function RubricGradingDialog({
   rubric,
   existingAssessments,
   onSuccess,
+  token,
 }: RubricGradingDialogProps) {
   const [loading, setLoading] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
@@ -184,7 +183,7 @@ export function RubricGradingDialog({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(values),
         }
@@ -217,7 +216,6 @@ export function RubricGradingDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Student Info */}
           <Card>
             <CardContent className="pt-4">
               <div className="space-y-2">
@@ -238,7 +236,6 @@ export function RubricGradingDialog({
             </CardContent>
           </Card>
 
-          {/* Submitted File */}
           {submission.fileUrl && (
             <Card>
               <CardContent className="pt-4">
@@ -266,7 +263,6 @@ export function RubricGradingDialog({
             </Card>
           )}
 
-          {/* Total Score */}
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
@@ -286,8 +282,7 @@ export function RubricGradingDialog({
             </CardContent>
           </Card>
 
-          {/* Rubric Grading Form */}
-          <Form {...form}>
+          <Form form={form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-4">
                 {rubric.criteria.map((criterion, index) => (
@@ -304,7 +299,6 @@ export function RubricGradingDialog({
                       )}
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Level Selection */}
                       <div>
                         <p className="text-sm font-medium mb-2">Pilih Level Penilaian:</p>
                         <FormField
@@ -355,7 +349,6 @@ export function RubricGradingDialog({
                         />
                       </div>
 
-                      {/* Manual Score Override */}
                       <div>
                         <FormField
                           control={form.control}
@@ -385,7 +378,6 @@ export function RubricGradingDialog({
                         />
                       </div>
 
-                      {/* Criterion Feedback */}
                       <FormField
                         control={form.control}
                         name={`assessments.${index}.feedback`}

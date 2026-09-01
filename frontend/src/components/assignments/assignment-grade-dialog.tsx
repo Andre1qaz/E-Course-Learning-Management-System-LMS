@@ -24,11 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, ExternalLink } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { toast } from "sonner";
-
-// Heuristic #16: Instructional Assessment — detailed grading with feedback and rubrics
-// Heuristic #5: Error Prevention — validate score before submission
 
 const gradeSchema = z.object({
   score: z
@@ -66,6 +63,7 @@ interface AssignmentGradeDialogProps {
   hasRubric?: boolean;
   onSwitchToRubricGrading?: () => void;
   onSuccess: () => void;
+  token: string;
 }
 
 export function AssignmentGradeDialog({
@@ -75,6 +73,7 @@ export function AssignmentGradeDialog({
   hasRubric,
   onSwitchToRubricGrading,
   onSuccess,
+  token,
 }: AssignmentGradeDialogProps) {
   const [loading, setLoading] = useState(false);
 
@@ -104,7 +103,7 @@ export function AssignmentGradeDialog({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(values),
         }
@@ -137,7 +136,6 @@ export function AssignmentGradeDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Student Info */}
           <Card>
             <CardContent className="pt-4">
               <div className="space-y-2">
@@ -158,7 +156,6 @@ export function AssignmentGradeDialog({
             </CardContent>
           </Card>
 
-          {/* Submitted File */}
           {submission.fileUrl && (
             <Card>
               <CardContent className="pt-4">
@@ -186,8 +183,7 @@ export function AssignmentGradeDialog({
             </Card>
           )}
 
-          {/* Grading Form */}
-          <Form {...form}>
+          <Form form={form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}

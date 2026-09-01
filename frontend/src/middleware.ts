@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const publicRoutes = ["/login", "/register", "/forgot-password"];
+const publicRoutes = ["/login", "/register", "/forgot-password", "/403"];
 
 const roleRoutes: Record<string, string[]> = {
-  ADMIN: ["/admin"],
+  ADMIN: ["/admin", "/dosen"], // Admin can also access dosen routes
   DOSEN: ["/dosen"],
   MAHASISWA: ["/mahasiswa"],
 };

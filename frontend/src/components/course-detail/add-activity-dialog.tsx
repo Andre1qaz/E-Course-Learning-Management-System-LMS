@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,8 @@ export function AddActivityDialog({
   courseId,
   onSuccess,
 }: AddActivityDialogProps) {
+  const { data: session } = useSession();
+  const currentToken = session?.accessToken || token;
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
   const handleBack = () => {
@@ -81,7 +84,7 @@ export function AddActivityDialog({
             <AssignmentForm weekId={weekId} token={token} courseId={courseId} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "QUIZ" && (
-            <QuizForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
+            <QuizForm weekId={weekId} token={currentToken} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "FORUM" && (
             <ForumForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />

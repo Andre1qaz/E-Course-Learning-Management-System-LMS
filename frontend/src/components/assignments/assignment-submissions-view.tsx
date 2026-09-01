@@ -343,6 +343,7 @@ export function AssignmentSubmissionsView({
               },
             }}
             hasRubric={!!rubric}
+            token={token}
             onSwitchToRubricGrading={() => {
               setShowGradeDialog(false);
               setShowRubricGradingDialog(true);
@@ -373,6 +374,7 @@ export function AssignmentSubmissionsView({
               }}
               rubric={rubric}
               existingAssessments={selectedSubmission.rubricAssessments}
+              token={token}
               onSuccess={() => {
                 fetchSubmissions();
                 setShowRubricGradingDialog(false);
@@ -389,6 +391,7 @@ export function AssignmentSubmissionsView({
         assignmentId={assignmentId}
         assignmentMaxScore={assignmentMaxScore}
         existingRubric={rubric}
+        token={token}
         onSuccess={() => {
           fetchRubric();
           setShowRubricDialog(false);

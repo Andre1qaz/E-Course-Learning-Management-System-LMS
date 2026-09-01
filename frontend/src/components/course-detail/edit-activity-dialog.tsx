@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,8 @@ export function EditActivityDialog({
   courseId,
   onSuccess,
 }: EditActivityDialogProps) {
+  const { data: session } = useSession();
+  const currentToken = session?.accessToken || token;
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
   // Reset selected type when dialog opens/closes or activity changes
@@ -114,7 +117,7 @@ export function EditActivityDialog({
         {activity.type === "QUIZ" && (
           <QuizForm 
             weekId={weekId} 
-            token={token} 
+            token={currentToken} 
             activity={activity}
             onSuccess={handleSuccess} 
             onCancel={() => onOpenChange(false)} 

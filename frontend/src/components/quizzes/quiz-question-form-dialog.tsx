@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,17 +19,15 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-// Heuristic #5: Error Prevention — validate question data before submission
-// Heuristic #16: Instructional Assessment — require correct answers for auto-grading
+import { apiFetch } from "@/lib/api";
 
 const questionSchema = z.object({
   questionText: z.string().min(1, "Pertanyaan wajib diisi").max(500, "Pertanyaan maksimal 500 karakter"),
@@ -36,25 +35,25 @@ const questionSchema = z.object({
   points: z.number().min(1, "Poin minimal 1").max(100, "Poin maksimal 100"),
   options: z.array(z.string()).optional(),
   correctAnswer: z.string().optional(),
-  rubric: z.string().max(5000, "Rubrik maksimal 5000 karakter").optional(),
   explanation: z.string().max(5000, "Penjelasan maksimal 5000 karakter").optional(),
 });
 
 type QuestionFormValues = z.infer<typeof questionSchema>;
 
-interface QuestionFormDialogProps {
+interface QuizQuestionFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  examId: string;
+  quizId: string;
   onSuccess: () => void;
 }
 
-export function QuestionFormDialog({
+export function QuizQuestionFormDialog({
   open,
   onOpenChange,
-  examId,
+  quizId,
   onSuccess,
-}: QuestionFormDialogProps) {
+}: QuizQuestionFormDialogProps) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<string[]>(["", ""]);
 
@@ -66,7 +65,6 @@ export function QuestionFormDialog({
       points: 1,
       options: ["", ""],
       correctAnswer: "",
-      rubric: "",
       explanation: "",
     },
   });
@@ -109,35 +107,21 @@ export function QuestionFormDialog({
         payload.correctAnswer = values.correctAnswer;
       } else if (values.type === "SHORT_ANSWER") {
         payload.correctAnswer = values.correctAnswer;
-      } else if (values.type === "ESSAY") {
-        payload.rubric = values.rubric;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examId}/questions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      await apiFetch(`/quizzes/${quizId}/questions`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }, session?.accessToken || undefined);
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success("Soal berhasil ditambahkan");
-        onSuccess();
-        onOpenChange(false);
-        form.reset();
-        setOptions(["", ""]);
-      } else {
-        toast.error(result.message || "Gagal menambahkan soal");
-      }
+      toast.success("Soal berhasil ditambahkan");
+      onSuccess();
+      onOpenChange(false);
+      form.reset();
+      setOptions(["", ""]);
     } catch (error) {
-      toast.error("Terjadi kesalahan saat menambahkan soal");
+      console.error("Error adding question:", error);
+      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan saat menambahkan soal");
     } finally {
       setLoading(false);
     }
@@ -147,9 +131,9 @@ export function QuestionFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
-          <DialogTitle>Tambah Soal</DialogTitle>
+          <DialogTitle>Tambah Soal Kuis</DialogTitle>
           <DialogDescription id="dialog-description">
-            Tambah soal baru ke ujian ini
+            Tambah soal baru ke kuis ini
           </DialogDescription>
         </DialogHeader>
 
@@ -160,7 +144,7 @@ export function QuestionFormDialog({
               name="questionText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="questionText">Pertanyaan</FormLabel>
+                  <Label htmlFor="questionText">Pertanyaan</Label>
                   <FormControl>
                     <Textarea
                       id="questionText"
@@ -180,7 +164,7 @@ export function QuestionFormDialog({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="questionType">Tipe Soal</FormLabel>
+                  <Label htmlFor="questionType">Tipe Soal</Label>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger id="questionType" aria-describedby="questionType-error">
@@ -203,7 +187,7 @@ export function QuestionFormDialog({
               name="points"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="points">Poin</FormLabel>
+                  <Label htmlFor="points">Poin</Label>
                   <FormControl>
                     <Input
                       id="points"
@@ -222,7 +206,7 @@ export function QuestionFormDialog({
 
             {questionType === "MULTIPLE_CHOICE" && (
               <div className="space-y-2">
-                <FormLabel>Opsi Jawaban</FormLabel>
+                <Label>Opsi Jawaban</Label>
                 {options.map((option, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
@@ -266,7 +250,7 @@ export function QuestionFormDialog({
                 name="correctAnswer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="correctAnswerMC">Jawaban Benar</FormLabel>
+                    <Label htmlFor="correctAnswerMC">Jawaban Benar</Label>
                     <FormControl>
                       <Input
                         id="correctAnswerMC"
@@ -287,7 +271,7 @@ export function QuestionFormDialog({
                 name="correctAnswer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="correctAnswerSA">Jawaban Benar</FormLabel>
+                    <Label htmlFor="correctAnswerSA">Jawaban Benar</Label>
                     <FormControl>
                       <Input
                         id="correctAnswerSA"
@@ -302,38 +286,16 @@ export function QuestionFormDialog({
               />
             )}
 
-            {questionType === "ESSAY" && (
-              <FormField
-                control={form.control}
-                name="rubric"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="rubric">Rubrik Penilaian</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        id="rubric"
-                        placeholder="Rubrik penilaian untuk soal essay..."
-                        className="min-h-[100px] resize-none"
-                        aria-describedby="rubric-error"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage id="rubric-error" />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <FormField
               control={form.control}
               name="explanation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel htmlFor="explanation">Penjelasan Soal (Opsional)</FormLabel>
+                  <Label htmlFor="explanation">Penjelasan Soal (Opsional)</Label>
                   <FormControl>
                     <Textarea
                       id="explanation"
-                      placeholder="Penjelasan yang akan ditampilkan setelah ujian selesai..."
+                      placeholder="Penjelasan yang akan ditampilkan setelah kuis selesai..."
                       className="min-h-[80px] resize-none"
                       aria-describedby="explanation-error"
                       {...field}

@@ -107,6 +107,7 @@ export function ActivityCard({
   onChange,
   courseId,
 }: ActivityCardProps) {
+  console.log('ActivityCard props:', { userRole, canEdit, activityType: activity.type, assignmentId: activity.metadata?.assignmentId });
   const config = activityConfig[activity.type] || activityConfig.MATERIAL;
   const Icon = config.icon;
   const isDraft = activity.status === "DRAFT";
@@ -238,7 +239,12 @@ export function ActivityCard({
         }
         return null;
       case "QUIZ":
-        return `/mahasiswa/courses/${courseId}/quizzes/${activity.id}`;
+        if (userRole === "MAHASISWA") {
+          return `/mahasiswa/courses/${courseId}/quizzes/${activity.metadata?.quizId || activity.id}`;
+        } else if (canEdit) {
+          return `/dosen/courses/${courseId}/quizzes/${activity.metadata?.quizId || activity.id}`;
+        }
+        return null;
       case "FORUM":
         return `/mahasiswa/courses/${courseId}/forums/${activity.id}`;
       case "VIDEO":
@@ -257,7 +263,7 @@ export function ActivityCard({
       case "ASSIGNMENT":
         return userRole === "MAHASISWA" ? "Kerjakan Tugas" : "Lihat Submissions";
       case "QUIZ":
-        return "Mulai Kuis";
+        return userRole === "MAHASISWA" ? "Mulai Kuis" : "Tinjau Kuis";
       case "FORUM":
         return "Buka Forum";
       case "VIDEO":
@@ -443,9 +449,17 @@ export function ActivityCard({
                 </DropdownMenuItem>
                 {activity.type === "ASSIGNMENT" && canEdit && activity.metadata?.assignmentId && (
                   <DropdownMenuItem asChild>
-                    <a href={userRole === "ADMIN" ? `/admin/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions` : `/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
+                    <a href={`/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
                       <Users className="mr-2 icon-sm" />
                       View Submissions
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                {activity.type === "QUIZ" && canEdit && activity.metadata?.quizId && (
+                  <DropdownMenuItem asChild>
+                    <a href={`/dosen/courses/${courseId}/quizzes/${activity.metadata?.quizId}`}>
+                      <HelpCircle className="mr-2 icon-sm" />
+                      Tinjau Kuis
                     </a>
                   </DropdownMenuItem>
                 )}

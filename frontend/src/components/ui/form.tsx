@@ -1,17 +1,15 @@
 import * as React from "react"
-import { Controller, ControllerProps, FieldPath, FieldValues, useFormContext } from "react-hook-form"
+import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider, useFormContext } from "react-hook-form"
 import { cn } from "@/lib/utils"
 
 const Form = React.forwardRef<
   HTMLFormElement,
-  React.FormHTMLAttributes<HTMLFormElement>
->(({ className, ...props }, ref) => {
+  React.HTMLAttributes<HTMLFormElement> & { form?: any }
+>(({ children, form }, ref) => {
   return (
-    <form
-      ref={ref}
-      className={cn("space-y-4", className)}
-      {...props}
-    />
+    <FormProvider {...form}>
+      {children}
+    </FormProvider>
   )
 })
 Form.displayName = "Form"
