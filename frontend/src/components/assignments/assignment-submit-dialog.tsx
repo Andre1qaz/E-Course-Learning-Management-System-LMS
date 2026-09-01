@@ -25,6 +25,7 @@ interface AssignmentSubmitDialogProps {
   onOpenChange: (open: boolean) => void;
   assignmentId: string;
   assignmentTitle: string;
+  token: string;
   onSuccess: () => void;
 }
 
@@ -43,6 +44,7 @@ export function AssignmentSubmitDialog({
   onOpenChange,
   assignmentId,
   assignmentTitle,
+  token,
   onSuccess,
 }: AssignmentSubmitDialogProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -92,28 +94,61 @@ export function AssignmentSubmitDialog({
     setUploadProgress(0);
 
     try {
-      // Simulate upload progress (in real implementation, use actual upload progress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
+      // Get upload URL from backend for assignment submissions
+      const uploadUrlResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/private-files/upload`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        }
+      );
 
-      // For now, we'll use a mock file URL since MinIO is not available
-      // In production, this would upload to MinIO via presigned URL
-      const fileUrl = `https://placeholder.com/files/${file.name}`;
-      
+      if (!uploadUrlResponse.ok) {
+        const errorText = await uploadUrlResponse.text();
+        console.error('Upload URL error:', errorText);
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadUrlResult = await uploadUrlResponse.json();
+      console.log('Upload URL response:', uploadUrlResult);
+
+      if (!uploadUrlResult.success || !uploadUrlResult.data) {
+        throw new Error("Invalid upload URL response");
+      }
+
+      const { uploadUrl, fileUrl } = uploadUrlResult.data;
+
+      // Upload file to the presigned URL
+      const uploadResult = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      setUploadProgress(100);
+
+      // Submit assignment with the file URL
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/assignments/${assignmentId}/submit`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             fileUrl,
@@ -121,9 +156,6 @@ export function AssignmentSubmitDialog({
           }),
         }
       );
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
 
       const result = await response.json();
 
@@ -137,7 +169,8 @@ export function AssignmentSubmitDialog({
         toast.error(result.message || "Gagal mengumpulkan tugas");
       }
     } catch (error) {
-      toast.error("Terjadi kesalahan saat mengumpulkan tugas");
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Terjadi kesalahan: ${errorMessage}`);
     } finally {
       setUploading(false);
     }

@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: ecourse-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run prisma:generate && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ecourse-db
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: ecourse-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: ecourse-redis
+          property: port
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://your-domain.vercel.app
+      - key: MINIO_ENDPOINT
+        value: your-minio-endpoint
+      - key: MINIO_PORT
+        value: 9000
+      - key: MINIO_ACCESS_KEY
+        value: your-access-key
+      - key: MINIO_SECRET_KEY
+        value: your-secret-key
+      - key: MINIO_BUCKET_PUBLIC
+        value: ecourse-public
+      - key: MINIO_BUCKET_PRIVATE
+        value: ecourse-private
+      - key: MINIO_USE_SSL
+        value: true
+
+databases:
+  - name: ecourse-db
+    databaseName: ecourse_db
+    user: ecourse
+    plan: free
+
+  - name: ecourse-redis
+    plan: free

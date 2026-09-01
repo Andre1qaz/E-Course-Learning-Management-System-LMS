@@ -4,7 +4,7 @@ import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { AssignmentSubmissionsView } from "@/components/assignments/assignment-submissions-view";
 
-export default async function AssignmentSubmissionsPage({
+export default async function AdminAssignmentSubmissionsPage({
   params,
 }: {
   params: Promise<{ id: string; assignmentId: string }>;
@@ -12,7 +12,7 @@ export default async function AssignmentSubmissionsPage({
   const { id, assignmentId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "DOSEN") redirect("/403");
+  if (session.user.role !== "ADMIN") redirect("/403");
 
   // Fetch assignment details to get title and maxScore
   const assignmentResponse = await fetch(
@@ -27,7 +27,7 @@ export default async function AssignmentSubmissionsPage({
   const assignmentResult = await assignmentResponse.json();
 
   if (!assignmentResult.success) {
-    redirect("/dosen/courses");
+    redirect("/admin/courses");
   }
 
   const assignment = assignmentResult.data;
@@ -37,9 +37,9 @@ export default async function AssignmentSubmissionsPage({
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
-          { label: "Dashboard", href: "/dosen/dashboard" },
-          { label: "Courses", href: "/dosen/courses" },
-          { label: "Course Detail", href: `/dosen/courses/${id}` },
+          { label: "Dashboard", href: "/admin/dashboard" },
+          { label: "Courses", href: "/admin/courses" },
+          { label: "Course Detail", href: `/admin/courses/${id}` },
           { label: "Assignment Submissions" },
         ]}
       >

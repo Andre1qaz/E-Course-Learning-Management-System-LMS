@@ -2,9 +2,9 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AuthSessionProvider } from "@/components/session-provider";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { AssignmentSubmissionsView } from "@/components/assignments/assignment-submissions-view";
+import { StudentAssignmentDetail } from "@/components/assignments/student-assignment-detail";
 
-export default async function AssignmentSubmissionsPage({
+export default async function StudentAssignmentPage({
   params,
 }: {
   params: Promise<{ id: string; assignmentId: string }>;
@@ -12,9 +12,9 @@ export default async function AssignmentSubmissionsPage({
   const { id, assignmentId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "DOSEN") redirect("/403");
+  if (session.user.role !== "MAHASISWA") redirect("/403");
 
-  // Fetch assignment details to get title and maxScore
+  // Fetch assignment details
   const assignmentResponse = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/assignments/${assignmentId}`,
     {
@@ -27,26 +27,38 @@ export default async function AssignmentSubmissionsPage({
   const assignmentResult = await assignmentResponse.json();
 
   if (!assignmentResult.success) {
-    redirect("/dosen/courses");
+    redirect("/mahasiswa/courses");
   }
 
   const assignment = assignmentResult.data;
+
+  // Fetch student's submission
+  const submissionResponse = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/assignments/${assignmentId}/my-submission`,
+    {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+    }
+  );
+
+  const submissionResult = await submissionResponse.json();
+  const submission = submissionResult.success ? submissionResult.data : null;
 
   return (
     <AuthSessionProvider session={session}>
       <DashboardLayout
         user={session.user}
         breadcrumbs={[
-          { label: "Dashboard", href: "/dosen/dashboard" },
-          { label: "Courses", href: "/dosen/courses" },
-          { label: "Course Detail", href: `/dosen/courses/${id}` },
-          { label: "Assignment Submissions" },
+          { label: "Dashboard", href: "/mahasiswa/dashboard" },
+          { label: "Courses", href: "/mahasiswa/courses" },
+          { label: "Course Detail", href: `/mahasiswa/courses/${id}` },
+          { label: "Assignment" },
         ]}
       >
-        <AssignmentSubmissionsView
-          assignmentId={assignmentId}
-          assignmentTitle={assignment.title}
-          assignmentMaxScore={assignment.maxScore}
+        <StudentAssignmentDetail
+          assignment={assignment}
+          submission={submission}
           courseId={id}
           token={session.accessToken}
         />

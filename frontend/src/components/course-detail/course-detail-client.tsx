@@ -142,6 +142,32 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
     fetchAllExams();
   };
 
+  const handleDeleteWeek = async (weekId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}/weeks/${weekId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Week berhasil dihapus");
+        fetchWeeks();
+        fetchAllExams();
+      } else {
+        toast.error(result.message || "Gagal menghapus week");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menghapus week");
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -256,6 +282,7 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
               fetchWeeks();
               fetchAllExams();
             }}
+            onDeleteWeek={() => handleDeleteWeek(week.id)}
             token={token}
             userRole={userRole}
             courseId={courseId}

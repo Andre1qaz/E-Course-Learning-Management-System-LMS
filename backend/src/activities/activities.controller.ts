@@ -22,13 +22,17 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
 
 @ApiTags('activities')
 @Controller('weeks/:weekId/activities')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(
+    private readonly activitiesService: ActivitiesService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all activities for a week' })
@@ -138,6 +142,25 @@ export class ActivitiesController {
       userId,
       role,
     );
+  }
+
+  @Post('upload-url')
+  @Roles(Role.ADMIN, Role.DOSEN)
+  @ApiOperation({ summary: 'Generate upload URL for material files (Admin/Dosen only)' })
+  @ApiParam({ name: 'weekId', description: 'Week ID' })
+  async generateUploadUrl(
+    @Param('weekId') weekId: string,
+    @Body() body: { fileName: string; fileType: string; fileSize: number },
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    const { uploadUrl, fileUrl } = await this.storageService.generateUploadUrl(
+      body.fileName,
+      body.fileType,
+      body.fileSize,
+      false, // public files for course materials
+    );
+    return { success: true, data: { uploadUrl, fileUrl }, message: 'Upload URL generated successfully' };
   }
 }
 

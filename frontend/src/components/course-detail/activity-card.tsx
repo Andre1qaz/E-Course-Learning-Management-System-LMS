@@ -17,6 +17,8 @@ import {
   Clock,
   Calendar,
   Users,
+  Download,
+  File,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -221,6 +223,10 @@ export function ActivityCard({
   const getActivityLink = () => {
     switch (activity.type) {
       case "MATERIAL":
+        // Prioritize uploaded files, then external URLs
+        if (activity.metadata?.uploadedFiles && activity.metadata.uploadedFiles.length > 0) {
+          return activity.metadata.uploadedFiles[0].fileUrl;
+        }
         if (activity.metadata?.fileUrl) return activity.metadata.fileUrl;
         if (activity.metadata?.videoUrl) return activity.metadata.videoUrl;
         return null;
@@ -292,6 +298,57 @@ export function ActivityCard({
                   {activity.description}
                 </p>
               )}
+
+              {/* Show uploaded files for MATERIAL type */}
+              {(activity.type === "MATERIAL" || activity.type === "ASSIGNMENT") && activity.metadata?.uploadedFiles && activity.metadata.uploadedFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Uploaded Files:</p>
+                  {activity.metadata.uploadedFiles.map((file: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2 text-xs">
+                      <File className="h-3 w-3 text-muted-foreground" />
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline truncate flex-1"
+                      >
+                        {file.fileName}
+                      </a>
+                      <span className="text-muted-foreground">
+                        ({(file.fileSize / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Show video URL for MATERIAL and ASSIGNMENT */}
+              {(activity.type === "MATERIAL" || activity.type === "ASSIGNMENT") && activity.metadata?.videoUrl && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Video Referensi:</p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Video className="h-3 w-3 text-muted-foreground" />
+                    <a
+                      href={activity.metadata.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline truncate flex-1"
+                    >
+                      {activity.metadata.videoUrl}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Show text content for MATERIAL type */}
+              {activity.type === "MATERIAL" && activity.metadata?.textContent && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Text Content:</p>
+                  <p className="text-xs text-muted-foreground line-clamp-3 font-mono bg-muted p-2 rounded">
+                    {activity.metadata.textContent}
+                  </p>
+                </div>
+              )}
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 {getDeadline() && (
                   <div className="flex items-center gap-1">
@@ -306,7 +363,47 @@ export function ActivityCard({
               </div>
               {activityLink && !isDraft && (
                 <div className="mt-3">
-                  {activity.type === "MATERIAL" || activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK" ? (
+                  {activity.type === "MATERIAL" ? (
+                    // For MATERIAL type with uploaded files, show download buttons
+                    activity.metadata?.uploadedFiles && activity.metadata.uploadedFiles.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {activity.metadata.uploadedFiles.map((file: any, index: number) => (
+                          <Button
+                            key={index}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            onClick={() => window.open(file.fileUrl, '_blank')}
+                          >
+                            <Download className="mr-1 icon-xs" />
+                            {file.fileName.length > 15 ? file.fileName.substring(0, 15) + '...' : file.fileName}
+                          </Button>
+                        ))}
+                        {activity.metadata?.videoUrl && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            onClick={() => window.open(activity.metadata.videoUrl, '_blank')}
+                          >
+                            <Video className="mr-1 icon-xs" />
+                            Watch Video
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      // Fallback for legacy material with single URL
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => window.open(activityLink, '_blank')}
+                      >
+                        <ExternalLink className="mr-1 icon-xs" />
+                        {actionLabel}
+                      </Button>
+                    )
+                  ) : activity.type === "VIDEO" || activity.type === "EXTERNAL_LINK" ? (
                     <Button
                       size="sm"
                       variant="outline"
@@ -344,9 +441,9 @@ export function ActivityCard({
                   <Edit className="mr-2 icon-sm" />
                   Edit
                 </DropdownMenuItem>
-                {activity.type === "ASSIGNMENT" && canEdit && (
+                {activity.type === "ASSIGNMENT" && canEdit && activity.metadata?.assignmentId && (
                   <DropdownMenuItem asChild>
-                    <a href={`/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
+                    <a href={userRole === "ADMIN" ? `/admin/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions` : `/dosen/courses/${courseId}/assignments/${activity.metadata?.assignmentId}/submissions`}>
                       <Users className="mr-2 icon-sm" />
                       View Submissions
                     </a>

@@ -11,6 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ActivityCard } from "./activity-card";
 import { EditActivityDialog } from "./edit-activity-dialog";
 import { toast } from "sonner";
@@ -61,6 +69,7 @@ interface WeekAccordionProps {
   canEdit: boolean;
   onAddActivity: () => void;
   onActivityChange: () => void;
+  onDeleteWeek: () => void;
   token: string;
   userRole: string;
   courseId: string;
@@ -73,12 +82,14 @@ export function WeekAccordion({
   canEdit,
   onAddActivity,
   onActivityChange,
+  onDeleteWeek,
   token,
   userRole,
   courseId,
 }: WeekAccordionProps) {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [activities, setActivities] = useState<Activity[]>(week.activities);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination || !canEdit) return;
@@ -224,7 +235,7 @@ export function WeekAccordion({
                   <Copy className="mr-2 icon-sm" />
                   Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()} className="text-destructive">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true); }} className="text-destructive">
                   <Trash2 className="mr-2 icon-sm" />
                   Delete
                 </DropdownMenuItem>
@@ -444,6 +455,33 @@ export function WeekAccordion({
         courseId={courseId}
         onSuccess={onActivityChange}
       />
+
+      {/* Delete Week Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Week?</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus Week {week.weekNumber}: {week.title}? Tindakan ini tidak dapat dibatalkan dan semua aktivitas dalam week ini juga akan dihapus.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                setShowDeleteDialog(false);
+                onDeleteWeek();
+              }}
+            >
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { Upload, FileText, X, Video } from "lucide-react";
 
 interface Activity {
   id: string;
@@ -30,28 +31,110 @@ interface AssignmentFormProps {
   onCancel: () => void;
 }
 
+interface UploadedFile {
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+}
+
 export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, onCancel }: AssignmentFormProps) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [deadline, setDeadline] = useState("");
   const [maxScore, setMaxScore] = useState("100");
   const [allowLateSubmission, setAllowLateSubmission] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // Populate form with activity data if editing
   useEffect(() => {
     if (activity) {
       setTitle(activity.title);
       setDescription(activity.description || "");
-      setAttachmentUrl(activity.metadata?.attachmentUrl || "");
+      setVideoUrl(activity.metadata?.videoUrl || "");
       setDeadline(activity.metadata?.deadline || "");
       setMaxScore(String(activity.metadata?.maxScore || 100));
       setAllowLateSubmission(activity.metadata?.allowLateSubmission || false);
       setIsPublished(activity.status === "PUBLISHED");
+      setUploadedFiles(activity.metadata?.uploadedFiles || []);
     }
   }, [activity]);
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      // Get upload URL from backend
+      const uploadEndpoint = `${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/upload-url`;
+
+      const uploadResponse = await fetch(uploadEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Upload URL error:', errorText);
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadUrlResult = await uploadResponse.json();
+      console.log('Upload URL response:', uploadUrlResult);
+
+      if (!uploadUrlResult.success || !uploadUrlResult.data) {
+        throw new Error("Invalid upload URL response");
+      }
+
+      const { uploadUrl, fileUrl } = uploadUrlResult.data;
+
+      // Upload file to the presigned URL
+      const uploadResult = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      // Add to uploaded files list
+      setUploadedFiles([
+        ...uploadedFiles,
+        {
+          fileName: file.name,
+          fileUrl: fileUrl,
+          fileType: file.type,
+          fileSize: file.size,
+        },
+      ]);
+
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to upload file: ${errorMessage}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveFile = (fileUrl: string) => {
+    setUploadedFiles(uploadedFiles.filter((file) => file.fileUrl !== fileUrl));
+    toast.success("File removed");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,10 +197,11 @@ export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, o
           order: activity?.order || 0,
           metadata: {
             assignmentId,
-            attachmentUrl,
+            videoUrl,
             deadline,
             maxScore: parseInt(maxScore),
             allowLateSubmission,
+            uploadedFiles,
           },
         }),
       });
@@ -152,18 +236,88 @@ export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, o
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          rows={3}
+          rows={6}
+          placeholder="Tulis deskripsi tugas di sini..."
         />
       </div>
+
+      {/* File Upload Section */}
       <div className="space-y-2">
-        <Label htmlFor="attachmentUrl">Attachment URL</Label>
-        <Input
-          id="attachmentUrl"
-          value={attachmentUrl}
-          onChange={(e) => setAttachmentUrl(e.target.value)}
-          placeholder="https://..."
-        />
+        <Label>Upload Documents (PDF, DOCX, PPTX, TXT)</Label>
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors">
+          <input
+            type="file"
+            id="file-upload"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileUpload(file);
+            }}
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+          />
+          <label
+            htmlFor="file-upload"
+            className="cursor-pointer flex flex-col items-center gap-2"
+          >
+            <Upload className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {uploading ? "Uploading..." : "Click to upload or drag and drop"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              PDF, DOCX, PPTX, TXT (Max 50MB)
+            </p>
+          </label>
+        </div>
+
+        {/* Uploaded Files List */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-2 mt-2">
+            <Label>Uploaded Files</Label>
+            <div className="space-y-2">
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{file.fileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(file.fileSize / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveFile(file.fileUrl)}
+                    className="flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Video URL Section */}
+      <div className="space-y-2">
+        <Label htmlFor="videoUrl">Video URL (YouTube)</Label>
+        <Input
+          id="videoUrl"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
+          placeholder="https://youtube.com/..."
+        />
+        <p className="text-xs text-muted-foreground">
+          Tambahkan link YouTube sebagai referensi tugas
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="deadline">Deadline</Label>
         <Input
@@ -204,7 +358,7 @@ export function AssignmentForm({ weekId, token, courseId, activity, onSuccess, o
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || uploading}>
           {loading ? (activity ? "Updating..." : "Creating...") : (activity ? "Update Assignment" : "Create Assignment")}
         </Button>
       </div>
