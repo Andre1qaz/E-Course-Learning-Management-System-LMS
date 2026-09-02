@@ -137,4 +137,16 @@ export class QuizzesController {
   ) {
     return this.quizzesService.getAllAttempts(id, userId, role);
   }
+
+  @Delete(':id/questions/:questionId')
+  @ApiOperation({ summary: 'Delete question from quiz (Admin/instructor only)' })
+  @Roles(Role.ADMIN, Role.DOSEN)
+  async deleteQuestion(
+    @Param('id', ParseEntityIdPipe) id: string,
+    @Param('questionId', ParseEntityIdPipe) questionId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.quizzesService.deleteQuestion(id, questionId, userId, role);
+  }
 }

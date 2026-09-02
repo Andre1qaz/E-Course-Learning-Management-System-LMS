@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Bell, Filter, X, CheckCircle2 } from "lucide-react";
+import { Bell, Filter, X, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AnnouncementCard } from "./announcement-card";
 import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
@@ -48,6 +56,14 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
   const [loading, setLoading] = useState(true);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [search, setSearch] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
+
+  const canDeleteAnnouncement = (announcement: Announcement) => {
+    const userRole = session?.user?.role;
+    const userId = session?.user?.id;
+    return userRole === 'ADMIN' || announcement.author.id === userId;
+  };
 
   useEffect(() => {
     async function fetchAnnouncements() {
@@ -101,6 +117,26 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
       setUnreadCount(0);
     } catch (error) {
       toast.error("Gagal menandai semua sebagai dibaca");
+    }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setAnnouncementToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!session?.accessToken || !announcementToDelete) return;
+
+    try {
+      await apiFetch(`/announcements/${announcementToDelete}`, { method: "DELETE" }, session.accessToken);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== announcementToDelete));
+      toast.success("Pengumuman berhasil dihapus");
+    } catch (error) {
+      toast.error("Gagal menghapus pengumuman");
+    } finally {
+      setDeleteDialogOpen(false);
+      setAnnouncementToDelete(null);
     }
   };
 
@@ -192,10 +228,30 @@ export function AnnouncementsList({ courseId, basePath, limit }: AnnouncementsLi
             key={announcement.id}
             announcement={announcement}
             onMarkAsRead={handleMarkAsRead}
+            onDelete={canDeleteAnnouncement(announcement) ? handleDeleteClick : undefined}
             basePath={basePath}
           />
         ))}
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Pengumuman</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus pengumuman ini? Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

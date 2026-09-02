@@ -98,6 +98,7 @@ export function QuizReviewClient({ courseId, quizId }: QuizReviewClientProps) {
       return;
     }
     
+    // Always allow refresh when forceRefresh is true
     if (!forceRefresh && hasLoadedRef.current) {
       return;
     }
@@ -115,8 +116,8 @@ export function QuizReviewClient({ courseId, quizId }: QuizReviewClientProps) {
       
       if (quizResult.data) {
         setQuiz(quizResult.data);
-        const questionsData = Array.isArray(quizResult.data.questions) ? quizResult.data.questions : [];
-        setQuestions(questionsData);
+        // Don't set questions from quiz data to avoid conflicts
+        // Let fetchQuestions handle it separately
       } else {
         toast.error("Quiz data tidak ditemukan");
         setQuestions([]);
@@ -144,8 +145,10 @@ export function QuizReviewClient({ courseId, quizId }: QuizReviewClientProps) {
   };
 
   useEffect(() => {
-    if (status === "authenticated" && session?.accessToken && !hasLoadedRef.current) {
+    if (status === "authenticated" && session?.accessToken) {
+      // Always fetch both on mount
       fetchQuizData();
+      fetchQuestions();
     } else if (status === "unauthenticated") {
       toast.error("Anda perlu login untuk mengakses halaman ini");
       setLoading(false);
@@ -535,10 +538,8 @@ export function QuizReviewClient({ courseId, quizId }: QuizReviewClientProps) {
           onOpenChange={setShowQuestionForm}
           quizId={quizId}
           onSuccess={async () => {
-            // Refresh questions first (most important)
+            // Only refresh questions - don't call fetchQuizData as it doesn't handle questions
             await fetchQuestions();
-            // Then refresh quiz data
-            await fetchQuizData(true);
           }}
         />
       )}

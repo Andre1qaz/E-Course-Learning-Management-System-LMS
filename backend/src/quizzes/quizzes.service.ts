@@ -206,6 +206,7 @@ export class QuizzesService {
     userRole: Role,
     dto: CreateQuizQuestionDto,
   ) {
+    console.log('Received DTO:', JSON.stringify(dto, null, 2));
     const quizResult = await this.findOne(quizId, userId, userRole);
     const quiz = quizResult.data;
 
@@ -220,7 +221,9 @@ export class QuizzesService {
       points: { type: 'number', required: false, min: 1, max: 100 },
       order: { type: 'number', required: false, min: 0 },
       explanation: { type: 'string', required: false, maxLength: 5000 },
+      correctAnswer: { type: 'string', required: false },
     });
+    console.log('Validation result:', JSON.stringify(result, null, 2));
 
     if (!result.valid) {
       throw new BadRequestException(result.errors.join(', '));
@@ -239,18 +242,24 @@ export class QuizzesService {
       });
 
       // Add options for multiple choice questions
-      if (result.sanitized.type === 'MULTIPLE_CHOICE' && result.sanitized.options && result.sanitized.options.length > 0) {
-        for (let i = 0; i < result.sanitized.options.length; i++) {
+      if (result.sanitized.type === 'MULTIPLE_CHOICE' && dto.options && dto.options.length > 0) {
+        console.log('Creating options for multiple choice question:', dto.options);
+        for (let i = 0; i < dto.options.length; i++) {
           await tx.quizQuestionOption.create({
             data: {
               questionId: createdQuestion.id,
-              optionText: result.sanitized.options[i],
-              isCorrect: result.sanitized.options[i] === result.sanitized.correctAnswer,
+              optionText: dto.options[i],
+              isCorrect: dto.options[i] === dto.correctAnswer,
               order: i,
             },
           });
         }
+      } else {
+        console.log('No options to create - type:', result.sanitized.type, 'options:', dto.options);
       }
+
+      console.log('Created question with ID:', createdQuestion.id);
+      return createdQuestion;
 
       return createdQuestion;
     });
@@ -259,6 +268,41 @@ export class QuizzesService {
       success: true,
       data: question,
       message: 'Question added successfully',
+    };
+  }
+
+  /**
+   * Delete question from quiz
+   */
+  async deleteQuestion(quizId: string, questionId: string, userId: string, userRole: Role) {
+    const quizResult = await this.findOne(quizId, userId, userRole);
+    const quiz = quizResult.data;
+
+    // Only ADMIN and DOSEN can delete questions
+    if (userRole !== Role.ADMIN && quiz.activity.week.course.instructorId !== userId) {
+      throw new ForbiddenException('Only Admin and course instructor can delete questions');
+    }
+
+    // Check if question exists and belongs to this quiz
+    const question = await this.prisma.quizQuestion.findUnique({
+      where: { id: questionId },
+    });
+
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    if (question.quizId !== quizId) {
+      throw new ForbiddenException('Question does not belong to this quiz');
+    }
+
+    await this.prisma.quizQuestion.delete({
+      where: { id: questionId },
+    });
+
+    return {
+      success: true,
+      message: 'Question deleted successfully',
     };
   }
 

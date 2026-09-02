@@ -98,6 +98,7 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
   useEffect(() => {
     if (session?.accessToken) {
       fetchQuizData();
+      fetchQuestions(); // Also fetch questions separately
     }
   }, [quizId, session?.accessToken]);
 
@@ -141,7 +142,7 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
         if (latestAttempt.status === "IN_PROGRESS") {
           // Resume existing attempt
           setPhase("taking");
-          setQuestions(Array.isArray(quizResult.data.questions) ? quizResult.data.questions : []);
+          // Don't set questions from quiz data - use fetchQuestions instead
           // Load saved answers if available
           if (latestAttempt.autoSavedData) {
             setAnswers(latestAttempt.autoSavedData);
@@ -155,7 +156,7 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
         } else if (latestAttempt.status === "SUBMITTED" && quizResult.data.showResults) {
           // Show results
           setPhase("results");
-          setQuestions(Array.isArray(quizResult.data.questions) ? quizResult.data.questions : []);
+          // Don't set questions from quiz data - use fetchQuestions instead
         } else if (latestAttempt.status === "SUBMITTED" && !quizResult.data.showResults) {
           // Quiz completed but results hidden
           setPhase("blocked");
@@ -167,18 +168,36 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
         } else {
           // Can start new attempt
           setPhase("lobby");
-          setQuestions(Array.isArray(quizResult.data.questions) ? quizResult.data.questions : []);
+          // Don't set questions from quiz data - use fetchQuestions instead
         }
       } else {
         // No attempts yet, can start
         setPhase("lobby");
-        setQuestions(quizResult.data.questions || []);
+        // Don't set questions from quiz data - use fetchQuestions instead
       }
     } catch (error) {
       console.error("Error fetching quiz data:", error);
       toast.error("Terjadi kesalahan saat memuat kuis");
       setPhase("blocked");
       setBlockedReason("Terjadi kesalahan saat memuat kuis");
+    }
+  };
+
+  const fetchQuestions = async () => {
+    const currentToken = session?.accessToken;
+    if (!currentToken) return;
+    
+    try {
+      const result = await apiFetch<Question[]>(`/quizzes/${quizId}/questions`, {}, currentToken);
+      if (result.data && Array.isArray(result.data)) {
+        setQuestions(result.data);
+      } else {
+        setQuestions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      toast.error("Terjadi kesalahan saat memuat soal");
+      setQuestions([]);
     }
   };
 
@@ -193,6 +212,8 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
       setPhase("taking");
       setTimeRemaining(quiz!.duration * 60);
       setAnswers({});
+      // Fetch questions when starting quiz
+      await fetchQuestions();
     } catch (error) {
       console.error("Error starting quiz:", error);
       toast.error("Terjadi kesalahan saat memulai kuis");
