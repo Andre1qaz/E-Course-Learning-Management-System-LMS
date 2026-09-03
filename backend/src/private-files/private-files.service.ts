@@ -44,8 +44,7 @@ export class PrivateFilesService {
 
     const files = records
       .filter(
-        (file) =>
-          file.folderPath === currentPath && !this.isFolderRecord(file),
+        (file) => file.folderPath === currentPath && !this.isFolderRecord(file),
       )
       .map((file) => this.serializeFile(file));
 

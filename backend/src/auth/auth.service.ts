@@ -20,6 +20,7 @@ import {
 } from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
 import { AutoValidator } from '../common/base/validation-guide';
+import { EmailQueueService } from '../email/email-queue.service';
 
 const SALT_ROUNDS = 12;
 
@@ -28,6 +29,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private emailQueueService: EmailQueueService,
   ) {}
 
   async register(dto: RegisterDto): Promise<ApiResponse> {
@@ -95,6 +97,19 @@ export class AuthService {
         entityId: user.id,
       },
     });
+
+    // Queue welcome email
+    try {
+      const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      await this.emailQueueService.addWelcomeJob(
+        user.email,
+        user.name,
+        loginUrl,
+      );
+    } catch (error) {
+      // Log error but don't fail the registration
+      console.error('Failed to queue welcome email:', error);
+    }
 
     return {
       success: true,
@@ -200,12 +215,25 @@ export class AuthService {
       },
     });
 
-    // In production: queue email via BullMQ with reset token
-    // For now, we'll return the token in the response for testing purposes
+    // Queue email via BullMQ with reset token
+    try {
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+      await this.emailQueueService.addForgotPasswordJob(
+        user.email,
+        user.name,
+        resetToken,
+        resetUrl,
+      );
+    } catch (error) {
+      // Log error but don't fail the request - security best practice
+      console.error('Failed to queue forgot password email:', error);
+    }
+
     return {
       success: true,
-      data: { resetToken }, // Only for development - remove in production
-      message: `Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda. Token: ${resetToken}`,
+      data: null,
+      message:
+        'Instruksi reset password telah dikirim ke email institusi Anda. Periksa inbox Anda.',
     };
   }
 
@@ -539,9 +567,7 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictException(
-        'Email sudah terdaftar. Gunakan email lain.',
-      );
+      throw new ConflictException('Email sudah terdaftar. Gunakan email lain.');
     }
 
     // Heuristic #5: Error Prevention — password hashing, never plain text
@@ -595,7 +621,7 @@ export class AuthService {
     try {
       // Check if any users exist in database
       const userCount = await this.prisma.user.count();
-      
+
       // Only create first admin if database is empty
       if (userCount === 0) {
         const existing = await this.prisma.user.findUnique({
@@ -604,7 +630,7 @@ export class AuthService {
 
         if (!existing) {
           const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
-          
+
           await this.prisma.user.create({
             data: {
               name: adminName,

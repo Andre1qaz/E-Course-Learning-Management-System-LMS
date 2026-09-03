@@ -110,7 +110,12 @@ export class QuizzesController {
   @Roles(Role.MAHASISWA)
   async submitAttempt(
     @Param('attemptId', ParseEntityIdPipe) attemptId: string,
-    @Body() answers: { questionId: string; answerText?: string; selectedOptionId?: string }[],
+    @Body()
+    answers: {
+      questionId: string;
+      answerText?: string;
+      selectedOptionId?: string;
+    }[],
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -128,7 +133,9 @@ export class QuizzesController {
   }
 
   @Get(':id/attempts/all')
-  @ApiOperation({ summary: 'Get all attempts for a quiz (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Get all attempts for a quiz (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async getAllAttempts(
     @Param('id', ParseEntityIdPipe) id: string,
@@ -139,7 +146,9 @@ export class QuizzesController {
   }
 
   @Delete(':id/questions/:questionId')
-  @ApiOperation({ summary: 'Delete question from quiz (Admin/instructor only)' })
+  @ApiOperation({
+    summary: 'Delete question from quiz (Admin/instructor only)',
+  })
   @Roles(Role.ADMIN, Role.DOSEN)
   async deleteQuestion(
     @Param('id', ParseEntityIdPipe) id: string,

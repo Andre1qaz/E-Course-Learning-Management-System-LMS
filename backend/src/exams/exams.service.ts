@@ -9,10 +9,16 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
-import { Role, QuestionType, ExamAttemptStatus, GradingStatus } from '@prisma/client';
+import {
+  Role,
+  QuestionType,
+  ExamAttemptStatus,
+  GradingStatus,
+} from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
 import { AutoValidator } from '../common/base/validation-guide';
+import { RealtimeGateway } from '../websocket/websocket.gateway';
 
 // Heuristic #1: Visibility of System Status — clear success/error messages
 // Heuristic #5: Error Prevention — validate permissions and data before operations
@@ -25,6 +31,7 @@ export class ExamsService {
     private prisma: PrismaService,
     private calendarService: CalendarService,
     private notificationsQueueService: NotificationsQueueService,
+    private realtimeGateway: RealtimeGateway,
   ) {}
 
   /**
@@ -781,6 +788,15 @@ export class ExamsService {
       });
     }
 
+    // Send real-time exam timer sync via WebSocket
+    this.realtimeGateway.syncExamTimer(examId, {
+      userId,
+      remainingSeconds,
+      examDuration: exam.duration,
+      examDeadline: exam.deadline,
+      examStartTime: exam.startTime,
+    });
+
     return {
       success: true,
       data: {
@@ -814,7 +830,9 @@ export class ExamsService {
     }
 
     if (attempt.studentId !== userId) {
-      throw new ForbiddenException('Anda hanya dapat menyimpan jawaban sendiri');
+      throw new ForbiddenException(
+        'Anda hanya dapat menyimpan jawaban sendiri',
+      );
     }
 
     if (
@@ -910,7 +928,9 @@ export class ExamsService {
     }
 
     if (attempt.studentId !== userId) {
-      throw new ForbiddenException('Anda hanya dapat mengumpulkan ujian sendiri');
+      throw new ForbiddenException(
+        'Anda hanya dapat mengumpulkan ujian sendiri',
+      );
     }
 
     if (
@@ -928,7 +948,10 @@ export class ExamsService {
       };
     }
 
-    const mergedAnswers = this.mergeSubmissionAnswers(attempt, dto.answers || []);
+    const mergedAnswers = this.mergeSubmissionAnswers(
+      attempt,
+      dto.answers || [],
+    );
     const now = new Date();
     let totalScore = 0;
     let needsManualGrading = false;
@@ -985,6 +1008,15 @@ export class ExamsService {
           ? GradingStatus.PENDING
           : GradingStatus.COMPLETED,
       },
+    });
+
+    // Send real-time exam update via WebSocket
+    this.realtimeGateway.sendExamUpdate(attempt.examId, {
+      attemptId,
+      userId,
+      status: ExamAttemptStatus.SUBMITTED,
+      totalScore,
+      submittedAt: now,
     });
 
     return {
@@ -1258,7 +1290,8 @@ export class ExamsService {
     const durationEnd = new Date(
       startedAt.getTime() + durationMinutes * 60 * 1000,
     );
-    const hardEnd = deadline.getTime() < durationEnd.getTime() ? deadline : durationEnd;
+    const hardEnd =
+      deadline.getTime() < durationEnd.getTime() ? deadline : durationEnd;
     return Math.max(0, Math.floor((hardEnd.getTime() - Date.now()) / 1000));
   }
 
@@ -1293,7 +1326,11 @@ export class ExamsService {
     const saved: Record<string, string> = {};
     const autoSaved = attempt.autoSavedData;
 
-    if (autoSaved && typeof autoSaved === 'object' && !Array.isArray(autoSaved)) {
+    if (
+      autoSaved &&
+      typeof autoSaved === 'object' &&
+      !Array.isArray(autoSaved)
+    ) {
       for (const [questionId, value] of Object.entries(
         autoSaved as Record<string, unknown>,
       )) {
@@ -1390,7 +1427,9 @@ export class ExamsService {
       const isCorrect =
         selectedOptionId === correct.id ||
         rawAnswer.trim().toLowerCase() ===
-          String(correct.optionText ?? '').trim().toLowerCase();
+          String(correct.optionText ?? '')
+            .trim()
+            .toLowerCase();
 
       return {
         score: isCorrect ? question.points : 0,
@@ -1416,7 +1455,9 @@ export class ExamsService {
         : rawAnswer.trim().toLowerCase();
       const expected = question.caseSensitive
         ? String(correct.optionText ?? '').trim()
-        : String(correct.optionText ?? '').trim().toLowerCase();
+        : String(correct.optionText ?? '')
+            .trim()
+            .toLowerCase();
 
       const isCorrect = userAnswer === expected;
       return {
@@ -1438,7 +1479,11 @@ export class ExamsService {
       }>;
       autoSavedData?: unknown;
     },
-    answers: Array<{ questionId: string; answer?: string; essayAnswer?: string }>,
+    answers: Array<{
+      questionId: string;
+      answer?: string;
+      essayAnswer?: string;
+    }>,
   ) {
     const merged = new Map<
       string,

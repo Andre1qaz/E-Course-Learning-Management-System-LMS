@@ -23,6 +23,8 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CourseProgressModule } from './course-progress/course-progress.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
+import { WebSocketModule } from './websocket/websocket.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -59,6 +61,8 @@ import { QuizzesModule } from './quizzes/quizzes.module';
     DashboardModule,
     CourseProgressModule,
     QuizzesModule,
+    WebSocketModule,
+    EmailModule,
   ],
   providers: [
     {

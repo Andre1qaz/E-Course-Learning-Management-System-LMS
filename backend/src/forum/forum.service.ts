@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Role, NotificationType } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { AutoValidator } from '../common/base/validation-guide';
+import { RealtimeGateway } from '../websocket/websocket.gateway';
 
 // Heuristic #1: Visibility of System Status — clear error messages for forum operations
 // Heuristic #5: Error Prevention — validate thread ownership before modification
@@ -18,6 +19,7 @@ export class ForumService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
+    private realtimeGateway: RealtimeGateway,
   ) {}
 
   private async verifyCourseForumAccess(
@@ -465,6 +467,9 @@ export class ForumService {
         `/forum/thread/${thread.id}`,
       );
     }
+
+    // Send real-time new thread update via WebSocket
+    this.realtimeGateway.sendNewThread(courseId, thread);
 
     return {
       success: true,
@@ -1016,6 +1021,9 @@ export class ForumService {
         `/forum/thread/${threadId}`,
       );
     }
+
+    // Send real-time forum reply update via WebSocket
+    this.realtimeGateway.sendForumReply(threadId, reply);
 
     return {
       success: true,

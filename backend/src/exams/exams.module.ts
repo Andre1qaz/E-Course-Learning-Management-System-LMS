@@ -4,9 +4,10 @@ import { ExamsService } from './exams.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CalendarModule } from '../calendar/calendar.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WebSocketModule } from '../websocket/websocket.module';
 
 @Module({
-  imports: [PrismaModule, CalendarModule, NotificationsModule],
+  imports: [PrismaModule, CalendarModule, NotificationsModule, WebSocketModule],
   controllers: [ExamsController],
   providers: [ExamsService],
   exports: [ExamsService],

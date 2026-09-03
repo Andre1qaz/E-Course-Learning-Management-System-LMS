@@ -42,7 +42,10 @@ export class QuizzesService {
       throw new BadRequestException(result.errors.join(', '));
     }
 
-    const validatedActivityId = AutoValidator.validateUUID(activityId, 'Activity ID');
+    const validatedActivityId = AutoValidator.validateUUID(
+      activityId,
+      'Activity ID',
+    );
 
     // Check if activity exists and user has access
     const activity = await this.prisma.activity.findUnique({
@@ -55,8 +58,13 @@ export class QuizzesService {
     }
 
     // Check permissions
-    if (userRole !== Role.ADMIN && activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can create quizzes');
+    if (
+      userRole !== Role.ADMIN &&
+      activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can create quizzes',
+      );
     }
 
     // Check if quiz already exists for this activity
@@ -78,7 +86,10 @@ export class QuizzesService {
         allowRetake: result.sanitized.allowRetake || false,
         maxAttempts: result.sanitized.maxAttempts || 1,
         isPublished: result.sanitized.isPublished || false,
-        showResults: result.sanitized.showResults !== undefined ? result.sanitized.showResults : true,
+        showResults:
+          result.sanitized.showResults !== undefined
+            ? result.sanitized.showResults
+            : true,
         showExplanation: result.sanitized.showExplanation || false,
         shuffleQuestions: result.sanitized.shuffleQuestions || false,
         shuffleOptions: result.sanitized.shuffleOptions || false,
@@ -149,18 +160,18 @@ export class QuizzesService {
   /**
    * Update quiz
    */
-  async update(
-    id: string,
-    userId: string,
-    userRole: Role,
-    dto: UpdateQuizDto,
-  ) {
+  async update(id: string, userId: string, userRole: Role, dto: UpdateQuizDto) {
     const quizResult = await this.findOne(id, userId, userRole);
     const quiz = quizResult.data;
 
     // Only ADMIN and DOSEN can update quizzes
-    if (userRole !== Role.ADMIN && quiz.activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can update quizzes');
+    if (
+      userRole !== Role.ADMIN &&
+      quiz.activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can update quizzes',
+      );
     }
 
     const updatedQuiz = await this.prisma.quiz.update({
@@ -183,8 +194,13 @@ export class QuizzesService {
     const quiz = quizResult.data;
 
     // Only ADMIN and DOSEN can delete quizzes
-    if (userRole !== Role.ADMIN && quiz.activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete quizzes');
+    if (
+      userRole !== Role.ADMIN &&
+      quiz.activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete quizzes',
+      );
     }
 
     await this.prisma.quiz.delete({
@@ -211,8 +227,13 @@ export class QuizzesService {
     const quiz = quizResult.data;
 
     // Only ADMIN and DOSEN can add questions
-    if (userRole !== Role.ADMIN && quiz.activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can add questions');
+    if (
+      userRole !== Role.ADMIN &&
+      quiz.activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can add questions',
+      );
     }
 
     const result = AutoValidator.validateObject(dto, {
@@ -242,8 +263,15 @@ export class QuizzesService {
       });
 
       // Add options for multiple choice questions
-      if (result.sanitized.type === 'MULTIPLE_CHOICE' && dto.options && dto.options.length > 0) {
-        console.log('Creating options for multiple choice question:', dto.options);
+      if (
+        result.sanitized.type === 'MULTIPLE_CHOICE' &&
+        dto.options &&
+        dto.options.length > 0
+      ) {
+        console.log(
+          'Creating options for multiple choice question:',
+          dto.options,
+        );
         for (let i = 0; i < dto.options.length; i++) {
           await tx.quizQuestionOption.create({
             data: {
@@ -255,7 +283,12 @@ export class QuizzesService {
           });
         }
       } else {
-        console.log('No options to create - type:', result.sanitized.type, 'options:', dto.options);
+        console.log(
+          'No options to create - type:',
+          result.sanitized.type,
+          'options:',
+          dto.options,
+        );
       }
 
       console.log('Created question with ID:', createdQuestion.id);
@@ -274,13 +307,23 @@ export class QuizzesService {
   /**
    * Delete question from quiz
    */
-  async deleteQuestion(quizId: string, questionId: string, userId: string, userRole: Role) {
+  async deleteQuestion(
+    quizId: string,
+    questionId: string,
+    userId: string,
+    userRole: Role,
+  ) {
     const quizResult = await this.findOne(quizId, userId, userRole);
     const quiz = quizResult.data;
 
     // Only ADMIN and DOSEN can delete questions
-    if (userRole !== Role.ADMIN && quiz.activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can delete questions');
+    if (
+      userRole !== Role.ADMIN &&
+      quiz.activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can delete questions',
+      );
     }
 
     // Check if question exists and belongs to this quiz
@@ -329,15 +372,16 @@ export class QuizzesService {
     });
 
     // For students, don't show correct answers
-    const processedQuestions = userRole === Role.MAHASISWA
-      ? questions.map((q) => ({
-          ...q,
-          options: q.options.map((o) => ({
-            ...o,
-            isCorrect: false,
-          })),
-        }))
-      : questions;
+    const processedQuestions =
+      userRole === Role.MAHASISWA
+        ? questions.map((q) => ({
+            ...q,
+            options: q.options.map((o) => ({
+              ...o,
+              isCorrect: false,
+            })),
+          }))
+        : questions;
 
     // Return data directly - interceptor will wrap it
     return processedQuestions;
@@ -404,7 +448,11 @@ export class QuizzesService {
     attemptId: string,
     userId: string,
     userRole: Role,
-    answers: { questionId: string; answerText?: string; selectedOptionId?: string }[],
+    answers: {
+      questionId: string;
+      answerText?: string;
+      selectedOptionId?: string;
+    }[],
   ) {
     const attempt = await this.prisma.quizAttempt.findUnique({
       where: { id: attemptId },
@@ -444,11 +492,18 @@ export class QuizzesService {
       if (userAnswer) {
         let isCorrect = false;
 
-        if (question.type === 'MULTIPLE_CHOICE' && userAnswer.selectedOptionId) {
-          const selectedOption = question.options.find((o) => o.id === userAnswer.selectedOptionId);
+        if (
+          question.type === 'MULTIPLE_CHOICE' &&
+          userAnswer.selectedOptionId
+        ) {
+          const selectedOption = question.options.find(
+            (o) => o.id === userAnswer.selectedOptionId,
+          );
           isCorrect = selectedOption?.isCorrect || false;
         } else if (question.type === 'SHORT_ANSWER' && userAnswer.answerText) {
-          isCorrect = userAnswer.answerText.toLowerCase().trim() === question.options[0]?.optionText.toLowerCase().trim();
+          isCorrect =
+            userAnswer.answerText.toLowerCase().trim() ===
+            question.options[0]?.optionText.toLowerCase().trim();
         }
 
         if (isCorrect) {
@@ -525,8 +580,13 @@ export class QuizzesService {
     const quiz = await this.findOne(quizId, userId, userRole);
 
     // Only ADMIN and DOSEN can see all attempts
-    if (userRole !== Role.ADMIN && quiz.data.activity.week.course.instructorId !== userId) {
-      throw new ForbiddenException('Only Admin and course instructor can view all attempts');
+    if (
+      userRole !== Role.ADMIN &&
+      quiz.data.activity.week.course.instructorId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only Admin and course instructor can view all attempts',
+      );
     }
 
     const attempts = await this.prisma.quizAttempt.findMany({

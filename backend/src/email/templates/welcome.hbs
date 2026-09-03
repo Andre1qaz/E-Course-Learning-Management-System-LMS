@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selamat Datang - E-Course LMS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            background-color: white;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Selamat Datang!</h1>
+        </div>
+        <div class="content">
+            <p>Halo {{name}},</p>
+            <p>Selamat datang di E-Course LMS! Kami sangat senang Anda bergabung dengan platform pembelajaran kami.</p>
+            <p>Akun Anda telah berhasil dibuat dengan email: {{email}}</p>
+            <p>Anda sekarang dapat:</p>
+            <ul>
+                <li>Mengakses berbagai kursus yang tersedia</li>
+                <li>Mengikuti materi pembelajaran secara online</li>
+                <li>Mengerjakan tugas dan ujian</li>
+                <li>Berinteraksi dengan dosen dan mahasiswa lain</li>
+            </ul>
+            <a href="{{loginUrl}}" class="button">Login Sekarang</a>
+            <p>Jika Anda memiliki pertanyaan, jangan ragu untuk menghubungi tim support kami.</p>
+            <p>Terima kasih,<br>Tim E-Course LMS</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{year}} E-Course LMS. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

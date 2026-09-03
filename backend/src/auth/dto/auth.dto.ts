@@ -116,7 +116,9 @@ export class CreateUserDto {
   password!: string;
 
   @ApiProperty({ example: 'DOSEN', enum: Role })
-  @IsEnum(Role, { message: 'Role harus salah satu dari: ADMIN, DOSEN, MAHASISWA' })
+  @IsEnum(Role, {
+    message: 'Role harus salah satu dari: ADMIN, DOSEN, MAHASISWA',
+  })
   @IsNotEmpty({ message: 'Role wajib diisi' })
   role!: Role;
 }

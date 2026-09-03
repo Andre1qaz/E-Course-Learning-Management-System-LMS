@@ -230,10 +230,8 @@ export class AnnouncementsService {
     const announcementWithReadStatus = {
       ...announcement,
       isRead:
-        userRole === Role.MAHASISWA
-          ? announcement.readStatus.length > 0
-          : true,
-      };
+        userRole === Role.MAHASISWA ? announcement.readStatus.length > 0 : true,
+    };
 
     // Remove readStatus from response
     const { readStatus, ...announcementData } = announcementWithReadStatus;

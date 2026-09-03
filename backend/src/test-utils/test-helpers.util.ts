@@ -107,7 +107,13 @@ export class TestHelpers {
     prisma: PrismaService,
     weekId: string,
     overrides: {
-      type?: 'VIDEO' | 'MATERIAL' | 'ASSIGNMENT' | 'QUIZ' | 'FORUM' | 'EXTERNAL_LINK';
+      type?:
+        | 'VIDEO'
+        | 'MATERIAL'
+        | 'ASSIGNMENT'
+        | 'QUIZ'
+        | 'FORUM'
+        | 'EXTERNAL_LINK';
       title?: string;
       description?: string;
       status?: 'DRAFT' | 'PUBLISHED';
@@ -144,7 +150,9 @@ export class TestHelpers {
         weekNumber: overrides.weekNumber || 1,
         title: overrides.title || 'Week 1',
         startDate: overrides.startDate || now,
-        endDate: overrides.endDate || new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        endDate:
+          overrides.endDate ||
+          new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         order: overrides.order || 1,
       },
     });
@@ -225,8 +233,8 @@ export class TestHelpers {
   static async generateTestToken(userId: string, email: string, role: Role) {
     // This is a simplified token generation for testing
     // In real tests, you would use the JWT service
-    return Buffer.from(
-      JSON.stringify({ sub: userId, email, role }),
-    ).toString('base64');
+    return Buffer.from(JSON.stringify({ sub: userId, email, role })).toString(
+      'base64',
+    );
   }
 }

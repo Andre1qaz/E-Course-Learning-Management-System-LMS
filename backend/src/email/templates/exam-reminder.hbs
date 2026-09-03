@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengingat Ujian - E-Course LMS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            background-color: white;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+        }
+        .exam-info {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .important {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pengingat Ujian</h1>
+        </div>
+        <div class="content">
+            <p>Halo {{name}},</p>
+            <p>Ini adalah pengingat bahwa Anda memiliki ujian yang akan segera dimulai:</p>
+            <div class="exam-info">
+                <h3>{{examTitle}}</h3>
+                <p><strong>Kursus:</strong> {{courseName}}</p>
+                <p><strong>Tanggal:</strong> {{examDate}}</p>
+                <p><strong>Waktu:</strong> {{examTime}}</p>
+                <p><strong>Durasi:</strong> {{duration}}</p>
+            </div>
+            <p class="important">Pastikan Anda login tepat waktu dan memiliki koneksi internet yang stabil.</p>
+            <a href="{{examUrl}}" class="button">Persiapan Ujian</a>
+            <p>Terima kasih,<br>Tim E-Course LMS</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{year}} E-Course LMS. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

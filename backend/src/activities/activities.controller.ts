@@ -146,7 +146,9 @@ export class ActivitiesController {
 
   @Post('upload-url')
   @Roles(Role.ADMIN, Role.DOSEN)
-  @ApiOperation({ summary: 'Generate upload URL for material files (Admin/Dosen only)' })
+  @ApiOperation({
+    summary: 'Generate upload URL for material files (Admin/Dosen only)',
+  })
   @ApiParam({ name: 'weekId', description: 'Week ID' })
   async generateUploadUrl(
     @Param('weekId') weekId: string,
@@ -160,7 +162,11 @@ export class ActivitiesController {
       body.fileSize,
       false, // public files for course materials
     );
-    return { success: true, data: { uploadUrl, fileUrl }, message: 'Upload URL generated successfully' };
+    return {
+      success: true,
+      data: { uploadUrl, fileUrl },
+      message: 'Upload URL generated successfully',
+    };
   }
 }
 

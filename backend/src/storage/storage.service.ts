@@ -23,8 +23,10 @@ export class StorageService {
     try {
       const endpoint = this.configService.get('MINIO_ENDPOINT') || 'localhost';
       const port = this.configService.get('MINIO_PORT') || '9000';
-      const accessKey = this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin';
-      const secretKey = this.configService.get('MINIO_SECRET_KEY') || 'minioadmin123';
+      const accessKey =
+        this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin';
+      const secretKey =
+        this.configService.get('MINIO_SECRET_KEY') || 'minioadmin123';
 
       this.logger.log('MinIO Configuration:', {
         endpoint,
@@ -115,7 +117,9 @@ export class StorageService {
       );
 
       if (!result.valid) {
-        throw new BadRequestException(`Validasi gagal: ${result.errors.join(', ')}`);
+        throw new BadRequestException(
+          `Validasi gagal: ${result.errors.join(', ')}`,
+        );
       }
 
       const allowedTypes = [
@@ -172,7 +176,9 @@ export class StorageService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException('Gagal membuat URL upload. Pastikan MinIO server berjalan dengan benar.');
+      throw new BadRequestException(
+        'Gagal membuat URL upload. Pastikan MinIO server berjalan dengan benar.',
+      );
     }
   }
 

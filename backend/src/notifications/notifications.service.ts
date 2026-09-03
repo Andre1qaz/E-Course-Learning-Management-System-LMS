@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { AutoValidator } from '../common/base/validation-guide';
+import { RealtimeGateway } from '../websocket/websocket.gateway';
 
 // Heuristic #1: Visibility of System Status — clear notification creation and retrieval
 // Heuristic #20: Feedback and Assessment — automatic notifications for grades
@@ -14,7 +15,10 @@ import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private realtimeGateway: RealtimeGateway,
+  ) {}
 
   /**
    * Get all notifications for a user
@@ -184,6 +188,12 @@ export class NotificationsService {
       data: result.sanitized,
     });
 
+    // Send real-time notification via WebSocket
+    this.realtimeGateway.sendNotificationToUser(
+      result.sanitized.userId,
+      notification,
+    );
+
     return notification;
   }
 
@@ -223,6 +233,14 @@ export class NotificationsService {
         message: result.sanitized.message,
         link: result.sanitized.link,
       })),
+    });
+
+    // Send real-time notifications via WebSocket
+    this.realtimeGateway.sendBulkNotifications(validatedUserIds, {
+      type: result.sanitized.type,
+      title: result.sanitized.title,
+      message: result.sanitized.message,
+      link: result.sanitized.link,
     });
 
     return notifications;
