@@ -24,12 +24,13 @@ interface Activity {
 interface ForumFormProps {
   weekId: string;
   token: string;
+  courseId: string;
   activity?: Activity;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function ForumForm({ weekId, token, activity, onSuccess, onCancel }: ForumFormProps) {
+export function ForumForm({ weekId, token, courseId, activity, onSuccess, onCancel }: ForumFormProps) {
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -56,6 +57,7 @@ export function ForumForm({ weekId, token, activity, onSuccess, onCancel }: Foru
       
       const method = isEdit ? "PUT" : "POST";
 
+      // Create activity
       const response = await fetch(url, {
         method,
         headers: {
@@ -67,12 +69,54 @@ export function ForumForm({ weekId, token, activity, onSuccess, onCancel }: Foru
           title,
           description,
           status: isPublished ? "PUBLISHED" : "DRAFT",
-          order: activity?.order || 0,
+          order: activity ? activity.order : 0,
           metadata: {},
         }),
       });
 
       if (response.ok) {
+        const activityData = await response.json();
+        
+        // Only create forum thread if it's a new activity (not edit)
+        if (!isEdit) {
+          // Create forum thread in Forum Diskusi
+          const forumThreadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/forum/thread`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              courseId: courseId,
+              title: title,
+              content: description || "",
+            }),
+          });
+
+          if (forumThreadResponse.ok) {
+            const forumThreadData = await forumThreadResponse.json();
+
+            // Update activity metadata to link with forum thread
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/weeks/${weekId}/activities/${activityData.data.id}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                type: "FORUM",
+                title,
+                description,
+                status: isPublished ? "PUBLISHED" : "DRAFT",
+                order: 0, // Default order for new activities
+                metadata: {
+                  forumThreadId: forumThreadData.data.id,
+                },
+              }),
+            });
+          }
+        }
+
         toast.success(isEdit ? "Forum updated successfully" : "Forum created successfully");
         onSuccess();
       } else {

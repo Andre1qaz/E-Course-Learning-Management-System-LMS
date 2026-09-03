@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ForumThread, getForumThreads, getForumThread, createForumThread, updateForumThread, deleteForumThread, togglePinThread, createForumReply, updateForumReply, deleteForumReply, getCourses } from "@/lib/api";
 import { ForumThreadList } from "@/components/forum/forum-thread-list";
 import { ForumThreadDetail } from "@/components/forum/forum-thread-detail";
@@ -25,6 +26,7 @@ interface ForumClientProps {
 }
 
 export function ForumClient({ role, token, userId }: ForumClientProps) {
+  const searchParams = useSearchParams();
   const [view, setView] = useState<"list" | "detail">("list");
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -49,7 +51,19 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
           code: c.code,
         }))
       );
-      if (coursesData.data && coursesData.data.length > 0) {
+      
+      // Check if courseId is in URL params
+      const courseIdFromUrl = searchParams.get('courseId');
+      
+      if (courseIdFromUrl) {
+        // Verify the course exists in user's courses
+        const courseExists = (coursesData.data || []).some((c: any) => c.id === courseIdFromUrl);
+        if (courseExists) {
+          setSelectedCourseId(courseIdFromUrl);
+        } else if (coursesData.data && coursesData.data.length > 0) {
+          setSelectedCourseId(coursesData.data[0].id);
+        }
+      } else if (coursesData.data && coursesData.data.length > 0) {
         setSelectedCourseId(coursesData.data[0].id);
       }
     } catch (err) {

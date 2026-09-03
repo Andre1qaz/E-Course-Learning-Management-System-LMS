@@ -87,7 +87,7 @@ export function AddActivityDialog({
             <QuizForm weekId={weekId} token={currentToken} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "FORUM" && (
-            <ForumForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
+            <ForumForm weekId={weekId} token={token} courseId={courseId} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />
           )}
           {selectedType === "VIDEO" && (
             <VideoForm weekId={weekId} token={token} onSuccess={handleSuccess} onCancel={() => setSelectedType(null)} />

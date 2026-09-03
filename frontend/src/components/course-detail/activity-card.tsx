@@ -246,7 +246,14 @@ export function ActivityCard({
         }
         return null;
       case "FORUM":
-        return `/mahasiswa/courses/${courseId}/forums/${activity.id}`;
+        if (userRole === "MAHASISWA") {
+          return `/mahasiswa/forum?courseId=${courseId}`;
+        } else if (userRole === "DOSEN") {
+          return `/dosen/forum?courseId=${courseId}`;
+        } else if (userRole === "ADMIN") {
+          return `/admin/forum?courseId=${courseId}`;
+        }
+        return null;
       case "VIDEO":
         return activity.metadata?.videoUrl;
       case "EXTERNAL_LINK":

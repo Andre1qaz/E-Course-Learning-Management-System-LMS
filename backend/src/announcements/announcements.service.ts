@@ -164,6 +164,16 @@ export class AnnouncementsService {
             thumbnailColor: true,
           },
         },
+        readStatus:
+          userRole === Role.MAHASISWA
+            ? {
+                where: { userId },
+                select: {
+                  userId: true,
+                  readAt: true,
+                },
+              }
+            : false,
       },
     });
 
@@ -217,9 +227,20 @@ export class AnnouncementsService {
       }
     }
 
+    const announcementWithReadStatus = {
+      ...announcement,
+      isRead:
+        userRole === Role.MAHASISWA
+          ? announcement.readStatus.length > 0
+          : true,
+      };
+
+    // Remove readStatus from response
+    const { readStatus, ...announcementData } = announcementWithReadStatus;
+
     return {
       success: true,
-      data: announcement,
+      data: announcementData,
       message: 'Announcement retrieved successfully',
     };
   }

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 interface Question {
@@ -32,6 +33,9 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedQuestionType, setSelectedQuestionType] = useState<string>("MULTIPLE_CHOICE");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     questionText: "",
     points: 1,
@@ -158,12 +162,18 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
     }
   };
 
-  const handleDeleteQuestion = async (questionId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus soal ini?")) return;
+  const handleDeleteClick = (questionId: string) => {
+    setQuestionToDelete(questionId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!questionToDelete) return;
 
     try {
+      setIsDeleting(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/questions/${questionId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/questions/${questionToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -182,6 +192,10 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menghapus soal");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setQuestionToDelete(null);
     }
   };
 
@@ -357,7 +371,7 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteQuestion(question.id)}
+                        onClick={() => handleDeleteClick(question.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -521,6 +535,19 @@ export function ExamQuestionsClient({ examId, token }: ExamQuestionsClientProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Soal"
+        description="Apakah Anda yakin ingin menghapus soal ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

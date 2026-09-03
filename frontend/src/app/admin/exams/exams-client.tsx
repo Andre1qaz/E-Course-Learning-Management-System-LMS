@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 interface Course {
@@ -47,6 +48,9 @@ export function ExamsClient({ token }: ExamsClientProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     courseId: "",
     title: "",
@@ -228,12 +232,18 @@ export function ExamsClient({ token }: ExamsClientProps) {
     }
   };
 
-  const handleDeleteExam = async (examId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus ujian ini?")) return;
+  const handleDeleteClick = (examId: string) => {
+    setExamToDelete(examId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!examToDelete) return;
 
     try {
+      setIsDeleting(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/exams/${examToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -252,6 +262,10 @@ export function ExamsClient({ token }: ExamsClientProps) {
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menghapus ujian");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setExamToDelete(null);
     }
   };
 
@@ -403,7 +417,7 @@ export function ExamsClient({ token }: ExamsClientProps) {
                         Kelola Soal
                       </a>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteClick(exam.id)}>
                       <Trash2 className="mr-2 h-4 w-4" />
                       Hapus
                     </Button>
@@ -507,6 +521,19 @@ export function ExamsClient({ token }: ExamsClientProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Ujian"
+        description="Apakah Anda yakin ingin menghapus ujian ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

@@ -732,6 +732,21 @@ export async function getUsers(token: string) {
   return apiFetch<User[]>("/auth/users", {}, token);
 }
 
+export async function createUser(
+  token: string,
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    role: "ADMIN" | "DOSEN" | "MAHASISWA";
+  }
+) {
+  return apiFetch<User>("/auth/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }, token);
+}
+
 // Activity Logs API functions (Admin only)
 export interface ActivityLog {
   id: string;

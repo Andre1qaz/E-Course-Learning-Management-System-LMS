@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Users, Shield, GraduationCap, User as UserIcon } from "lucide-react";
+import { Search, Users, Shield, GraduationCap, User as UserIcon, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getUsers, User } from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getUsers, createUser, User } from "@/lib/api";
 import { toast } from "sonner";
 
 interface UsersClientProps {
@@ -17,6 +20,14 @@ export function UsersClient({ token }: UsersClientProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "MAHASISWA" as "ADMIN" | "DOSEN" | "MAHASISWA",
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -30,6 +41,23 @@ export function UsersClient({ token }: UsersClientProps) {
       toast.error("Terjadi kesalahan saat memuat pengguna");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+
+    try {
+      await createUser(token, formData);
+      toast.success("User berhasil dibuat");
+      setIsCreateDialogOpen(false);
+      setFormData({ name: "", email: "", password: "", role: "MAHASISWA" });
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan saat membuat user");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -66,8 +94,88 @@ export function UsersClient({ token }: UsersClientProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl font-bold">Semua Pengguna</h1>
-            <p className="text-muted-foreground">Daftar pengguna di platform (Read-only)</p>
+            <p className="text-muted-foreground">Kelola pengguna di platform</p>
           </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Buat User Baru
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Buat User Baru</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nama Lengkap</Label>
+                  <Input
+                    id="name"
+                    placeholder="Masukkan nama lengkap"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="contoh@ecourse.ac.id"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Minimal 8 karakter dengan huruf dan angka"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value: "ADMIN" | "DOSEN" | "MAHASISWA") =>
+                      setFormData({ ...formData, role: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MAHASISWA">Mahasiswa</SelectItem>
+                      <SelectItem value="DOSEN">Dosen</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreateDialogOpen(false);
+                      setFormData({ name: "", email: "", password: "", role: "MAHASISWA" });
+                    }}
+                  >
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={isCreating}>
+                    {isCreating ? "Membuat..." : "Buat User"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Search */}

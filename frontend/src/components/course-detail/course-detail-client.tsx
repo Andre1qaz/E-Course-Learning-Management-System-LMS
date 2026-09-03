@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Calendar, ChevronDown, ChevronRight, Plus, Settings, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Calendar, ChevronDown, ChevronRight, Plus, Settings, Clock, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,7 @@ interface CourseDetailClientProps {
 }
 
 export function CourseDetailClient({ courseId, token, userRole }: CourseDetailClientProps) {
+  const router = useRouter();
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [allExams, setAllExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,14 +195,26 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
     return (
       <div className="space-y-6">
         {/* Course Announcements */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Pengumuman Course</h2>
+            <div className="flex items-center gap-2">
+              <Link 
+                href={userRole === "ADMIN" ? `/admin/forum?courseId=${courseId}` : userRole === "DOSEN" ? `/dosen/forum?courseId=${courseId}` : `/mahasiswa/forum?courseId=${courseId}`}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Forum
+              </Link>
+              {canEdit && (
+                <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
+                  <Plus className="h-4 w-4" />
+                  Buat Pengumuman
+                </Button>
+              )}
+            </div>
+          </div>
           <AnnouncementsList courseId={courseId} basePath="" limit={5} />
-          {canEdit && (
-            <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
-              <Plus className="h-4 w-4" />
-              Buat Pengumuman
-            </Button>
-          )}
         </div>
 
         {/* Empty State */}
@@ -249,14 +264,26 @@ export function CourseDetailClient({ courseId, token, userRole }: CourseDetailCl
   return (
     <div className="space-y-6">
       {/* Course Announcements */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Pengumuman Course</h2>
+          <div className="flex items-center gap-2">
+            <Link 
+              href={userRole === "ADMIN" ? `/admin/forum?courseId=${courseId}` : userRole === "DOSEN" ? `/dosen/forum?courseId=${courseId}` : `/mahasiswa/forum?courseId=${courseId}`}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Forum
+            </Link>
+            {canEdit && (
+              <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
+                <Plus className="h-4 w-4" />
+                Buat Pengumuman
+              </Button>
+            )}
+          </div>
+        </div>
         <AnnouncementsList courseId={courseId} basePath="" limit={5} />
-        {canEdit && (
-          <Button className="gap-2" onClick={() => setShowCreateAnnouncement(true)}>
-            <Plus className="h-4 w-4" />
-            Buat Pengumuman
-          </Button>
-        )}
       </div>
 
       {/* Course Content */}

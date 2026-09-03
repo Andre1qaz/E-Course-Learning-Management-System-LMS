@@ -127,6 +127,7 @@ export function EditActivityDialog({
           <ForumForm 
             weekId={weekId} 
             token={token} 
+            courseId={courseId}
             activity={activity}
             onSuccess={handleSuccess} 
             onCancel={() => onOpenChange(false)} 

@@ -6,6 +6,7 @@ import { MessageSquare, Pin, MessageCircle, Clock, User, Lock, CheckCircle, Pape
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 // Heuristic #1: Visibility of System Status — clear thread indicators
@@ -20,7 +21,7 @@ interface ForumThreadListProps {
   userRole?: string;
   onPinThread?: (threadId: string) => Promise<void>;
   onLockThread?: (threadId: string) => Promise<void>;
-  onDeleteThread?: (threadId: string) => Promise<void>;
+  onDeleteThread?: (threadId: string) => void | Promise<void>;
 }
 
 export function ForumThreadList({
@@ -34,6 +35,10 @@ export function ForumThreadList({
   onLockThread,
   onDeleteThread,
 }: ForumThreadListProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -47,6 +52,26 @@ export function ForumThreadList({
     if (diffHours < 24) return `${diffHours} jam lalu`;
     if (diffDays < 7) return `${diffDays} hari lalu`;
     return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const handleDeleteClick = (threadId: string) => {
+    setThreadToDelete(threadId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!threadToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await onDeleteThread?.(threadToDelete);
+    } catch (error) {
+      console.error("Failed to delete thread:", error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setThreadToDelete(null);
+    }
   };
 
   return (
@@ -161,7 +186,7 @@ export function ForumThreadList({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDeleteThread?.(thread.id)}
+                      onClick={() => handleDeleteClick(thread.id)}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="icon-md" />
@@ -174,6 +199,19 @@ export function ForumThreadList({
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Diskusi"
+        description="Apakah Anda yakin ingin menghapus diskusi ini? Semua balasan juga akan dihapus. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

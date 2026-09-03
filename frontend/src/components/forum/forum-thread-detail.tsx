@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -21,9 +22,9 @@ interface ForumThreadDetailProps {
   onBack: () => void;
   onReply: (content: string, attachments?: Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>) => Promise<void>;
   onUpdateThread?: (threadId: string, data: { title?: string; content?: string }) => Promise<void>;
-  onDeleteThread?: (threadId: string) => Promise<void>;
+  onDeleteThread?: (threadId: string) => void | Promise<void>;
   onUpdateReply?: (replyId: string, content: string) => Promise<void>;
-  onDeleteReply?: (replyId: string) => Promise<void>;
+  onDeleteReply?: (replyId: string) => void | Promise<void>;
   onPinThread?: (threadId: string) => Promise<void>;
   onLockThread?: (threadId: string) => Promise<void>;
   onMarkBestAnswer?: (threadId: string, replyId: string) => Promise<void>;
@@ -57,6 +58,10 @@ export function ForumThreadDetail({
   const [editThreadData, setEditThreadData] = useState({ title: thread.title, content: thread.content });
   const [replyAttachments, setReplyAttachments] = useState<Array<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string }>>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showDeleteThreadDialog, setShowDeleteThreadDialog] = useState(false);
+  const [showDeleteReplyDialog, setShowDeleteReplyDialog] = useState(false);
+  const [replyToDelete, setReplyToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -197,26 +202,42 @@ export function ForumThreadDetail({
     }
   };
 
-  const handleDeleteReply = async (replyId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus balasan ini?")) return;
-    
+  const handleDeleteReplyClick = (replyId: string) => {
+    setReplyToDelete(replyId);
+    setShowDeleteReplyDialog(true);
+  };
+
+  const handleDeleteReplyConfirm = async () => {
+    if (!replyToDelete) return;
+
     try {
-      await onDeleteReply?.(replyId);
+      setIsDeleting(true);
+      await onDeleteReply?.(replyToDelete);
       toast.success("Balasan berhasil dihapus");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menghapus balasan");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteReplyDialog(false);
+      setReplyToDelete(null);
     }
   };
 
-  const handleDeleteThread = async () => {
-    if (!confirm("Apakah Anda yakin ingin menghapus diskusi ini? Semua balasan juga akan dihapus.")) return;
-    
+  const handleDeleteThreadClick = () => {
+    setShowDeleteThreadDialog(true);
+  };
+
+  const handleDeleteThreadConfirm = async () => {
     try {
+      setIsDeleting(true);
       await onDeleteThread?.(thread.id);
       toast.success("Diskusi berhasil dihapus");
       onBack();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menghapus diskusi");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteThreadDialog(false);
     }
   };
 
@@ -272,7 +293,7 @@ export function ForumThreadDetail({
                 Edit
               </Button>
             )}
-            <Button variant="destructive" size="sm" onClick={handleDeleteThread}>
+            <Button variant="destructive" size="sm" onClick={handleDeleteThreadClick}>
               <Trash2 className="h-4 w-4 mr-2" />
               Hapus
             </Button>
@@ -485,7 +506,7 @@ export function ForumThreadDetail({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteReply(reply.id)}
+                          onClick={() => handleDeleteReplyClick(reply.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -565,6 +586,32 @@ export function ForumThreadDetail({
           <p className="text-sm text-muted-foreground">Diskusi ini telah dikunci dan tidak menerima balasan baru</p>
         </Card>
       )}
+
+      {/* Delete Thread Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteThreadDialog}
+        onOpenChange={setShowDeleteThreadDialog}
+        title="Hapus Diskusi"
+        description="Apakah Anda yakin ingin menghapus diskusi ini? Semua balasan juga akan dihapus. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteThreadConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
+
+      {/* Delete Reply Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteReplyDialog}
+        onOpenChange={setShowDeleteReplyDialog}
+        title="Hapus Balasan"
+        description="Apakah Anda yakin ingin menghapus balasan ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteReplyConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

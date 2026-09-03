@@ -10,6 +10,7 @@ import {
   UpdateProfileDto,
   ChangePasswordDto,
   ResetPasswordDto,
+  CreateUserDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -63,6 +64,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Daftar semua pengguna (Admin)' })
   listUsers() {
     return this.authService.listUsers();
+  }
+
+  @Post('users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Buat user baru dengan role tertentu (Admin)' })
+  createUser(@Body() dto: CreateUserDto) {
+    return this.authService.createUser(dto);
   }
 
   @Get('activity-logs')

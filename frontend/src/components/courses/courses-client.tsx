@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CourseCard } from "@/components/courses/course-card";
 import { CourseFormDialog } from "@/components/courses/course-form-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 interface Course {
@@ -46,6 +47,9 @@ export function CoursesClient({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
   const canEdit = role === "ADMIN" || role === "DOSEN";
@@ -95,16 +99,19 @@ export function CoursesClient({
     setEditingCourse(null);
   };
 
-  const handleDeleteCourse = async (courseId: string) => {
+  const handleDeleteClick = (courseId: string) => {
     if (role === "MAHASISWA") return; // Students cannot delete courses
-    
-    if (!confirm("Apakah Anda yakin ingin menghapus course ini? Tindakan ini tidak dapat dibatalkan.")) {
-      return;
-    }
+    setCourseToDelete(courseId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToDelete) return;
 
     try {
+      setIsDeleting(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/courses/${courseToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -123,6 +130,10 @@ export function CoursesClient({
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menghapus course");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setCourseToDelete(null);
     }
   };
 
@@ -224,7 +235,7 @@ export function CoursesClient({
                   enrollments: course._count.enrollments,
                 }}
                 canEdit={canEdit}
-                onDelete={handleDeleteCourse}
+                onDelete={handleDeleteClick}
                 onEdit={handleEditCourse}
               />
             ))}
@@ -248,6 +259,19 @@ export function CoursesClient({
           onSuccess={handleCourseUpdated}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Course"
+        description="Apakah Anda yakin ingin menghapus course ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

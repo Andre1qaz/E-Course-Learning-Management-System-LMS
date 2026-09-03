@@ -79,10 +79,12 @@ export function CreateAnnouncementDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       setFormData({
         title: "",
         content: "",
-        validFrom: "",
+        validFrom: now.toISOString().slice(0, 16),
         validUntil: "",
         priority: "NORMAL",
         isPublished: true,

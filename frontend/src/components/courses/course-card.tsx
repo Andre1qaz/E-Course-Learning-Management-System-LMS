@@ -25,8 +25,8 @@ interface CourseCardProps {
     exams?: number;
     enrollments?: number;
   };
-  onDelete?: (id: string) => void;
-  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void | Promise<void>;
+  onEdit?: (id: string) => void | Promise<void>;
   canEdit?: boolean;
 }
 

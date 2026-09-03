@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { CourseNativeSelect } from "@/components/calendar/calendar-selects";
 import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 // Heuristic #1: Visibility of System Status — clear calendar view with event indicators
@@ -54,6 +55,8 @@ export function CalendarView({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [eventType, setEventType] = useState<"DEADLINE" | "PERSONAL_NOTE" | "ANNOUNCEMENT">("PERSONAL_NOTE");
   const [viewMode, setViewMode] = useState<"monthly" | "weekly" | "daily">("monthly");
   const [eventCourseId, setEventCourseId] = useState<string>("");
@@ -171,15 +174,23 @@ export function CalendarView({
     }
   };
 
-  const handleDeleteEvent = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!selectedEvent) return;
-    
+
     try {
+      setIsDeleting(true);
       await onEventDelete?.(selectedEvent.id);
       setIsViewDialogOpen(false);
+      setShowDeleteDialog(false);
       toast.success("Event berhasil dihapus");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Gagal menghapus event");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -772,7 +783,7 @@ export function CalendarView({
                   </Button>
                 )}
                 {(selectedEvent.userId || (userRole === "DOSEN" && selectedEvent.courseId) || userRole === "ADMIN") && (
-                  <Button variant="destructive" onClick={handleDeleteEvent} className="text-xs md:text-sm w-full sm:w-auto">
+                  <Button variant="destructive" onClick={handleDeleteClick} className="text-xs md:text-sm w-full sm:w-auto">
                     Hapus
                   </Button>
                 )}
@@ -781,6 +792,19 @@ export function CalendarView({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Event"
+        description="Apakah Anda yakin ingin menghapus event ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

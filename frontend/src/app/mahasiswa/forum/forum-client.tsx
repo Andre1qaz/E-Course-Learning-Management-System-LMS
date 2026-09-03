@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 // Heuristic #1: Visibility of System Status — loading states and error handling
@@ -30,9 +31,13 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [currentThread, setCurrentThread] = useState<ForumThread | null>(null);
   const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingThreads, setLoadingThreads] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [createCourseId, setCreateCourseId] = useState<string>("");
 
   const fetchCourses = async () => {
@@ -48,38 +53,40 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
       if (coursesData.data && coursesData.data.length > 0) {
         setSelectedCourseId(coursesData.data[0].id);
       }
+      setLoadingCourses(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat courses");
+      setLoadingCourses(false);
     }
   };
 
   const fetchThreads = async () => {
     if (!selectedCourseId) return;
-    
+
     try {
-      setLoading(true);
+      setLoadingThreads(true);
       setError(null);
       const threadsData = await getForumThreads(token, selectedCourseId);
       setThreads(threadsData.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat forum");
     } finally {
-      setLoading(false);
+      setLoadingThreads(false);
     }
   };
 
   const fetchThreadDetail = async () => {
     if (!selectedThreadId) return;
-    
+
     try {
-      setLoading(true);
+      setLoadingThreads(true);
       setError(null);
       const threadData = await getForumThread(token, selectedThreadId);
       setCurrentThread(threadData.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat diskusi");
     } finally {
-      setLoading(false);
+      setLoadingThreads(false);
     }
   };
 
@@ -145,10 +152,26 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
     await fetchThreadDetail();
   };
 
-  const handleDeleteThread = async (threadId: string) => {
-    await deleteForumThread(token, threadId);
-    handleBack();
-    await fetchThreads();
+  const handleDeleteThreadClick = (threadId: string) => {
+    setThreadToDelete(threadId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteThreadConfirm = async () => {
+    if (!threadToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteForumThread(token, threadToDelete);
+      handleBack();
+      await fetchThreads();
+    } catch (error) {
+      toast.error("Gagal menghapus diskusi");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setThreadToDelete(null);
+    }
   };
 
   const handlePinThread = async (threadId: string) => {
@@ -166,7 +189,7 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
     await fetchThreadDetail();
   };
 
-  if (loading && view === "list") {
+  if (loadingCourses) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
@@ -187,6 +210,21 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         </div>
+      </Card>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <Card className="p-8 text-center">
+        <AlertCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+        <h3 className="font-semibold text-lg mb-2">Tidak ada course tersedia</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Anda belum terdaftar dalam course apapun. Daftar ke course terlebih dahulu untuk mengakses forum diskusi.
+        </p>
+        <Button asChild>
+          <a href="/mahasiswa/courses">Lihat Course Tersedia</a>
+        </Button>
       </Card>
     );
   }
@@ -214,16 +252,26 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
 
       {view === "list" ? (
         <>
-          <ForumThreadList
-            threads={threads}
-            onThreadClick={handleThreadClick}
-            canCreate={true}
-            onCreateThread={() => setIsCreateDialogOpen(true)}
-            currentUserId={userId}
-            userRole={role}
-            onPinThread={handlePinThread}
-            onDeleteThread={handleDeleteThread}
-          />
+          {loadingThreads ? (
+            <div className="space-y-4">
+              <div className="animate-pulse space-y-4">
+                <div className="h-32 bg-muted rounded" />
+                <div className="h-32 bg-muted rounded" />
+                <div className="h-32 bg-muted rounded" />
+              </div>
+            </div>
+          ) : (
+            <ForumThreadList
+              threads={threads}
+              onThreadClick={handleThreadClick}
+              canCreate={true}
+              onCreateThread={() => setIsCreateDialogOpen(true)}
+              currentUserId={userId}
+              userRole={role}
+              onPinThread={handlePinThread}
+              onDeleteThread={handleDeleteThreadClick}
+            />
+          )}
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogContent>
@@ -280,7 +328,7 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
             onBack={handleBack}
             onReply={handleReply}
             onUpdateThread={handleUpdateThread}
-            onDeleteThread={handleDeleteThread}
+            onDeleteThread={handleDeleteThreadClick}
             onUpdateReply={handleUpdateReply}
             onDeleteReply={handleDeleteReply}
             onPinThread={handlePinThread}
@@ -289,6 +337,19 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
           />
         )
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Diskusi"
+        description="Apakah Anda yakin ingin menghapus diskusi ini? Semua balasan juga akan dihapus. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteThreadConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

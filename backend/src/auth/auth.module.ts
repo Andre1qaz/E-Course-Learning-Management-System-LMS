@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -27,4 +27,10 @@ import { PrismaModule } from '../prisma/prisma.module';
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule implements OnModuleInit {
+  constructor(private authService: AuthService) {}
+
+  async onModuleInit() {
+    await this.authService.createFirstAdminIfNeeded();
+  }
+}

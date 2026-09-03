@@ -38,6 +38,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Ujian", href: "/admin/exams", icon: ClipboardList },
     { label: "Pengguna", href: "/admin/users", icon: Users },
     { label: "Pengumuman", href: "/admin/announcements", icon: Bell },
+    { label: "Forum", href: "/admin/forum", icon: MessageSquare },
     { label: "Kalender", href: "/admin/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/admin/storage", icon: HardDrive },
     { label: "Log Aktivitas", href: "/admin/logs", icon: FileText },

@@ -16,6 +16,7 @@ import {
   UpdateProfileDto,
   ChangePasswordDto,
   ResetPasswordDto,
+  CreateUserDto,
 } from './dto/auth.dto';
 import { ApiResponse } from '../common/interfaces/api-response.interface';
 import { AutoValidator } from '../common/base/validation-guide';
@@ -498,5 +499,127 @@ export class AuthService {
       data: null,
       message: 'Password berhasil diperbarui.',
     };
+  }
+
+  async createUser(dto: CreateUserDto): Promise<ApiResponse> {
+    // ✅ Auto-validation semua field dengan AutoValidator
+    const result = AutoValidator.validateObject(dto, {
+      name: { type: 'string', required: true, maxLength: 100 },
+      email: { type: 'string', required: true, maxLength: 255 },
+      password: {
+        type: 'string',
+        required: true,
+        minLength: 8,
+        maxLength: 100,
+      },
+      role: { type: 'string', required: true },
+    });
+
+    if (!result.valid) {
+      throw new BadRequestException(result.errors.join(', '));
+    }
+
+    // ✅ Validate password format
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(result.sanitized.password)) {
+      throw new BadRequestException(
+        'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka.',
+      );
+    }
+
+    // ✅ Validate role
+    if (!['ADMIN', 'DOSEN', 'MAHASISWA'].includes(result.sanitized.role)) {
+      throw new BadRequestException(
+        'Role harus salah satu dari: ADMIN, DOSEN, MAHASISWA',
+      );
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: result.sanitized.email },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        'Email sudah terdaftar. Gunakan email lain.',
+      );
+    }
+
+    // Heuristic #5: Error Prevention — password hashing, never plain text
+    const hashedPassword = await bcrypt.hash(
+      result.sanitized.password,
+      SALT_ROUNDS,
+    );
+
+    const user = await this.prisma.user.create({
+      data: {
+        name: result.sanitized.name,
+        email: result.sanitized.email,
+        password: hashedPassword,
+        role: result.sanitized.role as Role,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        action: 'USER_CREATED',
+        entity: 'User',
+        entityId: user.id,
+      },
+    });
+
+    return {
+      success: true,
+      data: user,
+      message: 'User berhasil dibuat.',
+    };
+  }
+
+  async createFirstAdminIfNeeded(): Promise<void> {
+    const adminEmail = process.env.FIRST_ADMIN_EMAIL;
+    const adminPassword = process.env.FIRST_ADMIN_PASSWORD;
+    const adminName = process.env.FIRST_ADMIN_NAME || 'Administrator';
+
+    // Skip if environment variables not set
+    if (!adminEmail || !adminPassword) {
+      return;
+    }
+
+    try {
+      // Check if any users exist in database
+      const userCount = await this.prisma.user.count();
+      
+      // Only create first admin if database is empty
+      if (userCount === 0) {
+        const existing = await this.prisma.user.findUnique({
+          where: { email: adminEmail },
+        });
+
+        if (!existing) {
+          const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+          
+          await this.prisma.user.create({
+            data: {
+              name: adminName,
+              email: adminEmail,
+              password: hashedPassword,
+              role: Role.ADMIN,
+            },
+          });
+
+          console.log('✅ First admin created successfully:', adminEmail);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error creating first admin:', error);
+      // Don't throw error to prevent app startup failure
+    }
   }
 }

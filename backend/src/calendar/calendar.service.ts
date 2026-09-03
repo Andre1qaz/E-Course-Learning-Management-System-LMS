@@ -276,7 +276,7 @@ export class CalendarService {
         type: result.sanitized.type || CalendarEventType.ANNOUNCEMENT,
         targetAudience:
           result.sanitized.targetAudience ||
-          EventTargetAudience.COURSE_STUDENTS,
+          (result.sanitized.courseId ? EventTargetAudience.COURSE_STUDENTS : EventTargetAudience.ALL_STUDENTS),
         relatedActivityType:
           result.sanitized.relatedActivityType || RelatedActivityType.NONE,
         relatedActivityId: result.sanitized.relatedActivityId,

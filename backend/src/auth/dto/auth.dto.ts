@@ -5,7 +5,10 @@ import {
   IsString,
   MinLength,
   Matches,
+  IsEnum,
+  IsOptional,
 } from 'class-validator';
+import { Role } from '@prisma/client';
 
 export class LoginDto {
   @ApiProperty({ example: 'mahasiswa1@ecourse.ac.id' })
@@ -90,4 +93,30 @@ export class ResetPasswordDto {
   @IsString()
   @IsNotEmpty({ message: 'Konfirmasi password wajib diisi' })
   confirmPassword!: string;
+}
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'Dr. Ahmad Wijaya' })
+  @IsString()
+  @IsNotEmpty({ message: 'Nama wajib diisi' })
+  name!: string;
+
+  @ApiProperty({ example: 'ahmad@ecourse.ac.id' })
+  @IsEmail({}, { message: 'Format email tidak valid' })
+  email!: string;
+
+  @ApiProperty({ example: 'Password123!' })
+  @IsString()
+  @IsNotEmpty({ message: 'Password wajib diisi' })
+  @MinLength(8, { message: 'Password minimal 8 karakter' })
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, {
+    message:
+      'Password harus minimal 8 karakter dan mengandung kombinasi huruf dan angka',
+  })
+  password!: string;
+
+  @ApiProperty({ example: 'DOSEN', enum: Role })
+  @IsEnum(Role, { message: 'Role harus salah satu dari: ADMIN, DOSEN, MAHASISWA' })
+  @IsNotEmpty({ message: 'Role wajib diisi' })
+  role!: Role;
 }

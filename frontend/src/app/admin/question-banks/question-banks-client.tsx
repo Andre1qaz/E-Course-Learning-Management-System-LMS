@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -51,8 +52,11 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [importFormat, setImportFormat] = useState("json");
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [questionBankToDelete, setQuestionBankToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     courseId: "",
@@ -149,12 +153,18 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
     }
   };
 
-  const handleDeleteQuestionBank = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus question bank ini?")) return;
+  const handleDeleteClick = (id: string) => {
+    setQuestionBankToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!questionBankToDelete) return;
 
     try {
+      setIsDeleting(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/question-banks/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/question-banks/${questionBankToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -173,6 +183,10 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat menghapus question bank");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setQuestionBankToDelete(null);
     }
   };
 
@@ -437,7 +451,7 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteQuestionBank(qb.id)}
+                      onClick={() => handleDeleteClick(qb.id)}
                       className="text-xs"
                     >
                       <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -601,6 +615,19 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Hapus Question Bank"
+        description="Apakah Anda yakin ingin menghapus question bank ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        variant="destructive"
+      />
     </div>
   );
 }

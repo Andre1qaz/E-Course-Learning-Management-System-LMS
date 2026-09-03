@@ -66,11 +66,7 @@ export function AnnouncementCard({ announcement, onMarkAsRead, onDelete, basePat
 
   const handleClick = () => {
     handleMarkAsRead();
-    if (announcement.courseId) {
-      window.location.href = `${basePath}/courses/${announcement.courseId}`;
-    } else {
-      window.location.href = `${basePath}/announcements/${announcement.id}`;
-    }
+    window.location.href = `${basePath}/announcements/${announcement.id}`;
   };
 
   return (
