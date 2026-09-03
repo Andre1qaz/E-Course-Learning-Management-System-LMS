@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TEST_DATABASE_URL")
+}
+
+// Include all models from the main schema
+model User {
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  password              String
+  role                  Role                   @default(MAHASISWA)
+  avatarUrl             String?
+  storageQuotaUsed      BigInt                 @default(0)
+  storageQuotaLimit     BigInt                 @default(52428800)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  resetToken            String?                @unique
+  resetTokenExpires     DateTime?
+  activityLogs          ActivityLog[]
+  announcementReads     AnnouncementRead[]
+  announcements         Announcement[]         @relation("AnnouncementAuthor")
+  assignmentSubmissions AssignmentSubmission[]
+  calendarEvents        CalendarEvent[]
+  coursesTaught         Course[]               @relation("CourseInstructor")
+  enrollments           Enrollment[]
+  examAttempts          ExamAttempt[]
+  forumMentions         ForumMention[]         @relation("Mentioner")
+  mentionedInForum      ForumMention[]         @relation("MentionedUser")
+  forumReplies          ForumReply[]
+  forumThreads          ForumThread[]
+  lockedThreads         ForumThread[]          @relation("ThreadLocker")
+  gradeChanges          GradeHistory[]
+  grades                Grade[]
+  notifications         Notification[]
+  privateFiles          PrivateFile[]
+  quizAttempts          QuizAttempt[]
+
+  @@map("users")
+}
+
+// Add all other models from the main schema for testing
+// This is a simplified version - in production you'd include all models

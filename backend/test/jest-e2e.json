@@ -2,8 +2,16 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
+  "testRegex": ".(e2e|integration)-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
-  }
+  },
+  "collectCoverageFrom": [
+    "**/*.(t|j)s",
+    "!**/*.dto.ts",
+    "!**/*.interface.ts",
+    "!**/*.module.ts",
+    "!**/main.ts"
+  ],
+  "coverageDirectory": "../coverage/integration"
 }

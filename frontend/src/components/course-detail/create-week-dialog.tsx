@@ -124,7 +124,7 @@ export function CreateWeekDialog({
               max="16"
               value={formData.weekNumber}
               onChange={(e) =>
-                setFormData({ ...formData, weekNumber: parseInt(e.target.value) })
+                setFormData({ ...formData, weekNumber: parseInt(e.target.value) || 1 })
               }
               required
             />
@@ -167,7 +167,7 @@ export function CreateWeekDialog({
               min="0"
               value={formData.order}
               onChange={(e) =>
-                setFormData({ ...formData, order: parseInt(e.target.value) })
+                setFormData({ ...formData, order: parseInt(e.target.value) || 0 })
               }
               required
             />
