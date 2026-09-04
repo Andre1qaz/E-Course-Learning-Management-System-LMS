@@ -17,16 +17,17 @@ export class PrismaService
 
   constructor(configService: ConfigService) {
     const databaseUrl = configService.get<string>('DATABASE_URL') || 'postgresql://postgres:*V2%26%24bp9x2x%2BpP3@db.klltjysxikbaqumjvtpn.supabase.co:5432/postgres';
+
+    // Set DATABASE_URL as environment variable before creating PrismaClient
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = databaseUrl;
+    }
+
     const adapter = new PrismaPg({
       connectionString: databaseUrl,
     });
     super({
       adapter,
-      datasources: {
-        db: {
-          url: databaseUrl,
-        },
-      },
       log: ['error', 'warn'],
       errorFormat: 'minimal',
     });
