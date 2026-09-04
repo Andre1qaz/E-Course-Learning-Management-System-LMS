@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { EmailOptions } from './interfaces/email.interface';
@@ -6,11 +6,24 @@ import { EmailOptions } from './interfaces/email.interface';
 @Injectable()
 export class EmailQueueService {
   private readonly logger = new Logger(EmailQueueService.name);
+  private readonly hasRedis: boolean;
 
-  constructor(@InjectQueue('email-queue') private readonly emailQueue: Queue) {}
+  constructor(@Optional() @InjectQueue('email-queue') private readonly emailQueue?: Queue) {
+    this.hasRedis = !!this.emailQueue;
+    if (!this.hasRedis) {
+      this.logger.warn('Redis not configured - email queue will operate in fallback mode');
+    }
+  }
 
   async addEmailJob(options: EmailOptions): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for email to ${options.to}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add('send-email', options, {
         attempts: 3,
         backoff: {
@@ -33,7 +46,14 @@ export class EmailQueueService {
     resetToken: string,
     resetUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for forgot password email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-forgot-password',
         {
@@ -64,7 +84,14 @@ export class EmailQueueService {
     name: string,
     loginUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for welcome email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-welcome',
         {
@@ -97,7 +124,14 @@ export class EmailQueueService {
     actionUrl?: string,
     actionText?: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for notification email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-notification',
         {
@@ -133,7 +167,14 @@ export class EmailQueueService {
     courseDescription: string,
     courseUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for course enrollment email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-course-enrollment',
         {
@@ -172,7 +213,14 @@ export class EmailQueueService {
     timeRemaining: string,
     assignmentUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for assignment due email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-assignment-due',
         {
@@ -211,7 +259,14 @@ export class EmailQueueService {
     duration: string,
     examUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for exam reminder email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-exam-reminder',
         {
@@ -249,7 +304,14 @@ export class EmailQueueService {
     replyContent: string,
     forumUrl: string,
   ): Promise<void> {
+    if (!this.hasRedis) {
+      this.logger.warn(`Redis not available - skipping queue for forum reply email to ${email}`);
+      return;
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       await this.emailQueue.add(
         'send-forum-reply',
         {
@@ -278,7 +340,19 @@ export class EmailQueueService {
   }
 
   async getQueueStats(): Promise<any> {
+    if (!this.hasRedis) {
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        status: 'disabled',
+      };
+    }
+
     try {
+      if (!this.emailQueue) throw new Error('Email queue not available');
+      
       const [waiting, active, completed, failed] = await Promise.all([
         this.emailQueue.getWaitingCount(),
         this.emailQueue.getActiveCount(),
@@ -291,6 +365,7 @@ export class EmailQueueService {
         active,
         completed,
         failed,
+        status: 'active',
       };
     } catch (error) {
       this.logger.error(`Error getting queue stats:`, error);

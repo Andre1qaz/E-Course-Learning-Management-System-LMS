@@ -26,6 +26,69 @@ import { QuizzesModule } from './quizzes/quizzes.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { EmailModule } from './email/email.module';
 
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Create BullMQ configuration with Render-friendly settings
+const createBullConfig = () => {
+  if (!hasRedisConfig) {
+    console.log('⚠️ Redis not configured - BullMQ queues will be disabled');
+    return null;
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_ID;
+
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    return {
+      connection: {
+        host: new URL(process.env.UPSTASH_REDIS_REST_URL).hostname,
+        port: parseInt(new URL(process.env.UPSTASH_REDIS_REST_URL).port || '6379', 10),
+        username: 'default',
+        password: process.env.UPSTASH_REDIS_REST_TOKEN,
+        tls: {},
+        // Render/production-friendly settings
+        maxRetriesPerRequest: isRender ? 2 : 3,
+        retryDelayOnFailover: isRender ? 200 : 100,
+        connectTimeout: isRender ? 30000 : 10000, // 30s for Render's cold starts
+        commandTimeout: isRender ? 15000 : 5000, // 15s for Render
+        enableReadyCheck: false,
+        lazyConnect: true,
+        keepAlive: isRender ? 60000 : 30000, // 60s for Render
+        reconnectOnError: (err: Error) => {
+          // Reconnect on specific errors
+          const targetError = 'READONLY';
+          if (err.message.includes(targetError)) {
+            return true;
+          }
+          return false;
+        },
+      },
+    };
+  }
+
+  return {
+    connection: {
+      host: process.env.REDIS_HOST ?? 'localhost',
+      port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: 3,
+      retryDelayOnFailover: 100,
+      connectTimeout: 10000,
+      commandTimeout: 5000,
+      enableReadyCheck: false,
+      lazyConnect: true,
+      keepAlive: 30000,
+    },
+  };
+};
+
+const bullConfig = createBullConfig();
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -35,37 +98,8 @@ import { EmailModule } from './email/email.module';
         limit: 100,
       },
     ]),
-    BullModule.forRoot({
-      connection: process.env.UPSTASH_REDIS_REST_URL
-        ? {
-            host: new URL(process.env.UPSTASH_REDIS_REST_URL).hostname,
-            port: parseInt(new URL(process.env.UPSTASH_REDIS_REST_URL).port || '6379', 10),
-            username: 'default',
-            password: process.env.UPSTASH_REDIS_REST_TOKEN,
-            tls: {},
-            // Enhanced Redis client options for Vercel/serverless environments
-            maxRetriesPerRequest: null, // Disable retries for serverless
-            retryDelayOnFailover: 100,
-            connectTimeout: 10000, // 10 seconds connection timeout
-            commandTimeout: 5000, // 5 seconds command timeout
-            enableReadyCheck: false, // Disable ready check for faster startup
-            lazyConnect: true, // Connect only when needed
-            keepAlive: 30000, // 30 seconds keep-alive
-          }
-        : {
-            host: process.env.REDIS_HOST ?? 'localhost',
-            port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-            password: process.env.REDIS_PASSWORD,
-            // Enhanced options for local development
-            maxRetriesPerRequest: 3,
-            retryDelayOnFailover: 100,
-            connectTimeout: 10000,
-            commandTimeout: 5000,
-            enableReadyCheck: false,
-            lazyConnect: true,
-            keepAlive: 30000,
-          },
-    }),
+    // Only include BullMQ if Redis is configured
+    ...(bullConfig ? [BullModule.forRoot(bullConfig)] : []),
     PrismaModule,
     AuthModule,
     CoursesModule,

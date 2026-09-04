@@ -1,18 +1,33 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { EmailService } from './email.service';
 import { EmailOptions } from './interfaces/email.interface';
+
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
 
 @Processor('email-queue')
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
 
-  constructor(private readonly emailService: EmailService) {
+  constructor(@Optional() private readonly emailService?: EmailService) {
     super();
+    if (!hasRedisConfig) {
+      this.logger.warn('Redis not configured - Email processor will be disabled');
+    }
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
+    if (!hasRedisConfig || !this.emailService) {
+      this.logger.warn(`Redis not configured - skipping job ${job.id}`);
+      return { success: false, reason: 'Redis not configured' };
+    }
+
     this.logger.log(`Processing email job ${job.id} with name ${job.name}`);
 
     switch (job.name) {
@@ -41,6 +56,11 @@ export class EmailProcessor extends WorkerHost {
   async handleSendEmail(job: Job<EmailOptions>) {
     this.logger.log(`Processing email job ${job.id} for ${job.data.to}`);
 
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
+
     try {
       await this.emailService.sendEmail(job.data);
       this.logger.log(`Email job ${job.id} completed successfully`);
@@ -53,6 +73,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleForgotPassword(job: Job) {
     this.logger.log(`Processing forgot password email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const { email, name, resetToken, resetUrl } = job.data;
@@ -75,6 +100,11 @@ export class EmailProcessor extends WorkerHost {
   async handleWelcome(job: Job) {
     this.logger.log(`Processing welcome email job ${job.id}`);
 
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
+
     try {
       const { email, name, loginUrl } = job.data;
       await this.emailService.sendWelcomeEmail(email, name, loginUrl);
@@ -88,6 +118,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleNotification(job: Job) {
     this.logger.log(`Processing notification email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const { email, name, title, message, actionUrl, actionText } = job.data;
@@ -111,6 +146,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleCourseEnrollment(job: Job) {
     this.logger.log(`Processing course enrollment email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const {
@@ -141,6 +181,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleAssignmentDue(job: Job) {
     this.logger.log(`Processing assignment due email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const {
@@ -173,6 +218,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleExamReminder(job: Job) {
     this.logger.log(`Processing exam reminder email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const {
@@ -207,6 +257,11 @@ export class EmailProcessor extends WorkerHost {
 
   async handleForumReply(job: Job) {
     this.logger.log(`Processing forum reply email job ${job.id}`);
+
+    if (!this.emailService) {
+      this.logger.warn(`Email service not available for job ${job.id}`);
+      return { success: false, reason: 'Email service not available' };
+    }
 
     try {
       const { email, name, replierName, originalPost, replyContent, forumUrl } =
