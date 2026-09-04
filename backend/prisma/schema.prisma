@@ -38,7 +38,7 @@ model User {
   privateFiles          PrivateFile[]
   quizAttempts          QuizAttempt[]
 
-  @@map("users")
+  @@map("User")
 }
 
 model CourseCategory {
