@@ -21,34 +21,58 @@ export class StorageService {
 
   constructor(private configService: ConfigService) {
     try {
-      const endpoint = this.configService.get('MINIO_ENDPOINT') || 'localhost';
-      const port = this.configService.get('MINIO_PORT') || '9000';
-      const accessKey =
-        this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin';
-      const secretKey =
-        this.configService.get('MINIO_SECRET_KEY') || 'minioadmin123';
+      // Check for R2 configuration (production)
+      const r2Endpoint = this.configService.get('R2_ENDPOINT');
+      const r2AccessKey = this.configService.get('R2_ACCESS_KEY_ID');
+      const r2SecretKey = this.configService.get('R2_SECRET_ACCESS_KEY');
+      const r2AccountId = this.configService.get('R2_ACCOUNT_ID');
 
-      this.logger.log('MinIO Configuration:', {
-        endpoint,
-        port,
-        hasAccessKey: !!accessKey,
-        hasSecretKey: !!secretKey,
-      });
+      // Check for MinIO configuration (development)
+      const minioEndpoint = this.configService.get('MINIO_ENDPOINT') || 'localhost';
+      const minioPort = this.configService.get('MINIO_PORT') || '9000';
+      const minioAccessKey = this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin';
+      const minioSecretKey = this.configService.get('MINIO_SECRET_KEY') || 'minioadmin123';
 
-      this.s3Client = new S3Client({
-        endpoint: `http://${endpoint}:${port}`,
-        region: 'us-east-1',
-        credentials: {
-          accessKeyId: accessKey,
-          secretAccessKey: secretKey,
-        },
-        forcePathStyle: true,
-      });
+      // Use R2 if configured, otherwise fall back to MinIO
+      if (r2Endpoint && r2AccessKey && r2SecretKey) {
+        this.logger.log('Using Cloudflare R2 Configuration:', {
+          endpoint: r2Endpoint,
+          accountId: r2AccountId,
+          hasAccessKey: !!r2AccessKey,
+        });
 
-      this.publicBucket =
-        this.configService.get('MINIO_BUCKET_PUBLIC') || 'ecourse-public';
-      this.privateBucket =
-        this.configService.get('MINIO_BUCKET_PRIVATE') || 'ecourse-private';
+        this.s3Client = new S3Client({
+          endpoint: r2Endpoint,
+          region: 'auto',
+          credentials: {
+            accessKeyId: r2AccessKey,
+            secretAccessKey: r2SecretKey,
+          },
+        });
+
+        this.publicBucket = this.configService.get('R2_BUCKET_PUBLIC') || 'ecourse-public';
+        this.privateBucket = this.configService.get('R2_BUCKET_PRIVATE') || 'ecourse-private';
+      } else {
+        this.logger.log('Using MinIO Configuration:', {
+          endpoint: minioEndpoint,
+          port: minioPort,
+          hasAccessKey: !!minioAccessKey,
+          hasSecretKey: !!minioSecretKey,
+        });
+
+        this.s3Client = new S3Client({
+          endpoint: `http://${minioEndpoint}:${minioPort}`,
+          region: 'us-east-1',
+          credentials: {
+            accessKeyId: minioAccessKey,
+            secretAccessKey: minioSecretKey,
+          },
+          forcePathStyle: true,
+        });
+
+        this.publicBucket = this.configService.get('MINIO_BUCKET_PUBLIC') || 'ecourse-public';
+        this.privateBucket = this.configService.get('MINIO_BUCKET_PRIVATE') || 'ecourse-private';
+      }
 
       this.logger.log('StorageService initialized successfully');
     } catch (error) {
@@ -216,6 +240,14 @@ export class StorageService {
   }
 
   private buildPublicFileUrl(bucket: string, key: string): string {
+    // Check if using R2 (production)
+    const r2Endpoint = this.configService.get('R2_ENDPOINT');
+    if (r2Endpoint) {
+      // R2 public URL format
+      return `${r2Endpoint}/${bucket}/${key}`;
+    }
+
+    // Fall back to MinIO (development)
     const rawEndpoint =
       this.configService.get<string>('MINIO_ENDPOINT') || 'localhost';
     const port = this.configService.get<string>('MINIO_PORT') || '9000';

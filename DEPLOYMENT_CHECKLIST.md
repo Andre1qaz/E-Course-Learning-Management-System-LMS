@@ -34,19 +34,19 @@
 
 ---
 
-### ✅ Step 4: Cloudflare R2 (Storage)
-- [ ] **Lakukan**: Register di https://cloudflare.com
-- [ ] **Lakukan**: Buat 2 R2 buckets:
-  - `ecourse-public` (untuk file publik)
-  - `ecourse-private` (untuk file privat)
-- [ ] **Lakukan**: Create API Token:
-  - Masuk ke R2 → Manage R2 API Tokens
-  - Permissions: Object Read & Write, Admin Read
-- [ ] **Catat**:
-  - Access Key ID: `XXXXX`
-  - Secret Access Key: `XXXXX`
-  - Account ID: `XXXXX` (dari dashboard URL)
-  - R2 Endpoint: `https://[ACCOUNT-ID].r2.cloudflarestorage.com`
+  ### ✅ Step 4: Cloudflare R2 (Storage)
+  - [ ] **Lakukan**: Register di https://cloudflare.com
+  - [ ] **Lakukan**: Buat 2 R2 buckets:
+    - `ecourse-public` (untuk file publik)
+    - `ecourse-private` (untuk file privat)
+  - [ ] **Lakukan**: Create API Token:
+    - Masuk ke R2 → Manage R2 API Tokens
+    - Permissions: Object Read & Write, Admin Read
+  - [ ] **Catat**:
+    - Access Key ID: `XXXXX`
+    - Secret Access Key: `XXXXX`
+    - Account ID: `XXXXX` (dari dashboard URL)
+    - R2 Endpoint: `https://[ACCOUNT-ID].r2.cloudflarestorage.com`
 
 ---
 
