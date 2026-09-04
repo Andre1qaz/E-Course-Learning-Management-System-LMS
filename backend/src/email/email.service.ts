@@ -56,15 +56,31 @@ export class EmailService {
           this.logger.log(`Template loaded: ${templateName}`);
         }
       });
+      this.logger.log(`Successfully loaded ${this.templates.size} email templates`);
     } catch (error) {
-      this.logger.error('Error loading email templates:', error);
+      if (error instanceof Error && (error as any).code === 'ENOENT') {
+        this.logger.warn('Email templates directory not found. Email functionality will be limited.');
+        this.logger.warn('Templates directory path:', templatesDir);
+      } else {
+        this.logger.error('Error loading email templates:', error);
+      }
     }
   }
 
   private getTemplate(templateName: string): handlebars.TemplateDelegate {
     const template = this.templates.get(templateName);
     if (!template) {
-      throw new Error(`Template not found: ${templateName}`);
+      this.logger.warn(`Template not found: ${templateName}, using fallback`);
+      // Provide a simple fallback template
+      return handlebars.compile(`
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>{{title}}</h2>
+          <p>{{message}}</p>
+          {{#if actionUrl}}
+          <a href="{{actionUrl}}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">{{actionText}}</a>
+          {{/if}}
+        </div>
+      `);
     }
     return template;
   }
@@ -77,6 +93,9 @@ export class EmailService {
       const context = {
         ...options.context,
         year: new Date().getFullYear(),
+        // Fallback context for missing templates
+        title: options.subject,
+        message: options.context?.message || 'This is an automated notification from E-Course LMS.',
       };
 
       const html = template(context);
@@ -111,6 +130,9 @@ export class EmailService {
         name,
         resetToken,
         resetUrl,
+        message: `Hello ${name}, you requested a password reset. Click the button below to reset your password.`,
+        actionUrl: resetUrl,
+        actionText: 'Reset Password',
       },
     });
   }
@@ -128,6 +150,9 @@ export class EmailService {
         name,
         email,
         loginUrl,
+        message: `Hello ${name}, welcome to E-Course LMS! We're excited to have you on board.`,
+        actionUrl: loginUrl,
+        actionText: 'Login to Your Account',
       },
     });
   }
