@@ -30,6 +30,9 @@ declare module "@auth/core/jwt" {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
+// Force production URL to prevent preview URL issues
+const PRODUCTION_URL = process.env.NEXTAUTH_URL || "https://e-course-learning-management-system.vercel.app";
+
 export const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
@@ -98,6 +101,8 @@ export const authConfig: NextAuthConfig = {
     maxAge: 7 * 24 * 60 * 60,
   },
   trustHost: true,
+  // Force production URL for callbacks to prevent preview URL redirects
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
