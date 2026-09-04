@@ -2,12 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('api');
@@ -36,6 +39,12 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Increase timeout for serverless environments
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    res.setTimeout(30000); // 30 seconds timeout
+    next();
+  });
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('E-Course API')
     .setDescription('Learning Management System API Documentation')
@@ -53,6 +62,10 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Backend running on http://localhost:${port}`);
   console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  console.log(`Health check: http://localhost:${port}/api/health`);
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('Application failed to start:', error);
+  process.exit(1);
+});

@@ -43,14 +43,27 @@ import { EmailModule } from './email/email.module';
             username: 'default',
             password: process.env.UPSTASH_REDIS_REST_TOKEN,
             tls: {},
-            // Use Redis client options compatible with Upstash
-            maxRetriesPerRequest: 3,
+            // Enhanced Redis client options for Vercel/serverless environments
+            maxRetriesPerRequest: null, // Disable retries for serverless
             retryDelayOnFailover: 100,
+            connectTimeout: 10000, // 10 seconds connection timeout
+            commandTimeout: 5000, // 5 seconds command timeout
+            enableReadyCheck: false, // Disable ready check for faster startup
+            lazyConnect: true, // Connect only when needed
+            keepAlive: 30000, // 30 seconds keep-alive
           }
         : {
             host: process.env.REDIS_HOST ?? 'localhost',
             port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
             password: process.env.REDIS_PASSWORD,
+            // Enhanced options for local development
+            maxRetriesPerRequest: 3,
+            retryDelayOnFailover: 100,
+            connectTimeout: 10000,
+            commandTimeout: 5000,
+            enableReadyCheck: false,
+            lazyConnect: true,
+            keepAlive: 30000,
           },
     }),
     PrismaModule,
