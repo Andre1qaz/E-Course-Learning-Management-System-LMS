@@ -120,6 +120,7 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
           
           if (quizResponse.success && quizResponse.data) {
             // Update activity metadata with quiz ID
+            const activityOrder = activity ? activity.order : 0;
             await apiFetch(`/weeks/${weekId}/activities/${activityData.id}`, {
               method: "PUT",
               body: JSON.stringify({
@@ -127,7 +128,7 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
                 title,
                 description,
                 status: isPublished ? "PUBLISHED" : "DRAFT",
-                order: (activity && activity.order) || 0,
+                order: activityOrder,
                 metadata: {
                   quizId: quizResponse.data.id,
                   duration: parseInt(duration),
