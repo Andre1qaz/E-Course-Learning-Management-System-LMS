@@ -1,7 +1,18 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
 
 // Heuristic #1: Visibility of System Status — job processing logs
 // Heuristic #20: Feedback and Assessment — automated notifications
@@ -10,11 +21,19 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
-  constructor(private notificationsService: NotificationsService) {
+  constructor(@Optional() private notificationsService?: NotificationsService) {
     super();
+    if (!hasRedisConfig || forceDisableRedis) {
+      this.logger.warn('Redis not configured or disabled - Notifications processor will be disabled');
+    }
   }
 
   async process(job: Job): Promise<any> {
+    if (!hasRedisConfig || forceDisableRedis || !this.notificationsService) {
+      this.logger.warn(`Redis not configured or disabled - skipping notification job ${job.id}`);
+      return { success: false, reason: 'Redis not configured or disabled' };
+    }
+
     this.logger.log(`Processing notification job ${job.id} (${job.name})`);
 
     switch (job.name) {
@@ -55,6 +74,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleCreateNotification(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createNotification({
       userId: job.data.userId,
       type: job.data.type,
@@ -65,6 +89,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleCreateBulkNotifications(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createBulkNotifications({
       userIds: job.data.userIds,
       type: job.data.type,
@@ -75,6 +104,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleDeadlineReminder(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createDeadlineReminder(
       job.data.userId,
       job.data.assignmentTitle,
@@ -84,6 +118,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleExamReminder(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createExamReminder(
       job.data.userId,
       job.data.examTitle,
@@ -93,6 +132,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleGradeReleased(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createGradeReleased(
       job.data.userId,
       job.data.itemType,
@@ -102,6 +146,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleForumReply(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createForumReplyNotification(
       job.data.userId,
       job.data.threadTitle,
@@ -110,6 +159,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleMaterialPublished(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createMaterialPublishedNotification(
       job.data.userId,
       job.data.materialTitle,
@@ -118,6 +172,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleAssignmentCreated(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createAssignmentCreatedNotification(
       job.data.userId,
       job.data.assignmentTitle,
@@ -127,6 +186,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleQuizCreated(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createQuizCreatedNotification(
       job.data.userId,
       job.data.quizTitle,
@@ -136,6 +200,11 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   private async handleExamCreated(job: Job) {
+    if (!this.notificationsService) {
+      this.logger.warn('Notifications service not available');
+      return { success: false, reason: 'Service not available' };
+    }
+    
     return await this.notificationsService.createExamCreatedNotification(
       job.data.userId,
       job.data.examTitle,

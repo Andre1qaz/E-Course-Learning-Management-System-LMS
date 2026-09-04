@@ -7,6 +7,23 @@ import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
+// Suppress Redis-related errors globally
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const message = args.join(' ');
+  // Suppress Redis-related errors
+  if (
+    message.includes('Redis') ||
+    message.includes('ECONNRESET') ||
+    message.includes('Command timed out') ||
+    message.includes('Connection is closed') ||
+    message.includes('ioredis')
+  ) {
+    return; // Suppress these errors
+  }
+  originalConsoleError.apply(console, args);
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],

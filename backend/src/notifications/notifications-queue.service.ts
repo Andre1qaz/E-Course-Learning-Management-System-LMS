@@ -1,7 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { NotificationType } from '@prisma/client';
+
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
 
 // Heuristic #1: Visibility of System Status — queue operations logging
 // Heuristic #20: Feedback and Assessment — asynchronous notifications
@@ -9,10 +20,16 @@ import { NotificationType } from '@prisma/client';
 @Injectable()
 export class NotificationsQueueService {
   private readonly logger = new Logger(NotificationsQueueService.name);
+  private readonly hasRedis: boolean;
 
   constructor(
-    @InjectQueue('notifications') private notificationsQueue: Queue,
-  ) {}
+    @Optional() @InjectQueue('notifications') private notificationsQueue?: Queue,
+  ) {
+    this.hasRedis = !!this.notificationsQueue && !forceDisableRedis;
+    if (!this.hasRedis) {
+      this.logger.warn('Redis not configured or disabled - notifications queue will operate in fallback mode');
+    }
+  }
 
   /**
    * Add a single notification job to the queue
@@ -24,7 +41,14 @@ export class NotificationsQueueService {
     message: string;
     link?: string;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for notification to user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add(
         'create-notification',
         data,
@@ -58,7 +82,14 @@ export class NotificationsQueueService {
     message: string;
     link?: string;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping bulk notification queue for ${data.userIds.length} users`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add(
         'create-bulk-notifications',
         data,
@@ -91,7 +122,14 @@ export class NotificationsQueueService {
     courseName: string;
     deadlineDate: Date;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping deadline reminder queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('deadline-reminder', data, {
         attempts: 3,
         backoff: {
@@ -121,7 +159,14 @@ export class NotificationsQueueService {
     courseName: string;
     examDate: Date;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping exam reminder queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('exam-reminder', data, {
         attempts: 3,
         backoff: {
@@ -149,7 +194,14 @@ export class NotificationsQueueService {
     itemName: string;
     courseName: string;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping grade released queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('grade-released', data, {
         attempts: 3,
         backoff: {
@@ -177,7 +229,14 @@ export class NotificationsQueueService {
     threadTitle: string;
     replierName: string;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping forum reply queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('forum-reply', data, {
         attempts: 3,
         backoff: {
@@ -205,7 +264,14 @@ export class NotificationsQueueService {
     materialTitle: string;
     courseName: string;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping material published queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add(
         'material-published',
         data,
@@ -238,7 +304,14 @@ export class NotificationsQueueService {
     courseName: string;
     deadline: Date;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping assignment created queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add(
         'assignment-created',
         data,
@@ -271,7 +344,14 @@ export class NotificationsQueueService {
     courseName: string;
     startTime: Date;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping quiz created queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('quiz-created', data, {
         attempts: 3,
         backoff: {
@@ -300,7 +380,14 @@ export class NotificationsQueueService {
     courseName: string;
     startTime: Date;
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping exam created queue for user ${data.userId}`);
+      return null;
+    }
+
     try {
+      if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+      
       const job = await this.notificationsQueue.add('exam-created', data, {
         attempts: 3,
         backoff: {
@@ -345,6 +432,18 @@ export class NotificationsQueueService {
    * Get queue statistics
    */
   async getQueueStats() {
+    if (!this.hasRedis || forceDisableRedis) {
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        status: 'disabled',
+      };
+    }
+
+    if (!this.notificationsQueue) throw new Error('Notifications queue not available');
+
     const [waiting, active, completed, failed] = await Promise.all([
       this.notificationsQueue.getWaitingCount(),
       this.notificationsQueue.getActiveCount(),
@@ -357,6 +456,7 @@ export class NotificationsQueueService {
       active,
       completed,
       failed,
+      status: 'active',
     };
   }
 }

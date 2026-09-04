@@ -248,6 +248,13 @@ export class GradebookController {
       format: body.format || 'excel',
     });
 
+    if (!job) {
+      return {
+        success: false,
+        message: 'Export job could not be queued - Redis not available',
+      };
+    }
+
     return {
       success: true,
       data: {

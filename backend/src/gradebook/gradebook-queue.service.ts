@@ -1,6 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
 
 // Heuristic #1: Visibility of System Status — queue operations logging
 // Heuristic #20: Feedback and Assessment — asynchronous gradebook exports
@@ -8,8 +19,14 @@ import { Queue } from 'bullmq';
 @Injectable()
 export class GradebookQueueService {
   private readonly logger = new Logger(GradebookQueueService.name);
+  private readonly hasRedis: boolean;
 
-  constructor(@InjectQueue('gradebook') private gradebookQueue: Queue) {}
+  constructor(@Optional() @InjectQueue('gradebook') private gradebookQueue?: Queue) {
+    this.hasRedis = !!this.gradebookQueue && !forceDisableRedis;
+    if (!this.hasRedis) {
+      this.logger.warn('Redis not configured or disabled - gradebook queue will operate in fallback mode');
+    }
+  }
 
   /**
    * Add gradebook export job to the queue
@@ -19,7 +36,14 @@ export class GradebookQueueService {
     userId: string;
     format: 'excel' | 'csv';
   }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping gradebook export queue for course ${data.courseId}`);
+      return null;
+    }
+
     try {
+      if (!this.gradebookQueue) throw new Error('Gradebook queue not available');
+      
       const job = await this.gradebookQueue.add('export-gradebook', data, {
         attempts: 3,
         backoff: {
@@ -50,7 +74,14 @@ export class GradebookQueueService {
    * Add bulk grade recalculation job to the queue
    */
   async addRecalculateJob(data: { courseId: string; userId: string }) {
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping grade recalculation queue for course ${data.courseId}`);
+      return null;
+    }
+
     try {
+      if (!this.gradebookQueue) throw new Error('Gradebook queue not available');
+      
       const job = await this.gradebookQueue.add('recalculate-grades', data, {
         attempts: 3,
         backoff: {
@@ -74,6 +105,18 @@ export class GradebookQueueService {
    * Get queue statistics
    */
   async getQueueStats() {
+    if (!this.hasRedis || forceDisableRedis) {
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        status: 'disabled',
+      };
+    }
+
+    if (!this.gradebookQueue) throw new Error('Gradebook queue not available');
+
     const [waiting, active, completed, failed] = await Promise.all([
       this.gradebookQueue.getWaitingCount(),
       this.gradebookQueue.getActiveCount(),
@@ -86,6 +129,7 @@ export class GradebookQueueService {
       active,
       completed,
       failed,
+      status: 'active',
     };
   }
 
@@ -93,7 +137,13 @@ export class GradebookQueueService {
    * Get job status
    */
   async getJobStatus(jobId: string) {
+    if (!this.hasRedis || forceDisableRedis) {
+      return null;
+    }
+
     try {
+      if (!this.gradebookQueue) throw new Error('Gradebook queue not available');
+      
       const job = await this.gradebookQueue.getJob(jobId);
       if (!job) {
         return null;

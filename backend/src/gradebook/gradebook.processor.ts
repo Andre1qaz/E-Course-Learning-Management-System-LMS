@@ -1,7 +1,18 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { GradebookService } from './gradebook.service';
+
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
 
 // Heuristic #1: Visibility of System Status — job processing logs
 // Heuristic #20: Feedback and Assessment — asynchronous gradebook operations
@@ -10,11 +21,19 @@ import { GradebookService } from './gradebook.service';
 export class GradebookProcessor extends WorkerHost {
   private readonly logger = new Logger(GradebookProcessor.name);
 
-  constructor(private gradebookService: GradebookService) {
+  constructor(@Optional() private gradebookService?: GradebookService) {
     super();
+    if (!hasRedisConfig || forceDisableRedis) {
+      this.logger.warn('Redis not configured or disabled - Gradebook processor will be disabled');
+    }
   }
 
   async process(job: Job): Promise<any> {
+    if (!hasRedisConfig || forceDisableRedis || !this.gradebookService) {
+      this.logger.warn(`Redis not configured or disabled - skipping gradebook job ${job.id}`);
+      return { success: false, reason: 'Redis not configured or disabled' };
+    }
+
     this.logger.log(`Processing gradebook job ${job.id} (${job.name})`);
 
     switch (job.name) {
@@ -34,6 +53,11 @@ export class GradebookProcessor extends WorkerHost {
     this.logger.log(
       `Processing gradebook export job ${job.id} for course ${job.data.courseId}`,
     );
+
+    if (!this.gradebookService) {
+      this.logger.warn('Gradebook service not available');
+      return { success: false, reason: 'Service not available' };
+    }
 
     // Update progress
     await job.updateProgress(10);
@@ -58,6 +82,11 @@ export class GradebookProcessor extends WorkerHost {
     this.logger.log(
       `Processing grade recalculation job ${job.id} for course ${job.data.courseId}`,
     );
+
+    if (!this.gradebookService) {
+      this.logger.warn('Gradebook service not available');
+      return { success: false, reason: 'Service not available' };
+    }
 
     // Update progress
     await job.updateProgress(10);
