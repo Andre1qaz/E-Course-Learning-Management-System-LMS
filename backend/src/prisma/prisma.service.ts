@@ -16,7 +16,7 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor(configService: ConfigService) {
-    const databaseUrl = configService.get<string>('DATABASE_URL');
+    const databaseUrl = configService.get<string>('DATABASE_URL') || 'postgresql://postgres:*V2%26%24bp9x2x%2BpP3@db.klltjysxikbaqumjvtpn.supabase.co:5432/postgres';
     const adapter = new PrismaPg({
       connectionString: databaseUrl,
     });
@@ -28,6 +28,7 @@ export class PrismaService
     this.logger.log(
       `PrismaService initialized (DATABASE_URL ${databaseUrl ? 'configured' : 'missing'})`,
     );
+    this.logger.log(`Using DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
   }
 
   async onModuleInit() {
