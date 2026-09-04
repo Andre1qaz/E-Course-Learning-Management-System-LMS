@@ -20,7 +20,11 @@ export class PrismaService
     const adapter = new PrismaPg({
       connectionString: databaseUrl,
     });
-    super({ adapter });
+    super({
+      adapter,
+      log: ['error', 'warn'],
+      errorFormat: 'minimal',
+    });
     this.logger.log(
       `PrismaService initialized (DATABASE_URL ${databaseUrl ? 'configured' : 'missing'})`,
     );
@@ -33,6 +37,13 @@ export class PrismaService
       this.logger.log('Database connected successfully');
     } catch (error) {
       this.logger.error('Failed to connect to database:', error);
+      // Retry connection after 5 seconds
+      setTimeout(() => {
+        this.logger.log('Retrying database connection...');
+        this.$connect().catch(err => {
+          this.logger.error('Retry failed:', err);
+        });
+      }, 5000);
       throw error;
     }
   }
