@@ -24,13 +24,16 @@ export class PrismaService
 
     const databaseUrl = configService.get<string>('DATABASE_URL') || 'postgresql://postgres:*V2%26%24bp9x2x%2BpP3@db.klltjysxikbaqumjvtpn.supabase.co:5432/postgres';
 
+    // Decode URL if it's encoded
+    const decodedUrl = databaseUrl.replace(/%26/g, '&').replace(/%24/g, '$').replace(/%2B/g, '+');
+
     // Set DATABASE_URL as environment variable before creating PrismaClient
     if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = databaseUrl;
+      process.env.DATABASE_URL = decodedUrl;
     }
 
     const adapter = new PrismaPg({
-      connectionString: databaseUrl,
+      connectionString: decodedUrl,
     });
     super({
       adapter,
@@ -40,7 +43,7 @@ export class PrismaService
     this.logger.log(
       `PrismaService initialized (DATABASE_URL ${databaseUrl ? 'configured' : 'missing'})`,
     );
-    this.logger.log(`Using DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
+    this.logger.log(`Using DATABASE_URL: ${decodedUrl.substring(0, 50)}...`);
 
     PrismaService.instance = this;
   }
