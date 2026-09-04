@@ -43,10 +43,14 @@ import { EmailModule } from './email/email.module';
             username: 'default',
             password: process.env.UPSTASH_REDIS_REST_TOKEN,
             tls: {},
+            // Use Redis client options compatible with Upstash
+            maxRetriesPerRequest: 3,
+            retryDelayOnFailover: 100,
           }
         : {
             host: process.env.REDIS_HOST ?? 'localhost',
             port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+            password: process.env.REDIS_PASSWORD,
           },
     }),
     PrismaModule,

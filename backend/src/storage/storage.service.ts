@@ -22,18 +22,22 @@ export class StorageService {
   constructor(private configService: ConfigService) {
     try {
       // Check for R2 configuration (production)
+      // For cloud deployment, set these environment variables:
+      // R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID
       const r2Endpoint = this.configService.get('R2_ENDPOINT');
       const r2AccessKey = this.configService.get('R2_ACCESS_KEY_ID');
       const r2SecretKey = this.configService.get('R2_SECRET_ACCESS_KEY');
       const r2AccountId = this.configService.get('R2_ACCOUNT_ID');
 
       // Check for MinIO configuration (development)
+      // For local development, ensure MinIO is running with these defaults
       const minioEndpoint = this.configService.get('MINIO_ENDPOINT') || 'localhost';
       const minioPort = this.configService.get('MINIO_PORT') || '9000';
       const minioAccessKey = this.configService.get('MINIO_ACCESS_KEY') || 'minioadmin';
       const minioSecretKey = this.configService.get('MINIO_SECRET_KEY') || 'minioadmin123';
 
       // Use R2 if configured, otherwise fall back to MinIO
+      // This allows seamless switching between local development and production
       if (r2Endpoint && r2AccessKey && r2SecretKey) {
         this.logger.log('Using Cloudflare R2 Configuration:', {
           endpoint: r2Endpoint,
@@ -191,8 +195,9 @@ export class StorageService {
         const fileUrl = this.buildPublicFileUrl(bucket, key);
         return { uploadUrl, fileUrl };
       } catch (signingError) {
+        const storageType = this.configService.get('R2_ENDPOINT') ? 'Cloudflare R2' : 'MinIO';
         throw new BadRequestException(
-          `Gagal membuat signed URL: ${signingError instanceof Error ? signingError.message : 'Unknown error'}. Pastikan MinIO server berjalan dan credentials benar.`,
+          `Gagal membuat signed URL: ${signingError instanceof Error ? signingError.message : 'Unknown error'}. Pastikan ${storageType} server berjalan dan credentials benar.`,
         );
       }
     } catch (error) {
@@ -200,8 +205,9 @@ export class StorageService {
       if (error instanceof BadRequestException) {
         throw error;
       }
+      const storageType = this.configService.get('R2_ENDPOINT') ? 'Cloudflare R2' : 'MinIO';
       throw new BadRequestException(
-        'Gagal membuat URL upload. Pastikan MinIO server berjalan dengan benar.',
+        `Gagal membuat URL upload. Pastikan ${storageType} server berjalan dengan benar.`,
       );
     }
   }
@@ -244,6 +250,7 @@ export class StorageService {
     const r2Endpoint = this.configService.get('R2_ENDPOINT');
     if (r2Endpoint) {
       // R2 public URL format
+      // For R2, you'll need to set up a custom domain or use R2's public URL format
       return `${r2Endpoint}/${bucket}/${key}`;
     }
 
