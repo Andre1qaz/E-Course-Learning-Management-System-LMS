@@ -36,10 +36,18 @@ import { EmailModule } from './email/email.module';
       },
     ]),
     BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST ?? 'localhost',
-        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-      },
+      connection: process.env.UPSTASH_REDIS_REST_URL
+        ? {
+            host: new URL(process.env.UPSTASH_REDIS_REST_URL).hostname,
+            port: parseInt(new URL(process.env.UPSTASH_REDIS_REST_URL).port || '6379', 10),
+            username: 'default',
+            password: process.env.UPSTASH_REDIS_REST_TOKEN,
+            tls: {},
+          }
+        : {
+            host: process.env.REDIS_HOST ?? 'localhost',
+            port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+          },
     }),
     PrismaModule,
     AuthModule,
