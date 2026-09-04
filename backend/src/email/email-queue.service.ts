@@ -3,21 +3,32 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { EmailOptions } from './interfaces/email.interface';
 
+// Check if Redis is configured
+const hasRedisConfig = !!(
+  process.env.UPSTASH_REDIS_REST_URL || 
+  process.env.REDIS_HOST || 
+  process.env.REDIS_URL
+);
+
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
+
 @Injectable()
 export class EmailQueueService {
   private readonly logger = new Logger(EmailQueueService.name);
   private readonly hasRedis: boolean;
 
   constructor(@Optional() @InjectQueue('email-queue') private readonly emailQueue?: Queue) {
-    this.hasRedis = !!this.emailQueue;
+    this.hasRedis = !!this.emailQueue && !forceDisableRedis;
     if (!this.hasRedis) {
-      this.logger.warn('Redis not configured - email queue will operate in fallback mode');
+      this.logger.warn('Redis not configured or disabled - email queue will operate in fallback mode');
     }
   }
 
   async addEmailJob(options: EmailOptions): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for email to ${options.to}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for email to ${options.to}`);
       return;
     }
 
@@ -46,8 +57,8 @@ export class EmailQueueService {
     resetToken: string,
     resetUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for forgot password email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for forgot password email to ${email}`);
       return;
     }
 
@@ -84,8 +95,8 @@ export class EmailQueueService {
     name: string,
     loginUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for welcome email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for welcome email to ${email}`);
       return;
     }
 
@@ -124,8 +135,8 @@ export class EmailQueueService {
     actionUrl?: string,
     actionText?: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for notification email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for notification email to ${email}`);
       return;
     }
 
@@ -167,8 +178,8 @@ export class EmailQueueService {
     courseDescription: string,
     courseUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for course enrollment email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for course enrollment email to ${email}`);
       return;
     }
 
@@ -213,8 +224,8 @@ export class EmailQueueService {
     timeRemaining: string,
     assignmentUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for assignment due email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for assignment due email to ${email}`);
       return;
     }
 
@@ -259,8 +270,8 @@ export class EmailQueueService {
     duration: string,
     examUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for exam reminder email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for exam reminder email to ${email}`);
       return;
     }
 
@@ -304,8 +315,8 @@ export class EmailQueueService {
     replyContent: string,
     forumUrl: string,
   ): Promise<void> {
-    if (!this.hasRedis) {
-      this.logger.warn(`Redis not available - skipping queue for forum reply email to ${email}`);
+    if (!this.hasRedis || forceDisableRedis) {
+      this.logger.warn(`Redis not available or disabled - skipping queue for forum reply email to ${email}`);
       return;
     }
 
@@ -340,7 +351,7 @@ export class EmailQueueService {
   }
 
   async getQueueStats(): Promise<any> {
-    if (!this.hasRedis) {
+    if (!this.hasRedis || forceDisableRedis) {
       return {
         waiting: 0,
         active: 0,

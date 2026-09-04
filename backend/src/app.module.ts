@@ -33,10 +33,18 @@ const hasRedisConfig = !!(
   process.env.REDIS_URL
 );
 
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
+
+if (forceDisableRedis) {
+  console.log('🚫 Production environment without Redis - queues disabled');
+}
+
 // Create BullMQ configuration with Render-friendly settings
 const createBullConfig = () => {
-  if (!hasRedisConfig) {
-    console.log('⚠️ Redis not configured - BullMQ queues will be disabled');
+  if (!hasRedisConfig || forceDisableRedis) {
+    console.log('⚠️ Redis not configured or disabled - BullMQ queues will be disabled');
     return null;
   }
 

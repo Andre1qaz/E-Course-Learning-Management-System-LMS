@@ -11,21 +11,25 @@ const hasRedisConfig = !!(
   process.env.REDIS_URL
 );
 
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
+
 @Processor('email-queue')
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
 
   constructor(@Optional() private readonly emailService?: EmailService) {
     super();
-    if (!hasRedisConfig) {
-      this.logger.warn('Redis not configured - Email processor will be disabled');
+    if (!hasRedisConfig || forceDisableRedis) {
+      this.logger.warn('Redis not configured or disabled - Email processor will be disabled');
     }
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    if (!hasRedisConfig || !this.emailService) {
-      this.logger.warn(`Redis not configured - skipping job ${job.id}`);
-      return { success: false, reason: 'Redis not configured' };
+    if (!hasRedisConfig || forceDisableRedis || !this.emailService) {
+      this.logger.warn(`Redis not configured or disabled - skipping job ${job.id}`);
+      return { success: false, reason: 'Redis not configured or disabled' };
     }
 
     this.logger.log(`Processing email job ${job.id} with name ${job.name}`);

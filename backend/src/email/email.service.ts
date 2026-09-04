@@ -9,7 +9,7 @@ import { EmailOptions, EmailType } from './interfaces/email.interface';
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null;
   private templates: Map<string, handlebars.TemplateDelegate> = new Map();
 
   constructor(private configService: ConfigService) {
@@ -20,24 +20,39 @@ export class EmailService {
   private initializeTransporter() {
     const emailConfig = this.configService.get('email');
 
-    this.transporter = nodemailer.createTransport({
-      host: emailConfig.host,
-      port: emailConfig.port,
-      secure: emailConfig.secure,
-      auth: {
-        user: emailConfig.auth.user,
-        pass: emailConfig.auth.pass,
-      },
-    });
+    // Check if email configuration is available
+    if (!emailConfig || !emailConfig.host || !emailConfig.auth?.user || !emailConfig.auth?.pass) {
+      this.logger.warn('Email configuration is incomplete. Email functionality will be disabled.');
+      this.logger.warn('Required fields: host, auth.user, auth.pass');
+      this.transporter = null;
+      return;
+    }
 
-    // Verify SMTP connection
-    this.transporter.verify((error, success) => {
-      if (error) {
-        this.logger.error('SMTP connection error:', error);
-      } else {
-        this.logger.log('SMTP server is ready to send emails');
-      }
-    });
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: emailConfig.host,
+        port: emailConfig.port,
+        secure: emailConfig.secure,
+        auth: {
+          user: emailConfig.auth.user,
+          pass: emailConfig.auth.pass,
+        },
+      });
+
+      // Verify SMTP connection
+      this.transporter.verify((error, success) => {
+        if (error) {
+          this.logger.error('SMTP connection error:', error);
+          this.logger.warn('Email functionality will be disabled due to SMTP connection failure');
+          this.transporter = null;
+        } else {
+          this.logger.log('SMTP server is ready to send emails');
+        }
+      });
+    } catch (error) {
+      this.logger.error('Error initializing email transporter:', error);
+      this.transporter = null;
+    }
   }
 
   private loadTemplates() {
@@ -86,6 +101,13 @@ export class EmailService {
   }
 
   async sendEmail(options: EmailOptions): Promise<void> {
+    // Check if transporter is available
+    if (!this.transporter) {
+      this.logger.warn(`Email sending skipped - transporter not available for ${options.to}`);
+      this.logger.warn('Check email configuration and SMTP credentials');
+      return;
+    }
+
     try {
       const emailConfig = this.configService.get('email');
       const template = this.getTemplate(options.template);

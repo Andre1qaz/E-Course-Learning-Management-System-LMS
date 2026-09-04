@@ -14,6 +14,14 @@ const hasRedisConfig = !!(
   process.env.REDIS_URL
 );
 
+// Explicitly disable Redis if not configured for production environments
+const isProduction = process.env.NODE_ENV === 'production';
+const forceDisableRedis = isProduction && !hasRedisConfig;
+
+if (forceDisableRedis) {
+  console.log('🚫 Production environment without Redis - email queues disabled');
+}
+
 // Create dynamic module based on Redis availability
 const createEmailModule = () => {
   const baseModule = {
@@ -25,8 +33,8 @@ const createEmailModule = () => {
     exports: [EmailService],
   };
 
-  if (!hasRedisConfig) {
-    console.log('⚠️ Redis not configured - EmailModule running without queue functionality');
+  if (!hasRedisConfig || forceDisableRedis) {
+    console.log('⚠️ Redis not configured or disabled - EmailModule running without queue functionality');
     // Still provide EmailQueueService but without queue functionality
     // Don't include EmailProcessor as it requires BullMQ
     return {
