@@ -14,11 +14,32 @@ const hasRedisConfig = !!(
   process.env.REDIS_URL
 );
 
-@Module({
-  imports: [
-    ConfigModule.forFeature(emailConfig),
-    // Only register BullMQ queue if Redis is configured
-    ...(hasRedisConfig ? [
+// Create dynamic module based on Redis availability
+const createEmailModule = () => {
+  const baseModule = {
+    imports: [
+      ConfigModule.forFeature(emailConfig),
+    ],
+    controllers: [EmailController],
+    providers: [EmailService],
+    exports: [EmailService],
+  };
+
+  if (!hasRedisConfig) {
+    console.log('⚠️ Redis not configured - EmailModule running without queue functionality');
+    // Still provide EmailQueueService but without queue functionality
+    // Don't include EmailProcessor as it requires BullMQ
+    return {
+      ...baseModule,
+      providers: [...baseModule.providers, EmailQueueService],
+      exports: [...baseModule.exports, EmailQueueService],
+    };
+  }
+
+  return {
+    ...baseModule,
+    imports: [
+      ...baseModule.imports,
       BullModule.registerQueueAsync({
         name: 'email-queue',
         imports: [ConfigModule],
@@ -31,8 +52,8 @@ const hasRedisConfig = !!(
               host: emailConfig.redis.host,
               port: emailConfig.redis.port,
               password: emailConfig.redis.password,
-              // Add Render-friendly settings
-              maxRetriesPerRequest: isRender ? 2 : 3,
+              // Add Render-friendly settings - maxRetriesPerRequest must be null for BullMQ
+              maxRetriesPerRequest: null, // Required by BullMQ
               retryDelayOnFailover: isRender ? 200 : 100,
               connectTimeout: isRender ? 30000 : 10000,
               commandTimeout: isRender ? 15000 : 5000,
@@ -44,10 +65,11 @@ const hasRedisConfig = !!(
         },
         inject: [ConfigService],
       }),
-    ] : []),
-  ],
-  controllers: [EmailController],
-  providers: [EmailService, EmailProcessor, EmailQueueService],
-  exports: [EmailService, EmailQueueService],
-})
+    ],
+    providers: [...baseModule.providers, EmailProcessor, EmailQueueService],
+    exports: [...baseModule.exports, EmailQueueService],
+  };
+};
+
+@Module(createEmailModule())
 export class EmailModule {}

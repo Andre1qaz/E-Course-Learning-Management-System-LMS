@@ -51,8 +51,8 @@ const createBullConfig = () => {
         username: 'default',
         password: process.env.UPSTASH_REDIS_REST_TOKEN,
         tls: {},
-        // Render/production-friendly settings
-        maxRetriesPerRequest: isRender ? 2 : 3,
+        // Render/production-friendly settings - maxRetriesPerRequest must be null for BullMQ
+        maxRetriesPerRequest: null, // Required by BullMQ
         retryDelayOnFailover: isRender ? 200 : 100,
         connectTimeout: isRender ? 30000 : 10000, // 30s for Render's cold starts
         commandTimeout: isRender ? 15000 : 5000, // 15s for Render
@@ -76,7 +76,7 @@ const createBullConfig = () => {
       host: process.env.REDIS_HOST ?? 'localhost',
       port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
       password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null, // Required by BullMQ
       retryDelayOnFailover: 100,
       connectTimeout: 10000,
       commandTimeout: 5000,
