@@ -98,18 +98,18 @@ export class AuthService {
       },
     });
 
-    // Queue welcome email
-    try {
-      const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      await this.emailQueueService.addWelcomeJob(
-        user.email,
-        user.name,
-        loginUrl,
-      );
-    } catch (error) {
-      // Log error but don't fail the registration
-      console.error('Failed to queue welcome email:', error);
-    }
+    // Queue welcome email - temporarily disabled for debugging
+    // try {
+    //   const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    //   await this.emailQueueService.addWelcomeJob(
+    //     user.email,
+    //     user.name,
+    //     loginUrl,
+    //   );
+    // } catch (error) {
+    //   // Log error but don't fail the registration
+    //   console.error('Failed to queue welcome email:', error);
+    // }
 
     return {
       success: true,
@@ -154,14 +154,15 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    await this.prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        action: 'LOGIN',
-        entity: 'User',
-        entityId: user.id,
-      },
-    });
+    // Temporarily disable activity logging for debugging
+    // await this.prisma.activityLog.create({
+    //   data: {
+    //     userId: user.id,
+    //     action: 'LOGIN',
+    //     entity: 'User',
+    //     entityId: user.id,
+    //   },
+    // });
 
     return {
       success: true,
