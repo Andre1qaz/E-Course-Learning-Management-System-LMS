@@ -22,6 +22,11 @@ export class PrismaService
     });
     super({
       adapter,
+      datasources: {
+        db: {
+          url: databaseUrl,
+        },
+      },
       log: ['error', 'warn'],
       errorFormat: 'minimal',
     });
