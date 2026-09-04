@@ -14,8 +14,14 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+  private static instance: PrismaService;
 
   constructor(configService: ConfigService) {
+    // Return existing instance if already created (singleton pattern)
+    if (PrismaService.instance) {
+      return PrismaService.instance;
+    }
+
     const databaseUrl = configService.get<string>('DATABASE_URL') || 'postgresql://postgres:*V2%26%24bp9x2x%2BpP3@db.klltjysxikbaqumjvtpn.supabase.co:5432/postgres';
 
     // Set DATABASE_URL as environment variable before creating PrismaClient
@@ -35,6 +41,8 @@ export class PrismaService
       `PrismaService initialized (DATABASE_URL ${databaseUrl ? 'configured' : 'missing'})`,
     );
     this.logger.log(`Using DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
+
+    PrismaService.instance = this;
   }
 
   async onModuleInit() {
