@@ -291,9 +291,10 @@ export function QuestionBanksClient({ token, userRole }: QuestionBanksClientProp
       if (jsonData.length > 0) {
         const headers = jsonData[0] as string[];
         return jsonData.slice(1).map((row: unknown) => {
+          const rowArray = row as unknown[];
           const obj: Record<string, unknown> = {};
           headers.forEach((header, index) => {
-            obj[header] = row[index] || '';
+            obj[header] = rowArray[index] || '';
           });
           return obj;
         });

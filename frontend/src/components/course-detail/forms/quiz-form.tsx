@@ -127,7 +127,7 @@ export function QuizForm({ weekId, token, activity, onSuccess, onCancel }: QuizF
                 title,
                 description,
                 status: isPublished ? "PUBLISHED" : "DRAFT",
-                order: activity?.order || 0,
+                order: (activity && activity.order) || 0,
                 metadata: {
                   quizId: quizResponse.data.id,
                   duration: parseInt(duration),
