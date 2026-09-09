@@ -7,18 +7,15 @@ import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
-// Suppress Redis-related errors globally
+// Suppress noisy Redis/BullMQ connection-drop logs only.
+// NOTE: kept intentionally narrow — do NOT match generic strings like
+// "ECONNRESET" or "Connection is closed" here, since Postgres/Prisma errors
+// use the same wording and would get silently swallowed too, which is
+// exactly what made the database connection issue harder to diagnose.
 const originalConsoleError = console.error;
 console.error = (...args) => {
   const message = args.join(' ');
-  // Suppress Redis-related errors
-  if (
-    message.includes('Redis') ||
-    message.includes('ECONNRESET') ||
-    message.includes('Command timed out') ||
-    message.includes('Connection is closed') ||
-    message.includes('ioredis')
-  ) {
+  if (message.includes('ioredis') || message.includes('BullMQ')) {
     return; // Suppress these errors
   }
   originalConsoleError.apply(console, args);

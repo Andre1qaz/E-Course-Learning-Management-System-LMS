@@ -69,7 +69,8 @@ export const authConfig: NextAuthConfig = {
             role: data.data.user.role,
             accessToken: data.data.accessToken,
           };
-        } catch {
+        } catch (err) {
+          console.error("Login authorize error:", err);
           return null;
         }
       },
