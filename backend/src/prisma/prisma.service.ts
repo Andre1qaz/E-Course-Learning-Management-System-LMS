@@ -13,24 +13,22 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(PrismaService.name);
-  private static instance: PrismaService;
+    private readonly logger = new Logger(PrismaService.name);
 
+  // NOTE: no manual static-singleton hack here. PrismaService is registered
+  // exactly once, in the @Global() PrismaModule, so Nest's own DI container
+  // already guarantees a single instance app-wide. If you ever see multiple
+  // "PrismaService initialized" logs again, the real bug is a module
+  // re-declaring PrismaService in its own `providers` array — fix that
+  // instead of re-adding a singleton workaround here.
   constructor(configService: ConfigService) {
-    // Return existing instance if already created (singleton pattern)
-    if (PrismaService.instance) {
-      return PrismaService.instance;
-    }
-
-    const databaseUrl = configService.get<string>('DATABASE_URL') || 'postgresql://postgres:*V2%26%24bp9x2x%2BpP3@db.klltjysxikbaqumjvtpn.supabase.co:5432/postgres';
+    const databaseUrl = configService.get<string>('DATABASE_URL');
     const directUrl = configService.get<string>('DIRECT_URL');
 
-    // Set environment variables for Prisma
-    if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = databaseUrl;
-    }
-    if (directUrl && !process.env.DIRECT_URL) {
-      process.env.DIRECT_URL = directUrl;
+    if (!databaseUrl) {
+      throw new Error(
+        'DATABASE_URL is not set. Configure it in the environment (Render dashboard) — refusing to start with a fallback connection string.',
+      );
     }
 
     const adapter = new PrismaPg({
@@ -41,15 +39,10 @@ export class PrismaService
       log: ['error', 'warn'],
       errorFormat: 'minimal',
     });
-    this.logger.log(
-      `PrismaService initialized (DATABASE_URL ${databaseUrl ? 'configured' : 'missing'})`,
-    );
-    this.logger.log(`Using DATABASE_URL: ${databaseUrl.substring(0, 50)}...`);
+    this.logger.log('PrismaService initialized (DATABASE_URL configured)');
     if (directUrl) {
-      this.logger.log(`Using DIRECT_URL: ${directUrl.substring(0, 50)}...`);
+      this.logger.log('DIRECT_URL configured (used by Prisma CLI for migrations)');
     }
-
-    PrismaService.instance = this;
   }
 
   async onModuleInit() {
