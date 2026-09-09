@@ -11,7 +11,7 @@ const hasRedisConfig = !!(
 
 // Explicitly disable Redis if not configured for production environments
 const isProduction = process.env.NODE_ENV === 'production';
-const forceDisableRedis = isProduction && !hasRedisConfig;
+const forceDisableRedis = isProduction && (!hasRedisConfig || process.env.ENABLE_QUEUES !== 'true');
 
 // Heuristic #1: Visibility of System Status — queue operations logging
 // Heuristic #20: Feedback and Assessment — asynchronous gradebook exports

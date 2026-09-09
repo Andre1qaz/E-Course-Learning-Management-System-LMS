@@ -37,7 +37,9 @@ const hasRedisConfig = !!(
 
 // Explicitly disable Redis if not configured for production environments
 const isProduction = process.env.NODE_ENV === 'production';
-const forceDisableRedis = isProduction && !hasRedisConfig;
+// Queue hanya aktif di production jika di-eksplisitkan ENABLE_QUEUES=true.
+// Ini mencegah BullMQ/ioredis mencoba konek ke Redis yang tidak tersedia (mis. Upstash TCP).
+const forceDisableRedis = isProduction && (!hasRedisConfig || process.env.ENABLE_QUEUES !== 'true');
 
 if (forceDisableRedis) {
   console.log('🚫 Production environment without Redis - queues disabled');

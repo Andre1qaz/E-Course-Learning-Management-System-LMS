@@ -16,7 +16,7 @@ const hasRedisConfig = !!(
 
 // Explicitly disable Redis if not configured for production environments
 const isProduction = process.env.NODE_ENV === 'production';
-const forceDisableRedis = isProduction && !hasRedisConfig;
+const forceDisableRedis = isProduction && (!hasRedisConfig || process.env.ENABLE_QUEUES !== 'true');
 
 if (forceDisableRedis) {
   console.log('🚫 Production environment without Redis - email queues disabled');
