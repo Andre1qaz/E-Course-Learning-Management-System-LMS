@@ -69,14 +69,18 @@ export default function LoginForm() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12 text-primary-foreground">
-        <div className="flex items-center gap-3">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12 text-primary-foreground relative overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: 'url(/login-watermark.jpg)' }}
+        />
+        <div className="relative z-10 flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-accent">
             <GraduationCap className="size-6" />
           </div>
           <span className="font-display text-xl font-bold">E-Course</span>
         </div>
-        <div>
+        <div className="relative z-10">
           <h1 className="font-display text-4xl font-bold leading-tight">
             Platform Pembelajaran
             <br />
@@ -87,13 +91,17 @@ export default function LoginForm() {
             yang dirancang khusus untuk kebutuhan akademik.
           </p>
         </div>
-        <p className="text-sm text-primary-foreground/60">
+        <p className="relative z-10 text-sm text-primary-foreground/60">
           © 2025 E-Course LMS — Heuristic-Driven Design
         </p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
-        <Card className="w-full max-w-md border-0 shadow-lg lg:border">
+      <div className="flex flex-1 items-center justify-center p-6 relative overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-10"
+          style={{ backgroundImage: 'url(/login-white-watermark.jpg)' }}
+        />
+        <Card className="w-full max-w-md border-0 shadow-lg lg:border relative z-10">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden">
               <GraduationCap className="size-6" />

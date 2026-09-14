@@ -63,8 +63,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-background">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center p-6 bg-background relative overflow-hidden">
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-20"
+        style={{ backgroundImage: 'url(/register-watermark.jpg)' }}
+      />
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <GraduationCap className="size-6" />
