@@ -70,8 +70,12 @@ export default function RegisterPage() {
       />
       <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <GraduationCap className="size-6" />
+          <div className="mx-auto mb-4 flex items-center justify-center gap-2">
+            <img 
+              src="/del-logo.png" 
+              alt="IT Del Logo" 
+              className="h-10 w-auto object-contain"
+            />
           </div>
           <CardTitle className="font-display text-2xl">Daftar Akun Baru</CardTitle>
           <CardDescription>

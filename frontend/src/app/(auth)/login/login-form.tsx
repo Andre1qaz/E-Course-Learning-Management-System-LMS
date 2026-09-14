@@ -75,9 +75,11 @@ export default function LoginForm() {
           style={{ backgroundImage: 'url(/login-watermark.jpg)' }}
         />
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-accent">
-            <GraduationCap className="size-6" />
-          </div>
+          <img 
+            src="/del-logo.png" 
+            alt="IT Del Logo" 
+            className="h-12 w-auto object-contain"
+          />
           <span className="font-display text-xl font-bold">E-Course</span>
         </div>
         <div className="relative z-10">
@@ -103,8 +105,12 @@ export default function LoginForm() {
         />
         <Card className="w-full max-w-md border-0 shadow-lg lg:border relative z-10">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden">
-              <GraduationCap className="size-6" />
+            <div className="mx-auto mb-4 flex items-center justify-center gap-2 lg:hidden">
+              <img 
+                src="/del-logo.png" 
+                alt="IT Del Logo" 
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <CardTitle className="font-display text-2xl">Masuk ke E-Course</CardTitle>
             <CardDescription>
