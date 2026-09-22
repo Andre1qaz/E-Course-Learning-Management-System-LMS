@@ -1022,8 +1022,8 @@ export class ForumService {
       );
     }
 
-    // Send real-time forum reply update via WebSocket
-    this.realtimeGateway.sendForumReply(threadId, reply);
+    // Send real-time forum reply update via WebSocket (scoped to course room)
+    this.realtimeGateway.sendForumReply(thread.courseId, threadId, reply);
 
     return {
       success: true,

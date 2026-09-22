@@ -5,7 +5,14 @@ import {
   IsEnum,
   IsNotEmpty,
   MaxLength,
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  Min,
+  ValidateNested,
+  Allow,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { IsOptionalUUID } from '../../common/validators/is-optional-uuid.decorator';
 
 export class CreateQuestionBankDto {
@@ -62,15 +69,39 @@ export class UpdateQuestionBankDto {
   questionType?: QuestionType;
 }
 
-export interface AddQuestionDto {
-  type: QuestionType;
-  questionText: string;
-  points: number;
+export class BankQuestionOptionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  text!: string;
+
+  @IsBoolean()
+  isCorrect!: boolean;
+}
+
+export class AddQuestionDto {
+  @IsEnum(QuestionType)
+  type!: QuestionType;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(5000)
+  questionText!: string;
+
+  @IsNumber()
+  @Min(1)
+  points!: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(5000)
   explanation?: string;
-  options?: Array<{
-    text: string;
-    isCorrect: boolean;
-  }>;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BankQuestionOptionDto)
+  @IsOptional()
+  options?: BankQuestionOptionDto[];
 }
 
 export interface QuestionBankWithQuestions {
@@ -101,9 +132,17 @@ export interface QuestionBankWithQuestions {
   }>;
 }
 
-export interface ImportQuestionBankDto {
-  format: 'json' | 'csv' | 'excel' | 'xlsx';
-  data: any;
+export class ImportQuestionBankBodyDto {
+  @IsString()
+  @IsNotEmpty()
+  format!: string;
+
+  // Arbitrary import payload (json/csv/excel rows) — validated per-format in service
+  @Allow()
+  data: unknown;
+
+  @IsOptional()
+  @IsOptionalUUID()
   courseId?: string;
 }
 

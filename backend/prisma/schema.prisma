@@ -81,6 +81,7 @@ model Course {
   questionBanks      QuestionBank[]
   weeks              Week[]
 
+  @@index([instructorId])
   @@map("courses")
 }
 
@@ -94,6 +95,7 @@ model Enrollment {
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+  @@index([courseId])
   @@map("enrollments")
 }
 
@@ -130,6 +132,7 @@ model Activity {
   week        Week           @relation(fields: [weekId], references: [id], onDelete: Cascade)
   quiz        Quiz?
 
+  @@index([weekId])
   @@map("activities")
 }
 
@@ -145,6 +148,7 @@ model Module {
   files              ModuleFile[]
   course             Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
   @@map("modules")
 }
 
@@ -158,6 +162,7 @@ model ModuleFile {
   uploadedAt DateTime       @default(now())
   module     Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
+  @@index([moduleId])
   @@map("module_files")
 }
 
@@ -174,6 +179,7 @@ model Assignment {
   course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
   rubric      Rubric?
 
+  @@index([courseId])
   @@map("assignments")
 }
 
@@ -193,6 +199,7 @@ model AssignmentSubmission {
   rubricAssessments RubricAssessment[]
 
   @@unique([assignmentId, studentId])
+  @@index([studentId])
   @@map("assignment_submissions")
 }
 
@@ -240,6 +247,7 @@ model RubricCriterion {
   rubric      Rubric                 @relation(fields: [rubricId], references: [id], onDelete: Cascade)
   levels      RubricCriterionLevel[]
 
+  @@index([rubricId])
   @@map("rubric_criteria")
 }
 
@@ -255,6 +263,7 @@ model RubricCriterionLevel {
   assessments RubricAssessment[]
   criterion   RubricCriterion    @relation(fields: [criterionId], references: [id], onDelete: Cascade)
 
+  @@index([criterionId])
   @@map("rubric_criterion_levels")
 }
 
@@ -286,6 +295,7 @@ model Exam {
   week             Week?         @relation(fields: [weekId], references: [id])
   questions        Question[]
 
+  @@index([courseId])
   @@map("exams")
 }
 
@@ -314,6 +324,8 @@ model Question {
   exam           Exam?            @relation(fields: [examId], references: [id], onDelete: Cascade)
   questionBank   QuestionBank?    @relation(fields: [questionBankId], references: [id])
 
+  @@index([examId])
+  @@index([questionBankId])
   @@map("questions")
 }
 
@@ -326,6 +338,7 @@ model QuestionOption {
   answers    Answer[]
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@index([questionId])
   @@map("question_options")
 }
 
@@ -342,6 +355,7 @@ model QuestionBank {
   course       Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions    Question[]
 
+  @@index([courseId])
   @@map("question_banks")
 }
 
@@ -376,6 +390,7 @@ model ExamAttempt {
   student       User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId, attemptNumber])
+  @@index([studentId])
   @@map("exam_attempts")
 }
 
@@ -392,6 +407,7 @@ model Answer {
   selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id])
 
   @@unique([attemptId, questionId])
+  @@index([questionId])
   @@map("answers")
 }
 
@@ -421,6 +437,9 @@ model CalendarEvent {
   course              Course?             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user                User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
+  @@index([userId])
+  @@index([startDate])
   @@map("calendar_events")
 }
 
@@ -435,6 +454,7 @@ model PrivateFile {
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("private_files")
 }
 
@@ -459,6 +479,7 @@ model ForumThread {
   course      Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   locker      User?             @relation("ThreadLocker", fields: [lockedBy], references: [id])
 
+  @@index([courseId])
   @@map("forum_threads")
 }
 
@@ -472,9 +493,10 @@ model ForumReply {
   attachments ForumAttachment[]
   mentions    ForumMention[]
   author      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  thread      ForumThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread      ForumThread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
   bestThread  ForumThread?      @relation("BestReply")
 
+  @@index([threadId])
   @@map("forum_replies")
 }
 
@@ -505,6 +527,7 @@ model ForumMention {
   reply           ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
   thread          ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
+  @@index([mentionedUserId])
   @@map("forum_mentions")
 }
 
@@ -519,6 +542,7 @@ model Notification {
   createdAt DateTime         @default(now())
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("notifications")
 }
 
@@ -533,6 +557,7 @@ model ActivityLog {
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("activity_logs")
 }
 
@@ -586,6 +611,7 @@ model GradeHistory {
   changer      User     @relation(fields: [changedBy], references: [id], onDelete: Cascade)
   grade        Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
 
+  @@index([gradeId])
   @@map("grade_histories")
 }
 
@@ -627,6 +653,7 @@ model QuizQuestion {
   options        QuizQuestionOption[]
   answers        QuizAnswer[]
 
+  @@index([quizId])
   @@map("quiz_questions")
 }
 
@@ -639,6 +666,7 @@ model QuizQuestionOption {
   answers    QuizAnswer[]
   question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@index([questionId])
   @@map("quiz_question_options")
 }
 
@@ -660,6 +688,7 @@ model QuizAttempt {
   answers       QuizAnswer[]
 
   @@unique([quizId, studentId, attemptNumber])
+  @@index([studentId])
   @@map("quiz_attempts")
 }
 
@@ -678,6 +707,7 @@ model QuizAnswer {
   selectedOption   QuizQuestionOption? @relation(fields: [selectedOptionId], references: [id])
 
   @@unique([attemptId, questionId])
+  @@index([questionId])
   @@map("quiz_answers")
 }
 
@@ -706,6 +736,7 @@ model Announcement {
   author      User               @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   course      Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
   @@map("announcements")
 }
 

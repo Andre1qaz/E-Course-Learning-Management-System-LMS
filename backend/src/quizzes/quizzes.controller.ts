@@ -19,6 +19,8 @@ import { QuizzesService } from './quizzes.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuizQuestionDto } from './dto/create-quiz-question.dto';
+import { QuizCheatLogDto } from './dto/cheat-log.dto';
+import { SubmitQuizDto } from './dto/submit-quiz.dto';
 
 @ApiTags('Quizzes')
 @Controller('quizzes')
@@ -110,16 +112,22 @@ export class QuizzesController {
   @Roles(Role.MAHASISWA)
   async submitAttempt(
     @Param('attemptId', ParseEntityIdPipe) attemptId: string,
-    @Body()
-    answers: {
-      questionId: string;
-      answerText?: string;
-      selectedOptionId?: string;
-    }[],
+    @Body() dto: SubmitQuizDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
-    return this.quizzesService.submitAttempt(attemptId, userId, role, answers);
+    return this.quizzesService.submitAttempt(attemptId, userId, role, dto.answers);
+  }
+
+  @Post('attempts/:attemptId/cheat-log')
+  @ApiOperation({ summary: 'Report anti-cheat violation during quiz (students only)' })
+  @Roles(Role.MAHASISWA)
+  async logCheatEvent(
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
+    @Body() dto: QuizCheatLogDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.quizzesService.logCheatEvent(attemptId, userId, dto);
   }
 
   @Get(':id/attempts/student')

@@ -57,19 +57,22 @@ Before deploying to production:
 
 ## Testing
 
-To test R2 integration locally:
+To test R2 integration locally, use the values from your own R2 dashboard (see `backend/.env.example`). Do NOT commit real credentials:
+
 ```bash
-# Set R2 environment variables locally
-export R2_ENDPOINT="https://09d90fffc86549d32125371a2e550306.r2.cloudflarestorage.com"
-export R2_ACCESS_KEY_ID="084ed5115a2c3acced28d788a870f097"
-export R2_SECRET_ACCESS_KEY="72f99b7e70ffc61eeec4b8b5cbf0dae982c6fd3cc94f0d13f2d23d10caad1a22"
-export R2_ACCOUNT_ID="09d90fffc86549d32125371a2e550306"
+# Set R2 environment variables locally (replace with YOUR credentials from R2 dashboard)
+export R2_ENDPOINT="https://<YOUR_ACCOUNT_ID>.r2.cloudflarestorage.com"
+export R2_ACCESS_KEY_ID="<YOUR_ACCESS_KEY_ID>"
+export R2_SECRET_ACCESS_KEY="<YOUR_SECRET_ACCESS_KEY>"
+export R2_ACCOUNT_ID="<YOUR_ACCOUNT_ID>"
 export R2_BUCKET_PUBLIC="ecourse-public"
 export R2_BUCKET_PRIVATE="ecourse-private"
 
 # Run the application
 npm run start:dev
 ```
+
+> **SECURITY NOTICE**: Real R2 credentials that were previously committed in this file (lines 63-66) must be considered **compromised**. Rotate them immediately in the Cloudflare R2 dashboard and check git history for the commit that included them.
 
 ## Benefits of R2
 

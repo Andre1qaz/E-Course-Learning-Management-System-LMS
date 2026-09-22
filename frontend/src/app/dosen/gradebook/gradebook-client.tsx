@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Download, RefreshCw, Settings, History, TrendingUp, Users, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 // Heuristic #1: Visibility of System Status — loading states and clear feedback
 // Heuristic #6: Recognition Rather Than Recall — clear labels and organization
@@ -92,15 +93,10 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/courses', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCourses(data.data);
-        if (data.data.length > 0) {
-          setSelectedCourse(data.data[0].id);
-        }
+      const data = await apiFetch<Course[]>('/courses', {}, token);
+      setCourses(data.data ?? []);
+      if ((data.data ?? []).length > 0) {
+        setSelectedCourse((data.data ?? [])[0].id);
       }
     } catch (error) {
       toast.error('Failed to fetch courses');
@@ -111,11 +107,8 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
+      const data = await apiFetch<GradebookData>(`/gradebook/course/${selectedCourse}`, {}, token);
+      if (data.data) {
         setGradebookData(data.data);
         if (data.data.course.settings) {
           setSettings(data.data.course.settings);
@@ -131,13 +124,8 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const fetchStatistics = async () => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/statistics`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setStatistics(data.data);
-      }
+      const data = await apiFetch(`/gradebook/course/${selectedCourse}/statistics`, {}, token);
+      setStatistics(data.data);
     } catch (error) {
       toast.error('Gagal memuat statistik');
     }
@@ -147,16 +135,12 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/recalculate`, {
+      await apiFetch(`/gradebook/course/${selectedCourse}/recalculate`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success('Grades recalculated successfully');
-        fetchGradebook();
-        fetchStatistics();
-      }
+      }, token);
+      toast.success('Grades recalculated successfully');
+      fetchGradebook();
+      fetchStatistics();
     } catch (error) {
       toast.error('Failed to recalculate grades');
     } finally {
@@ -167,21 +151,14 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const updateSettings = async () => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/settings`, {
+      await apiFetch(`/gradebook/course/${selectedCourse}/settings`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(settings),
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success('Settings updated successfully');
-        setSettingsOpen(false);
-        fetchGradebook();
-        fetchStatistics();
-      }
+      }, token);
+      toast.success('Settings updated successfully');
+      setSettingsOpen(false);
+      fetchGradebook();
+      fetchStatistics();
     } catch (error) {
       toast.error('Failed to update settings');
     }
@@ -190,11 +167,8 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const exportGradebook = async (format: string = 'excel') => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/export?format=${format}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
+      const data = await apiFetch<{ buffer: string; mimeType: string; filename: string }>(`/gradebook/course/${selectedCourse}/export?format=${format}`, {}, token);
+      if (data.data) {
         const buffer = Buffer.from(data.data.buffer, 'base64');
         const blob = new Blob([buffer], { type: data.data.mimeType });
         const url = URL.createObjectURL(blob);
@@ -213,13 +187,8 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const fetchGradeHistory = async (studentId: string) => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/history/${studentId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setGradeHistory(data.data);
-      }
+      const data = await apiFetch<any[]>(`/gradebook/course/${selectedCourse}/history/${studentId}`, {}, token);
+      setGradeHistory(data.data ?? []);
     } catch (error) {
       toast.error('Failed to fetch grade history');
     }
@@ -234,20 +203,13 @@ export function GradebookClient({ token, isAdmin = false }: GradebookClientProps
   const updateStudentGrade = async (studentId: string, field: string, value: number) => {
     if (!selectedCourse) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/course/${selectedCourse}/student/${studentId}`, {
+      await apiFetch(`/gradebook/course/${selectedCourse}/student/${studentId}`, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ [field]: value }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success('Grade updated successfully');
-        fetchGradebook();
-        fetchStatistics();
-      }
+      }, token);
+      toast.success('Grade updated successfully');
+      fetchGradebook();
+      fetchStatistics();
     } catch (error) {
       toast.error('Failed to update grade');
     }

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import {
@@ -319,10 +320,8 @@ export class AuthService {
   }
 
   private generateResetToken(): string {
-    return (
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15)
-    );
+    // Cryptographically secure token (32 random bytes = 64 hex chars)
+    return crypto.randomBytes(32).toString('hex');
   }
 
   async getProfile(userId: string): Promise<ApiResponse> {

@@ -9,6 +9,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ParseEntityIdPipe } from '../common/pipes/parse-entity-id.pipe';
 import {
@@ -28,6 +30,7 @@ import {
   UpdateGradeDto,
   UpdateCourseSettingsDto,
   BulkUpdateGradesDto,
+  ExportGradebookDto,
 } from './dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses
@@ -239,7 +242,7 @@ export class GradebookController {
   @Roles(Role.ADMIN, Role.DOSEN)
   async exportGradebookQueue(
     @Param('courseId', ParseEntityIdPipe) courseId: string,
-    @Body() body: { format: 'excel' | 'csv' },
+    @Body() body: ExportGradebookDto,
     @CurrentUser('sub') userId: string,
   ) {
     const job = await this.gradebookQueueService.addExportJob({
@@ -249,10 +252,9 @@ export class GradebookController {
     });
 
     if (!job) {
-      return {
-        success: false,
-        message: 'Export job could not be queued - Redis not available',
-      };
+      throw new ServiceUnavailableException(
+        'Export job could not be queued - Redis not available',
+      );
     }
 
     return {
@@ -283,11 +285,7 @@ export class GradebookController {
     const status = await this.gradebookQueueService.getJobStatus(jobId);
 
     if (!status) {
-      return {
-        success: false,
-        data: null,
-        message: 'Job not found',
-      };
+      throw new NotFoundException('Job not found');
     }
 
     return {

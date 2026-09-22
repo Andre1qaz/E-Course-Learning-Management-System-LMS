@@ -20,6 +20,11 @@ import { QuestionBanksService } from './question-banks.service';
 import {
   CreateQuestionBankDto,
   UpdateQuestionBankDto,
+  AddQuestionDto,
+  ImportQuestionBankBodyDto,
+  JsonQuestionBankImport,
+  CsvQuestionImport,
+  ExcelQuestionImport,
 } from './dto/question-bank.dto';
 import type { Response } from 'express';
 
@@ -90,7 +95,7 @@ export class QuestionBanksController {
   @Roles(Role.ADMIN, Role.DOSEN)
   async addQuestion(
     @Param('id', ParseEntityIdPipe) id: string,
-    @Body() dto: any,
+    @Body() dto: AddQuestionDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -152,13 +157,13 @@ export class QuestionBanksController {
   @ApiOperation({ summary: 'Import question bank (Admin/Dosen only)' })
   @Roles(Role.ADMIN, Role.DOSEN)
   async importQuestionBank(
-    @Body() body: { format: string; data: any; courseId?: string },
+    @Body() body: ImportQuestionBankBodyDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
     return this.questionBanksService.importQuestionBank(
       body.format,
-      body.data,
+      body.data as JsonQuestionBankImport | CsvQuestionImport[] | ExcelQuestionImport[],
       userId,
       role,
       body.courseId,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
+import { useAntiCheat } from "@/hooks/use-anti-cheat";
 
 interface QuestionOption {
   id: string;
@@ -222,7 +223,7 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
     }
   };
 
-  const submitQuiz = async () => {
+  const submitQuiz = useCallback(async () => {
     setLoading(true);
     try {
       const answerArray = Object.entries(answers).map(([questionId, answer]) => ({
@@ -233,7 +234,7 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
 
       const result = await apiFetch<QuizAttemptSummary>(`/quizzes/attempts/${currentAttempt!.id}/submit`, {
         method: "POST",
-        body: JSON.stringify(answerArray),
+        body: JSON.stringify({ answers: answerArray }),
       }, session?.accessToken || undefined);
       
       toast.success("Kuis berhasil disubmit");
@@ -251,7 +252,18 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [answers, currentAttempt, quiz, session?.accessToken]);
+
+  // Anti-cheat: detect tab switch / blur, report to backend, auto-submit at limit
+  const { violations } = useAntiCheat({
+    enabled: phase === "taking" && !!currentAttempt,
+    token: session?.accessToken || undefined,
+    reportEndpoint: currentAttempt
+      ? `/quizzes/attempts/${currentAttempt.id}/cheat-log`
+      : undefined,
+    maxViolations: 3,
+    onMaxViolations: () => submitQuiz(),
+  });
 
   const handleAnswerChange = (questionId: string, answer: { answerText?: string; selectedOptionId?: string }) => {
     setAnswers((prev) => ({
@@ -396,6 +408,12 @@ export function QuizTakingClient({ courseId, quizId }: QuizTakingClientProps) {
               </Badge>
               <Badge variant="outline">
                 {currentQuestionIndex + 1} / {questions.length}
+              </Badge>
+              <Badge
+                variant={violations > 0 ? "destructive" : "outline"}
+                title="Jumlah pelanggaran anti-kecurangan (pindah tab/window)"
+              >
+                Pelanggaran: {violations}/3
               </Badge>
             </div>
           </div>

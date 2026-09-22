@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api";
+import { useAntiCheat } from "@/hooks/use-anti-cheat";
 
 interface QuestionOption {
   id: string;
@@ -234,6 +235,17 @@ export function ExamTakingClient({ examId, token }: ExamTakingClientProps) {
 
     return () => clearInterval(timer);
   }, [phase]);
+
+  // Anti-cheat: detect tab switch / blur, report to backend, auto-submit at limit
+  const { violations } = useAntiCheat({
+    enabled: phase === "taking" && !!attemptId,
+    token,
+    reportEndpoint: attemptId
+      ? `/exams/attempts/${attemptId}/cheat-log`
+      : undefined,
+    maxViolations: 3,
+    onMaxViolations: () => handleSubmitExam(true),
+  });
 
   useEffect(() => {
     if (phase !== "taking" || timeRemaining !== 0) return;
@@ -491,6 +503,12 @@ export function ExamTakingClient({ examId, token }: ExamTakingClientProps) {
           <div className="flex items-center gap-4">
             <Badge variant="outline">
               {answeredCount} / {questions.length} dijawab
+            </Badge>
+            <Badge
+              variant={violations > 0 ? "destructive" : "outline"}
+              title="Jumlah pelanggaran anti-kecurangan (pindah tab/window)"
+            >
+              Pelanggaran: {violations}/3
             </Badge>
             <Card className="flex items-center gap-2 px-4 py-2">
               <Clock className="h-5 w-5 text-muted-foreground" />

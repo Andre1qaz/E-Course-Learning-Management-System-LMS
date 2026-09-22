@@ -17,6 +17,8 @@ import {
   GraduationCap,
   User,
   Bell,
+  Award,
+  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,8 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { label: "Course", href: "/admin/courses", icon: BookOpen },
     { label: "Ujian", href: "/admin/exams", icon: ClipboardList },
+    { label: "Nilai", href: "/admin/gradebook", icon: Award },
+    { label: "Bank Soal", href: "/admin/question-banks", icon: Database },
     { label: "Pengguna", href: "/admin/users", icon: Users },
     { label: "Pengumuman", href: "/admin/announcements", icon: Bell },
     { label: "Forum", href: "/admin/forum", icon: MessageSquare },
@@ -49,6 +53,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/dosen/dashboard", icon: LayoutDashboard },
     { label: "Course", href: "/dosen/courses", icon: BookOpen },
     { label: "Ujian", href: "/dosen/exams", icon: ClipboardList },
+    { label: "Nilai", href: "/dosen/gradebook", icon: Award },
     { label: "Pengumuman", href: "/dosen/announcements", icon: Bell },
     { label: "Kalender", href: "/dosen/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/dosen/storage", icon: HardDrive },
@@ -60,6 +65,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/mahasiswa/dashboard", icon: LayoutDashboard },
     { label: "Course", href: "/mahasiswa/courses", icon: BookOpen },
     { label: "Ujian", href: "/mahasiswa/exams", icon: ClipboardList },
+    { label: "Nilai Saya", href: "/mahasiswa/grades", icon: Award },
     { label: "Pengumuman", href: "/mahasiswa/announcements", icon: Bell },
     { label: "Kalender", href: "/mahasiswa/calendar", icon: Calendar },
     { label: "File Pribadi", href: "/mahasiswa/storage", icon: HardDrive },

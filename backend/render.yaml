@@ -14,42 +14,64 @@ services:
         fromDatabase:
           name: ecourse-db
           property: connectionString
+      # Optional: Supabase pooler URL for migrations (Prisma CLI).
+      # Set this in the Render dashboard if you use Supabase.
+      - key: DIRECT_URL
+        sync: false
+      # Queue kill-switch: set to "true" only when Redis/Upstash is configured.
+      - key: ENABLE_QUEUES
+        value: false
+      # Upstash Redis (REST). Fill in the Render dashboard — never commit secrets.
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      # Local-style Redis fallback (only if you run your own Redis).
       - key: REDIS_HOST
-        fromService:
-          type: redis
-          name: ecourse-redis
-          property: host
+        sync: false
       - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: ecourse-redis
-          property: port
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://your-domain.vercel.app
-      - key: MINIO_ENDPOINT
-        value: your-minio-endpoint
-      - key: MINIO_PORT
-        value: 9000
-      - key: MINIO_ACCESS_KEY
-        value: your-access-key
-      - key: MINIO_SECRET_KEY
-        value: your-secret-key
-      - key: MINIO_BUCKET_PUBLIC
+        value: https://e-course-learning-management-system.vercel.app
+      # Production storage = Cloudflare R2 (auto-detected by StorageService).
+      # Fill in the Render dashboard — never commit secrets.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_BUCKET_PUBLIC
         value: ecourse-public
-      - key: MINIO_BUCKET_PRIVATE
+      - key: R2_BUCKET_PRIVATE
         value: ecourse-private
-      - key: MINIO_USE_SSL
-        value: true
+      # SMTP for transactional email (optional — forgot-password degrades gracefully).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      # First admin bootstrap on empty database (change after first deploy).
+      - key: FIRST_ADMIN_EMAIL
+        value: admin@ecourse.ac.id
+      - key: FIRST_ADMIN_NAME
+        value: Administrator
+      - key: FIRST_ADMIN_PASSWORD
+        sync: false
 
 databases:
   - name: ecourse-db
     databaseName: ecourse_db
     user: ecourse
-    plan: free
-
-  - name: ecourse-redis
     plan: free

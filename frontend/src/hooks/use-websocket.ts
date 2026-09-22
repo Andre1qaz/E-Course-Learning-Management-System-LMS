@@ -48,7 +48,8 @@ export function useWebSocket(
       return;
     }
 
-    const socket = io(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/realtime`, {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace(/\/api\/?$/, '');
+    const socket = io(`${apiBase}/realtime`, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,

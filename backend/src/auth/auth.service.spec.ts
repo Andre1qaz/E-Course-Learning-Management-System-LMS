@@ -3,6 +3,7 @@ import { UnauthorizedException, ConflictException, BadRequestException, NotFound
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailQueueService } from '../email/email-queue.service';
 import { Role } from '@prisma/client';
 import { TestHelpers } from '../test-utils/test-helpers.util';
 
@@ -42,6 +43,13 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
+          },
+        },
+        {
+          provide: EmailQueueService,
+          useValue: {
+            addWelcomeJob: jest.fn(),
+            addForgotPasswordJob: jest.fn(),
           },
         },
       ],
@@ -387,7 +395,8 @@ describe('AuthService', () => {
       const result = await service.forgotPassword(forgotPasswordDto);
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('resetToken');
+      // Secure behavior: reset token is emailed, never returned in the response
+      expect(result.data).toBeNull();
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUser.id },
         data: expect.objectContaining({

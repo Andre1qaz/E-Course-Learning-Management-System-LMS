@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/utils";
-// import { NotificationBell } from "@/components/notifications/notification-bell";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface TopNavbarProps {
   user: {
@@ -92,6 +92,7 @@ export function TopNavbar({ user, onMenuClick, breadcrumbs }: TopNavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <NotificationBell token={user.accessToken ?? null} />
           <Link href={`/${user.role.toLowerCase()}/exams`}>
             <Button variant="ghost" size="sm" className="gap-2" aria-label="Ke halaman ujian">
               <ClipboardList className="icon-md" aria-hidden="true" />

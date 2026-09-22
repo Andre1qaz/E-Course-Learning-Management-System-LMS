@@ -240,6 +240,18 @@ export class CalendarService {
       throw new BadRequestException(result.errors.join(', '));
     }
 
+    // Non-course (global/personal) events: only ADMIN may publish announcements.
+    // Students and lecturers may only create personal notes visible to themselves.
+    if (!result.sanitized.courseId && userRole !== Role.ADMIN) {
+      const requestedType =
+        result.sanitized.type ?? CalendarEventType.ANNOUNCEMENT;
+      if (requestedType !== CalendarEventType.PERSONAL_NOTE) {
+        throw new ForbiddenException(
+          'Hanya admin yang dapat membuat pengumuman global. Silakan buat catatan pribadi.',
+        );
+      }
+    }
+
     // If courseId is provided, verify user has permission
     if (result.sanitized.courseId) {
       const course = await this.prisma.course.findUnique({
@@ -380,6 +392,21 @@ export class CalendarService {
       if (userRole !== Role.ADMIN) {
         throw new ForbiddenException(
           'Only admin can update global announcements',
+        );
+      }
+    }
+
+    // Non-admins may not escalate a personal/global event into a
+    // global announcement visible to all students
+    if (userRole !== Role.ADMIN && !event.courseId) {
+      if (data.type && data.type !== CalendarEventType.PERSONAL_NOTE) {
+        throw new ForbiddenException(
+          'Hanya admin yang dapat mengubah tipe pengumuman global.',
+        );
+      }
+      if (data.targetAudience === EventTargetAudience.ALL_STUDENTS) {
+        throw new ForbiddenException(
+          'Hanya admin yang dapat menargetkan semua mahasiswa.',
         );
       }
     }

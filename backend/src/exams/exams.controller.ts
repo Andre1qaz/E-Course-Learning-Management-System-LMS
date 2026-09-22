@@ -20,6 +20,10 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
+import { CheatLogDto } from './dto/cheat-log.dto';
+import { AutoSaveAnswerDto } from './dto/auto-save-answer.dto';
+import { GradeAttemptDto } from './dto/grade-attempt.dto';
+import { ReorderExamQuestionsDto } from './dto/reorder-questions.dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses
 // Heuristic #5: Error Prevention — role-based access control
@@ -124,10 +128,21 @@ export class ExamsController {
   @Roles(Role.ADMIN, Role.DOSEN, Role.MAHASISWA)
   async autoSaveAnswer(
     @Param('attemptId', ParseEntityIdPipe) attemptId: string,
-    @Body() dto: any,
+    @Body() dto: AutoSaveAnswerDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.examsService.autoSaveAnswer(attemptId, userId, dto);
+  }
+
+  @Post('attempts/:attemptId/cheat-log')
+  @ApiOperation({ summary: 'Report anti-cheat violation during exam (Student only)' })
+  @Roles(Role.MAHASISWA)
+  async logCheatEvent(
+    @Param('attemptId', ParseEntityIdPipe) attemptId: string,
+    @Body() dto: CheatLogDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.examsService.logCheatEvent(attemptId, userId, dto);
   }
 
   @Get(':id/questions')
@@ -191,10 +206,7 @@ export class ExamsController {
   @Roles(Role.ADMIN, Role.DOSEN)
   async gradeAttempt(
     @Param('attemptId', ParseEntityIdPipe) attemptId: string,
-    @Body()
-    dto: {
-      answers: Array<{ questionId: string; score: number; feedback?: string }>;
-    },
+    @Body() dto: GradeAttemptDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {
@@ -208,7 +220,7 @@ export class ExamsController {
   @Roles(Role.ADMIN, Role.DOSEN)
   async reorderQuestions(
     @Param('id', ParseEntityIdPipe) examId: string,
-    @Body() dto: { questionOrders: { id: string; order: number }[] },
+    @Body() dto: ReorderExamQuestionsDto,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: Role,
   ) {

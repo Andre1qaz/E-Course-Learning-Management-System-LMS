@@ -1,5 +1,5 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -181,7 +181,7 @@ export class TestHelpers {
     });
   }
 
-  static async cleanupDatabase(prisma: PrismaService) {
+  static async cleanupDatabase(prisma: PrismaClient) {
     // Delete in order of dependencies to avoid foreign key constraints
     await prisma.activityLog.deleteMany();
     await prisma.notification.deleteMany();

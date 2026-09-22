@@ -8,6 +8,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CoursesModule } from './courses/courses.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import { StorageModule } from './storage/storage.module';
 import { ModulesModule } from './modules/modules.module';
 import { CourseCategoriesModule } from './course-categories/course-categories.module';
@@ -141,6 +143,14 @@ const bullConfig = createBullConfig();
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

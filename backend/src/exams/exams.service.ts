@@ -9,11 +9,15 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { SubmitExamDto } from './dto/submit-exam.dto';
+import { CheatLogDto } from './dto/cheat-log.dto';
+import { AutoSaveAnswerDto } from './dto/auto-save-answer.dto';
+import { GradeAttemptDto } from './dto/grade-attempt.dto';
 import {
   Role,
   QuestionType,
   ExamAttemptStatus,
   GradingStatus,
+  Prisma,
 } from '@prisma/client';
 import { CalendarService } from '../calendar/calendar.service';
 import { NotificationsQueueService } from '../notifications/notifications-queue.service';
@@ -820,7 +824,11 @@ export class ExamsService {
     };
   }
 
-  async autoSaveAnswer(attemptId: string, userId: string, dto: any) {
+  async autoSaveAnswer(
+    attemptId: string,
+    userId: string,
+    dto: AutoSaveAnswerDto,
+  ) {
     const attempt = await this.prisma.examAttempt.findUnique({
       where: { id: attemptId },
     });
@@ -891,7 +899,7 @@ export class ExamsService {
             answer: rawAnswer,
             savedAt: new Date().toISOString(),
           },
-        },
+        } as Prisma.InputJsonValue,
       },
     });
 
@@ -899,6 +907,58 @@ export class ExamsService {
       success: true,
       data: answer,
       message: 'Jawaban tersimpan',
+    };
+  }
+
+  async logCheatEvent(attemptId: string, userId: string, dto: CheatLogDto) {
+    const attempt = await this.prisma.examAttempt.findUnique({
+      where: { id: attemptId },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException('Exam attempt not found');
+    }
+
+    if (attempt.studentId !== userId) {
+      throw new ForbiddenException(
+        'Anda hanya dapat melaporkan aktivitas sendiri',
+      );
+    }
+
+    if (
+      attempt.status === ExamAttemptStatus.SUBMITTED ||
+      attempt.status === ExamAttemptStatus.GRADED
+    ) {
+      throw new ForbiddenException(
+        'Tidak dapat mencatat aktivitas setelah ujian dikumpulkan',
+      );
+    }
+
+    const existingLog = Array.isArray(attempt.examCheatLog)
+      ? attempt.examCheatLog
+      : [];
+
+    const event = {
+      eventType: dto.eventType,
+      details: dto.details ?? null,
+      reportedAt: new Date().toISOString(),
+    };
+
+    const updated = await this.prisma.examAttempt.update({
+      where: { id: attemptId },
+      data: {
+        examCheatLog: [...existingLog, event],
+      },
+      select: { id: true, examCheatLog: true },
+    });
+
+    return {
+      success: true,
+      data: {
+        attemptId: updated.id,
+        totalViolations: (updated.examCheatLog as unknown[]).length,
+      },
+      message: 'Aktivitas tercatat',
     };
   }
 
@@ -1128,9 +1188,7 @@ export class ExamsService {
     attemptId: string,
     userId: string,
     userRole: Role,
-    dto: {
-      answers: Array<{ questionId: string; score: number; feedback?: string }>;
-    },
+    dto: GradeAttemptDto,
   ) {
     const attempt = await this.prisma.examAttempt.findUnique({
       where: { id: attemptId },

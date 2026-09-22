@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, BookOpen, CheckCircle, XCircle, Award } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 // Heuristic #1: Visibility of System Status — clear grade display
 // Heuristic #6: Recognition Rather Than Recall — organized by course
@@ -86,15 +87,11 @@ export function MyGradesClient({ token }: MyGradesClientProps) {
   const fetchAllGrades = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/gradebook/my-grades', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setAllGrades(data.data.enrollments);
-        if (data.data.enrollments.length > 0) {
-          setSelectedCourse(data.data.enrollments[0].course.id);
-        }
+      const data = await apiFetch<{ enrollments: CourseGrade[] }>('/gradebook/my-grades', {}, token);
+      const enrollments = data.data?.enrollments ?? [];
+      setAllGrades(enrollments);
+      if (enrollments.length > 0) {
+        setSelectedCourse(enrollments[0].course.id);
       }
     } catch (error) {
       toast.error('Failed to fetch grades');
@@ -107,13 +104,8 @@ export function MyGradesClient({ token }: MyGradesClientProps) {
     if (!selectedCourse) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/gradebook/my-grades/${selectedCourse}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCourseDetail(data.data);
-      }
+      const data = await apiFetch(`/gradebook/my-grades/${selectedCourse}`, {}, token);
+      setCourseDetail(data.data);
     } catch (error) {
       toast.error('Failed to fetch course details');
     } finally {

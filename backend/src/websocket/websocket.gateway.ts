@@ -96,6 +96,17 @@ export class RealtimeGateway
         await client.join(`course:${courseId}`);
       }
 
+      // Join exam rooms for exams with an in-progress attempt
+      // so exam-scoped timer/update events reach the taker
+      const activeAttempts = await this.prisma.examAttempt.findMany({
+        where: { studentId: user.id, status: 'IN_PROGRESS' },
+        select: { examId: true },
+      });
+
+      for (const attempt of activeAttempts) {
+        await client.join(`exam:${attempt.examId}`);
+      }
+
       this.logger.log(
         `User ${user.name} (${user.id}) connected. Socket ID: ${client.id}`,
       );
@@ -165,9 +176,9 @@ export class RealtimeGateway
     });
   }
 
-  // Forum methods
-  sendForumReply(threadId: string, reply: any) {
-    this.server.emit('forum:reply', {
+  // Forum methods — scoped to the course room so events never leak across courses
+  sendForumReply(courseId: string, threadId: string, reply: any) {
+    this.server.to(`course:${courseId}`).emit('forum:reply', {
       threadId,
       reply,
       timestamp: new Date(),
@@ -182,9 +193,9 @@ export class RealtimeGateway
     });
   }
 
-  // Exam timer methods
+  // Exam timer methods — scoped to the exam room
   syncExamTimer(examId: string, timerData: any) {
-    this.server.emit('exam:timer_sync', {
+    this.server.to(`exam:${examId}`).emit('exam:timer_sync', {
       examId,
       ...timerData,
       timestamp: new Date(),
@@ -192,16 +203,16 @@ export class RealtimeGateway
   }
 
   sendExamUpdate(examId: string, update: any) {
-    this.server.emit('exam:update', {
+    this.server.to(`exam:${examId}`).emit('exam:update', {
       examId,
       ...update,
       timestamp: new Date(),
     });
   }
 
-  // Presence methods
-  broadcastTyping(threadId: string, userId: string, userName: string) {
-    this.server.emit('forum:typing', {
+  // Presence methods — scoped to the course room
+  broadcastTyping(courseId: string, threadId: string, userId: string, userName: string) {
+    this.server.to(`course:${courseId}`).emit('forum:typing', {
       threadId,
       userId,
       userName,
@@ -270,25 +281,65 @@ export class RealtimeGateway
   }
 
   @SubscribeMessage('typing:start')
-  handleTypingStart(
+  async handleTypingStart(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { threadId: string },
   ) {
     if (client.userId && data.threadId) {
-      this.broadcastTyping(data.threadId, client.userId, client.userId);
+      // Scope typing indicator to the thread's course room
+      const thread = await this.prisma.forumThread.findUnique({
+        where: { id: data.threadId },
+        select: { courseId: true },
+      });
+      if (thread) {
+        this.broadcastTyping(
+          thread.courseId,
+          data.threadId,
+          client.userId,
+          client.userId,
+        );
+      }
     }
   }
 
   @SubscribeMessage('typing:stop')
-  handleTypingStop(
+  async handleTypingStop(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { threadId: string },
   ) {
     if (client.userId && data.threadId) {
-      this.server.emit('forum:typing_stop', {
-        threadId: data.threadId,
-        userId: client.userId,
+      const thread = await this.prisma.forumThread.findUnique({
+        where: { id: data.threadId },
+        select: { courseId: true },
       });
+      if (thread) {
+        this.server.to(`course:${thread.courseId}`).emit('forum:typing_stop', {
+          threadId: data.threadId,
+          userId: client.userId,
+        });
+      }
+    }
+  }
+
+  @SubscribeMessage('join:exam')
+  async handleJoinExam(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { examId: string },
+  ) {
+    if (client.userId && data.examId) {
+      await client.join(`exam:${data.examId}`);
+      this.logger.log(`User ${client.userId} joined exam ${data.examId}`);
+    }
+  }
+
+  @SubscribeMessage('leave:exam')
+  async handleLeaveExam(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { examId: string },
+  ) {
+    if (client.userId && data.examId) {
+      await client.leave(`exam:${data.examId}`);
+      this.logger.log(`User ${client.userId} left exam ${data.examId}`);
     }
   }
 
@@ -298,8 +349,8 @@ export class RealtimeGateway
     @MessageBody() data: { examId: string; remainingTime: number },
   ) {
     if (client.userId && data.examId) {
-      // Broadcast to other users taking the same exam
-      this.server.emit('exam:heartbeat', {
+      // Broadcast only to other users taking the same exam
+      this.server.to(`exam:${data.examId}`).emit('exam:heartbeat', {
         examId: data.examId,
         userId: client.userId,
         remainingTime: data.remainingTime,

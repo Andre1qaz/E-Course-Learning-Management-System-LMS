@@ -8,7 +8,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { CreateQuizQuestionDto } from './dto/create-quiz-question.dto';
-import { Role, QuizAttemptStatus, QuestionType } from '@prisma/client';
+import { QuizCheatLogDto } from './dto/cheat-log.dto';
+import { QuizAnswerDto } from './dto/submit-quiz.dto';
+import { Role, QuizAttemptStatus, QuestionType, Prisma } from '@prisma/client';
 import { AutoValidator } from '../common/base/validation-guide';
 
 @Injectable()
@@ -222,7 +224,6 @@ export class QuizzesService {
     userRole: Role,
     dto: CreateQuizQuestionDto,
   ) {
-    console.log('Received DTO:', JSON.stringify(dto, null, 2));
     const quizResult = await this.findOne(quizId, userId, userRole);
     const quiz = quizResult.data;
 
@@ -244,7 +245,6 @@ export class QuizzesService {
       explanation: { type: 'string', required: false, maxLength: 5000 },
       correctAnswer: { type: 'string', required: false },
     });
-    console.log('Validation result:', JSON.stringify(result, null, 2));
 
     if (!result.valid) {
       throw new BadRequestException(result.errors.join(', '));
@@ -268,10 +268,6 @@ export class QuizzesService {
         dto.options &&
         dto.options.length > 0
       ) {
-        console.log(
-          'Creating options for multiple choice question:',
-          dto.options,
-        );
         for (let i = 0; i < dto.options.length; i++) {
           await tx.quizQuestionOption.create({
             data: {
@@ -282,17 +278,7 @@ export class QuizzesService {
             },
           });
         }
-      } else {
-        console.log(
-          'No options to create - type:',
-          result.sanitized.type,
-          'options:',
-          dto.options,
-        );
       }
-
-      console.log('Created question with ID:', createdQuestion.id);
-      return createdQuestion;
 
       return createdQuestion;
     });
@@ -448,11 +434,7 @@ export class QuizzesService {
     attemptId: string,
     userId: string,
     userRole: Role,
-    answers: {
-      questionId: string;
-      answerText?: string;
-      selectedOptionId?: string;
-    }[],
+    answers: QuizAnswerDto[],
   ) {
     const attempt = await this.prisma.quizAttempt.findUnique({
       where: { id: attemptId },
@@ -540,6 +522,68 @@ export class QuizzesService {
       success: true,
       data: updatedAttempt,
       message: 'Quiz submitted successfully',
+    };
+  }
+
+  /**
+   * Log anti-cheat violation during a quiz attempt.
+   * Stored inside autoSavedData.cheatLog (no schema change required).
+   */
+  async logCheatEvent(
+    attemptId: string,
+    userId: string,
+    dto: QuizCheatLogDto,
+  ) {
+    const attempt = await this.prisma.quizAttempt.findUnique({
+      where: { id: attemptId },
+    });
+
+    if (!attempt) {
+      throw new NotFoundException('Attempt not found');
+    }
+
+    if (attempt.studentId !== userId) {
+      throw new ForbiddenException('You can only report your own attempts');
+    }
+
+    if (attempt.status !== QuizAttemptStatus.IN_PROGRESS) {
+      throw new BadRequestException('Attempt is not in progress');
+    }
+
+    const savedData =
+      (attempt.autoSavedData as Record<string, unknown> | null) ?? {};
+    const existingLog = Array.isArray(
+      (savedData as Record<string, unknown>).cheatLog,
+    )
+      ? ((savedData as Record<string, unknown>).cheatLog as unknown[])
+      : [];
+
+    const event = {
+      eventType: dto.eventType,
+      details: dto.details ?? null,
+      reportedAt: new Date().toISOString(),
+    };
+
+    const updated = await this.prisma.quizAttempt.update({
+      where: { id: attemptId },
+      data: {
+        autoSavedData: {
+          ...savedData,
+          cheatLog: [...existingLog, event],
+        } as Prisma.InputJsonValue,
+      },
+      select: { id: true, autoSavedData: true },
+    });
+
+    const totalViolations = (
+      ((updated.autoSavedData as Record<string, unknown> | null)
+        ?.cheatLog as unknown[]) ?? []
+    ).length;
+
+    return {
+      success: true,
+      data: { attemptId: updated.id, totalViolations },
+      message: 'Aktivitas tercatat',
     };
   }
 

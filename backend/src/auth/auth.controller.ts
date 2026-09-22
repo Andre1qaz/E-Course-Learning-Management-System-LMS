@@ -16,18 +16,21 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Registrasi user baru' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // Rate limiting — security requirement
   @ApiOperation({ summary: 'Login dengan email dan password' })
@@ -35,6 +38,7 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Public()
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Lupa password via email institusi' })
@@ -42,6 +46,7 @@ export class AuthController {
     return this.authService.forgotPassword(dto);
   }
 
+  @Public()
   @Post('reset-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Reset password dengan token' })

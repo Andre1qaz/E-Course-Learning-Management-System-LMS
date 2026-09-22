@@ -6,9 +6,14 @@ import {
   Delete,
   Param,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
+import {
+  GenerateUploadUrlDto,
+  GenerateDownloadUrlDto,
+  DeleteFileDto,
+} from './dto/storage.dto';
 
 // Heuristic #1: Visibility of System Status — clear API responses for upload operations
 // Heuristic #5: Error Prevention — validate upload requests before processing
@@ -22,103 +27,52 @@ export class StorageController {
 
   @Post('upload-url')
   @ApiOperation({ summary: 'Generate presigned URL for file upload' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        fileName: { type: 'string' },
-        fileType: { type: 'string' },
-        fileSize: { type: 'number' },
-        isPrivate: { type: 'boolean' },
-      },
-      required: ['fileName', 'fileType', 'fileSize'],
-    },
-  })
-  async generateUploadUrl(
-    @Body()
-    body: {
-      fileName: string;
-      fileType: string;
-      fileSize: number;
-      isPrivate?: boolean;
-    },
-  ) {
-    try {
-      const { uploadUrl, fileUrl } =
-        await this.storageService.generateUploadUrl(
-          body.fileName,
-          body.fileType,
-          body.fileSize,
-          body.isPrivate || false,
-        );
+  async generateUploadUrl(@Body() dto: GenerateUploadUrlDto) {
+    // Errors propagate to the global HttpExceptionFilter which returns
+    // { success: false, ... } with the correct HTTP status code.
+    const { uploadUrl, fileUrl } =
+      await this.storageService.generateUploadUrl(
+        dto.fileName,
+        dto.fileType,
+        dto.fileSize,
+        dto.isPrivate || false,
+      );
 
-      return {
-        success: true,
-        data: { uploadUrl, fileUrl },
-        message: 'Upload URL generated successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        message: (error as Error).message || 'Failed to generate upload URL',
-      };
-    }
+    return {
+      success: true,
+      data: { uploadUrl, fileUrl },
+      message: 'Upload URL generated successfully',
+    };
   }
 
   @Post('download-url')
   @ApiOperation({ summary: 'Generate presigned URL for private file download' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        fileUrl: { type: 'string' },
-      },
-      required: ['fileUrl'],
-    },
-  })
-  async generateDownloadUrl(@Body() body: { fileUrl: string }) {
-    try {
-      const key = this.storageService.extractKeyFromUrl(body.fileUrl);
-      const downloadUrl = await this.storageService.generateDownloadUrl(key);
+  async generateDownloadUrl(@Body() dto: GenerateDownloadUrlDto) {
+    const key = this.storageService.extractKeyFromUrl(dto.fileUrl);
+    const downloadUrl = await this.storageService.generateDownloadUrl(key);
 
-      return {
-        success: true,
-        data: { downloadUrl },
-        message: 'Download URL generated successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        message: (error as Error).message || 'Failed to generate download URL',
-      };
-    }
+    return {
+      success: true,
+      data: { downloadUrl },
+      message: 'Download URL generated successfully',
+    };
   }
 
   @Delete('file/:fileUrl')
   @ApiOperation({ summary: 'Delete file from storage' })
   async deleteFile(
     @Param('fileUrl') fileUrl: string,
-    @Body() body: { isPrivate?: boolean },
+    @Body() dto?: DeleteFileDto,
   ) {
-    try {
-      const key = this.storageService.extractKeyFromUrl(
-        decodeURIComponent(fileUrl),
-      );
-      await this.storageService.deleteFile(key, body.isPrivate || false);
+    const key = this.storageService.extractKeyFromUrl(
+      decodeURIComponent(fileUrl),
+    );
+    await this.storageService.deleteFile(key, dto?.isPrivate || false);
 
-      return {
-        success: true,
-        data: null,
-        message: 'File deleted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        data: null,
-        message: (error as Error).message || 'Failed to delete file',
-      };
-    }
+    return {
+      success: true,
+      data: null,
+      message: 'File deleted successfully',
+    };
   }
 }

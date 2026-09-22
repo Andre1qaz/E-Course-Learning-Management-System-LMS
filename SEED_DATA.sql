@@ -15,7 +15,7 @@ INSERT INTO "User" (
   'admin001',
   'Administrator',
   'admin@ecourse.ac.id',
-  '$2a$12$yMzYHxZvG8WtL2XxKpZ5xO1qN3R5t7V9xYz2A4B6C8D0E2F4G6H8I0J2K4L6M8',
+  '$2b$12$ZxcAp.lmZqmiafGB1tG92OR2Rpz7o53IkRsmJyfMVWgfU.rmQVkX.',
   'ADMIN',
   NOW(),
   NOW()
