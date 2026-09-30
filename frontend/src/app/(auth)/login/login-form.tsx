@@ -38,7 +38,7 @@ const stats = [
   },
   {
     icon: GraduationCap,
-    value: "10.000+",
+    value: "3.000+",
     label: "Alumni Berhasil",
   },
   {
@@ -48,7 +48,7 @@ const stats = [
   },
 ];
 
-const partners = ["IT Del", "Kemendikbud", "Dicoding", "Google Edu"];
+const partners = ["IT Del", "Kemendikbud", "CIS DEL", "Google Edu"];
 
 export default function LoginForm() {
   const router = useRouter();
@@ -227,7 +227,7 @@ export default function LoginForm() {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-400 text-amber-950">
                 <Award size={15} />
               </span>
-              <span className="text-xs font-bold">Sertifikat Siap Diunduh</span>
+              <span className="text-xs font-bold">Selesaikan semua kelas</span>
             </div>
           </div>
 
