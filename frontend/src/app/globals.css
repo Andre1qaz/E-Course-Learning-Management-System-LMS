@@ -235,6 +235,54 @@ body {
   100% { background-position: 200% 0; }
 }
 
+/* Micro-interactions — Login page entrance + ambient loops */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes drift-slow {
+  0% { transform: translate(-4%, -2%) scale(1); }
+  50% { transform: translate(3%, 4%) scale(1.08); }
+  100% { transform: translate(-4%, -2%) scale(1); }
+}
+
+@keyframes blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(24px, -28px) scale(1.08); }
+  66% { transform: translate(-18px, 18px) scale(0.95); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.9s ease both;
+}
+
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-drift-slow {
+  animation: drift-slow 22s ease-in-out infinite;
+}
+
+.animate-blob-float {
+  animation: blob-float 12s ease-in-out infinite;
+}
+
 .skeleton {
   background: linear-gradient(
     90deg,
