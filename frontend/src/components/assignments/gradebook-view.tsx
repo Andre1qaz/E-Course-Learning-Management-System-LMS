@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Table, User } from "lucide-react";
@@ -44,12 +45,15 @@ interface GradebookData {
 }
 
 export function GradebookView({ courseId }: GradebookViewProps) {
+  const { data: session } = useSession();
   const [gradebook, setGradebook] = useState<GradebookData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchGradebook();
-  }, [courseId]);
+    if (session?.accessToken) {
+      fetchGradebook();
+    }
+  }, [courseId, session?.accessToken]);
 
   const fetchGradebook = async () => {
     try {
@@ -57,7 +61,7 @@ export function GradebookView({ courseId }: GradebookViewProps) {
         `${process.env.NEXT_PUBLIC_API_URL}/assignments/gradebook/${courseId}`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
           },
         }
       );

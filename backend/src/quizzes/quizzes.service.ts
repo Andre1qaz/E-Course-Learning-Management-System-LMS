@@ -153,9 +153,14 @@ export class QuizzesService {
       throw new ForbiddenException('Quiz is not published');
     }
 
+    // Never expose the answer key (or questions) to students through the quiz
+    // metadata endpoint — questions are served by the /questions endpoint.
+    const data =
+      userRole === Role.MAHASISWA ? { ...quiz, questions: [] } : quiz;
+
     return {
       success: true,
-      data: quiz,
+      data,
     };
   }
 
@@ -357,11 +362,12 @@ export class QuizzesService {
       orderBy: { order: 'asc' },
     });
 
-    // For students, don't show correct answers
+    // For students, don't show correct answers or explanations unless allowed
     const processedQuestions =
       userRole === Role.MAHASISWA
         ? questions.map((q) => ({
             ...q,
+            explanation: quiz.showExplanation ? q.explanation : null,
             options: q.options.map((o) => ({
               ...o,
               isCorrect: false,
@@ -393,11 +399,8 @@ export class QuizzesService {
       orderBy: { attemptNumber: 'desc' },
     });
 
-    if (previousAttempts.length >= quiz.maxAttempts) {
-      throw new ForbiddenException('Maximum attempts reached');
-    }
-
-    // Check if there's an in-progress attempt
+    // Resume an in-progress attempt before enforcing the attempt limit,
+    // otherwise a maxAttempts of 1 would block students from resuming.
     const inProgressAttempt = previousAttempts.find(
       (a) => a.status === QuizAttemptStatus.IN_PROGRESS,
     );
@@ -408,6 +411,14 @@ export class QuizzesService {
         data: inProgressAttempt,
         message: 'Continuing existing attempt',
       };
+    }
+
+    // Retakes are only allowed when the quiz enables them; otherwise a single
+    // attempt is permitted regardless of maxAttempts.
+    const effectiveMaxAttempts = quiz.allowRetake ? quiz.maxAttempts : 1;
+
+    if (previousAttempts.length >= effectiveMaxAttempts) {
+      throw new ForbiddenException('Maximum attempts reached');
     }
 
     const attempt = await this.prisma.quizAttempt.create({
@@ -466,6 +477,7 @@ export class QuizzesService {
     // Calculate score
     let totalScore = 0;
     let maxScore = 0;
+    const answerRows: Prisma.QuizAnswerCreateManyInput[] = [];
 
     for (const question of attempt.quiz.questions) {
       maxScore += question.points;
@@ -492,15 +504,12 @@ export class QuizzesService {
           totalScore += question.points;
         }
 
-        // Save answer
-        await this.prisma.quizAnswer.create({
-          data: {
-            attemptId,
-            questionId: question.id,
-            answerText: userAnswer.answerText,
-            selectedOptionId: userAnswer.selectedOptionId,
-            score: isCorrect ? question.points : 0,
-          },
+        answerRows.push({
+          attemptId,
+          questionId: question.id,
+          answerText: userAnswer.answerText,
+          selectedOptionId: userAnswer.selectedOptionId,
+          score: isCorrect ? question.points : 0,
         });
       }
     }
@@ -508,14 +517,23 @@ export class QuizzesService {
     const finalScore = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
     const passed = finalScore >= attempt.quiz.passingScore;
 
-    const updatedAttempt = await this.prisma.quizAttempt.update({
-      where: { id: attemptId },
-      data: {
-        totalScore: finalScore,
-        status: QuizAttemptStatus.SUBMITTED,
-        submittedAt: new Date(),
-        passed,
-      },
+    const updatedAttempt = await this.prisma.$transaction(async (tx) => {
+      // Clear any previously saved answers so a retried submit stays consistent.
+      await tx.quizAnswer.deleteMany({ where: { attemptId } });
+
+      if (answerRows.length > 0) {
+        await tx.quizAnswer.createMany({ data: answerRows });
+      }
+
+      return tx.quizAttempt.update({
+        where: { id: attemptId },
+        data: {
+          totalScore: finalScore,
+          status: QuizAttemptStatus.SUBMITTED,
+          submittedAt: new Date(),
+          passed,
+        },
+      });
     });
 
     return {
@@ -594,27 +612,69 @@ export class QuizzesService {
     const quizResult = await this.findOne(quizId, userId, userRole);
     const quiz = quizResult.data;
 
+    // Do not reveal answers when results are hidden from students.
+    const canRevealAnswers =
+      userRole !== Role.MAHASISWA || quiz.showResults === true;
+
     const attempts = await this.prisma.quizAttempt.findMany({
       where: {
         quizId,
         studentId: userId,
       },
-      include: {
-        answers: {
-          include: {
-            question: {
+      include: canRevealAnswers
+        ? {
+            answers: {
               include: {
-                options: true,
+                question: {
+                  include: {
+                    options: true,
+                  },
+                },
               },
             },
-          },
-        },
-      },
+          }
+        : undefined,
       orderBy: { attemptNumber: 'desc' },
     });
 
+    // Never expose the answer key to students through their attempts.
+    const sanitized =
+      userRole === Role.MAHASISWA
+        ? attempts.map((attempt) => {
+            const answers = (
+              attempt as typeof attempt & {
+                answers?: Array<{
+                  question?: {
+                    options?: Array<Record<string, unknown>>;
+                  } & Record<string, unknown>;
+                } & Record<string, unknown>;
+              }
+            ).answers;
+
+            if (!answers) {
+              return attempt;
+            }
+
+            return {
+              ...attempt,
+              answers: answers.map((answer) => ({
+                ...answer,
+                question: answer.question
+                  ? {
+                      ...answer.question,
+                      options: (answer.question.options ?? []).map((option) => ({
+                        ...option,
+                        isCorrect: false,
+                      })),
+                    }
+                  : answer.question,
+              })),
+            };
+          })
+        : attempts;
+
     // Return data directly - interceptor will wrap it
-    return attempts;
+    return sanitized;
   }
 
   /**

@@ -125,17 +125,6 @@ export class AssignmentsService {
             enrollments: true,
           },
         },
-        submissions: {
-          include: {
-            student: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
       },
     });
 
@@ -153,9 +142,29 @@ export class AssignmentsService {
       throw new ForbiddenException('You do not have access to this assignment');
     }
 
+    // Students may only see their own submission; staff see all of them.
+    const canSeeAllSubmissions =
+      userRole === Role.ADMIN || assignment.course.instructorId === userId;
+
+    const submissions = await this.prisma.assignmentSubmission.findMany({
+      where: {
+        assignmentId: id,
+        ...(canSeeAllSubmissions ? {} : { studentId: userId }),
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
     return {
       success: true,
-      data: assignment,
+      data: { ...assignment, submissions },
       message: 'Assignment retrieved successfully',
     };
   }
@@ -386,6 +395,7 @@ export class AssignmentsService {
         studentId: userId,
         fileUrl,
         fileName,
+        submittedAt: new Date(),
         status: AssignmentSubmissionStatus.SUBMITTED,
       },
       include: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -55,6 +56,7 @@ export function QuestionFormDialog({
   examId,
   onSuccess,
 }: QuestionFormDialogProps) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<string[]>(["", ""]);
 
@@ -119,7 +121,7 @@ export function QuestionFormDialog({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
           },
           body: JSON.stringify(payload),
         }

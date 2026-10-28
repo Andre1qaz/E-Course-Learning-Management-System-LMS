@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -58,6 +59,7 @@ export function AssignmentFormDialog({
   assignment,
   onSuccess,
 }: AssignmentFormDialogProps) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const isEdit = !!assignment;
 
@@ -102,7 +104,7 @@ export function AssignmentFormDialog({
         method: isEdit ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          Authorization: `Bearer ${session?.accessToken ?? ""}`,
         },
         body: JSON.stringify(values),
       });

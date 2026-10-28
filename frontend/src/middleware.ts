@@ -9,19 +9,43 @@ const roleRoutes: Record<string, string[]> = {
   MAHASISWA: ["/mahasiswa"],
 };
 
+// Routes below /mahasiswa/courses/ that are not course IDs.
+const NON_COURSE_SEGMENTS = new Set(["available", "join"]);
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 // Heuristic #5: Error Prevention — prevent unauthorized access to course content
-// Students must be enrolled to access course content
-async function checkStudentEnrollment(token: string, courseId: string): Promise<boolean> {
+// Students must be enrolled to access course content.
+// Returns false when the backend explicitly denies access, null when the
+// result is unknown (network/backend error) so we don't wrongly redirect.
+async function checkStudentEnrollment(
+  token: string,
+  courseId: string,
+): Promise<boolean | null> {
+  if (!API_URL) {
+    return null;
+  }
+
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${courseId}`, {
+    const response = await fetch(`${API_URL}/courses/${courseId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
-    const result = await response.json();
-    return result.success;
+
+    if (response.ok) {
+      const result = (await response.json()) as { success?: boolean };
+      return result.success === true;
+    }
+
+    if ([401, 403, 404].includes(response.status)) {
+      return false;
+    }
+
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -76,14 +100,14 @@ export default auth(async (req) => {
     // Check enrollment for students accessing course content
     if (role === "MAHASISWA" && pathname.startsWith("/mahasiswa/courses/")) {
       const courseMatch = pathname.match(/^\/mahasiswa\/courses\/([^\/]+)/);
-      if (courseMatch && courseMatch[1] && token) {
-        const courseId = courseMatch[1];
-        // Skip enrollment check for join page
-        if (!pathname.includes("/join")) {
-          const isEnrolled = await checkStudentEnrollment(token, courseId);
-          if (!isEnrolled) {
-            return NextResponse.redirect(new URL("/mahasiswa/courses/join", req.url));
-          }
+      const courseId = courseMatch?.[1];
+      if (courseId && !NON_COURSE_SEGMENTS.has(courseId) && token) {
+        const isEnrolled = await checkStudentEnrollment(token, courseId);
+        // Only redirect when the backend explicitly says "not enrolled".
+        if (isEnrolled === false) {
+          return NextResponse.redirect(
+            new URL("/mahasiswa/courses/join", req.url),
+          );
         }
       }
     }

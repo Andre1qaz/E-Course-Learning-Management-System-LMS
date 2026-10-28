@@ -127,7 +127,7 @@ export class ExamsService {
         type: 'EXAM_CREATED',
         title: 'Ujian Baru Dijadwalkan',
         message: `Ujian "${exam.title}" telah dijadwalkan di course "${course.name}". Mulai: ${startTime.toLocaleDateString('id-ID')} ${startTime.toLocaleTimeString('id-ID')}`,
-        link: `/mahasiswa/courses/${validatedCourseId}/exams/${exam.id}`,
+        link: `/mahasiswa/exams/${exam.id}`,
       });
     }
 
@@ -285,7 +285,7 @@ export class ExamsService {
         type: 'SCHEDULE_CHANGED',
         title: 'Perubahan Jadwal Ujian',
         message: `Jadwal ujian "${updatedExam.title}" telah diubah`,
-        link: `/mahasiswa/courses/${exam.courseId}/exams/${validatedId}`,
+        link: `/mahasiswa/exams/${validatedId}`,
       });
     }
 
@@ -644,20 +644,24 @@ export class ExamsService {
         select: { status: true },
       });
 
-      const canSeeQuestions =
-        attempt &&
-        (attempt.status === ExamAttemptStatus.IN_PROGRESS ||
-          attempt.status === ExamAttemptStatus.SUBMITTED ||
+      const canReview =
+        exam.allowReview &&
+        !!attempt &&
+        (attempt.status === ExamAttemptStatus.SUBMITTED ||
           attempt.status === ExamAttemptStatus.GRADED);
 
-      if (!canSeeQuestions) {
-        throw new ForbiddenException(
-          'Soal hanya tersedia setelah ujian dimulai',
-        );
+      // Questions are only exposed through the /start endpoint while the exam
+      // is in progress. After submission, review requires allowReview.
+      if (!canReview) {
+        return {
+          success: true,
+          data: [],
+          message: 'Review soal tidak diizinkan untuk ujian ini',
+        };
       }
     }
 
-    const hideAnswers = userRole === Role.MAHASISWA;
+    const hideAnswers = userRole === Role.MAHASISWA && !exam.allowReview;
     const mapped = questions.map((q) =>
       this.mapQuestionForClient(q, hideAnswers),
     );
@@ -721,12 +725,19 @@ export class ExamsService {
       orderBy: { attemptNumber: 'desc' },
     });
 
+    const attemptCount = await this.prisma.examAttempt.count({
+      where: { examId, studentId: userId },
+    });
+
+    const isInProgress =
+      existingAttempt?.status === ExamAttemptStatus.IN_PROGRESS;
+
     const isClosedStatus =
       existingAttempt &&
       (existingAttempt.status === ExamAttemptStatus.SUBMITTED ||
         existingAttempt.status === ExamAttemptStatus.GRADED);
 
-    if (isClosedStatus) {
+    if (isClosedStatus && attemptCount >= exam.maxAttempts) {
       return {
         success: true,
         data: {
@@ -747,28 +758,22 @@ export class ExamsService {
       };
     }
 
-    if (now > exam.deadline && !existingAttempt) {
+    if (now > exam.deadline && !isInProgress) {
       throw new ForbiddenException('Batas waktu ujian sudah lewat');
     }
 
-    let attempt = existingAttempt;
-    if (!attempt) {
+    let attempt;
+    if (isInProgress && existingAttempt) {
+      attempt = existingAttempt;
+    } else {
       attempt = await this.prisma.examAttempt.create({
         data: {
           examId,
           studentId: userId,
           status: ExamAttemptStatus.IN_PROGRESS,
           startedAt: now,
+          attemptNumber: attemptCount + 1,
           examCheatLog: [],
-        },
-        include: { answers: true },
-      });
-    } else if (attempt.status !== ExamAttemptStatus.IN_PROGRESS) {
-      attempt = await this.prisma.examAttempt.update({
-        where: { id: attempt.id },
-        data: {
-          status: ExamAttemptStatus.IN_PROGRESS,
-          startedAt: attempt.startedAt || now,
         },
         include: { answers: true },
       });
@@ -1067,6 +1072,7 @@ export class ExamsService {
         gradingStatus: needsManualGrading
           ? GradingStatus.PENDING
           : GradingStatus.COMPLETED,
+        passed: needsManualGrading ? null : this.isPassed(attempt.exam, totalScore),
       },
     });
 
@@ -1130,9 +1136,14 @@ export class ExamsService {
       throw new ForbiddenException('You do not have access to this attempt');
     }
 
+    const data =
+      userRole === Role.MAHASISWA
+        ? this.sanitizeAttemptForStudent(attempt)
+        : attempt;
+
     return {
       success: true,
-      data: attempt,
+      data,
       message: 'Exam attempt retrieved successfully',
     };
   }
@@ -1196,6 +1207,7 @@ export class ExamsService {
         exam: {
           include: {
             course: true,
+            questions: { select: { points: true } },
           },
         },
       },
@@ -1239,12 +1251,22 @@ export class ExamsService {
       0,
     );
 
+    const maxPossibleScore =
+      attempt.exam.maxScore > 0
+        ? attempt.exam.maxScore
+        : this.sumQuestionPoints(attempt.exam.questions);
+    const percentage =
+      maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
+    const passed = percentage >= attempt.exam.passingGrade;
+
     // Update attempt
     const gradedAttempt = await this.prisma.examAttempt.update({
       where: { id: attemptId },
       data: {
         totalScore,
         status: ExamAttemptStatus.GRADED,
+        gradingStatus: GradingStatus.COMPLETED,
+        passed,
       },
       include: {
         student: {
@@ -1254,6 +1276,15 @@ export class ExamsService {
           },
         },
       },
+    });
+
+    // Notify the student that their grade is available
+    await this.notificationsQueueService.addNotificationJob({
+      userId: attempt.studentId,
+      type: 'GRADE_RELEASED',
+      title: 'Nilai Ujian Dirilis',
+      message: `Nilai ujian "${attempt.exam.title}" telah dirilis: ${percentage.toFixed(1)}% (${passed ? 'Lulus' : 'Tidak Lulus'}).`,
+      link: `/mahasiswa/exams/${attempt.examId}`,
     });
 
     return {
@@ -1351,6 +1382,39 @@ export class ExamsService {
     const hardEnd =
       deadline.getTime() < durationEnd.getTime() ? deadline : durationEnd;
     return Math.max(0, Math.floor((hardEnd.getTime() - Date.now()) / 1000));
+  }
+
+  private sanitizeAttemptForStudent(attempt: any) {
+    const exam = attempt.exam ?? {};
+    const isClosed =
+      attempt.status === ExamAttemptStatus.SUBMITTED ||
+      attempt.status === ExamAttemptStatus.GRADED;
+    const canReview = isClosed && exam.allowReview === true;
+    const canSeeScore = isClosed && exam.showResults !== false;
+
+    return {
+      ...attempt,
+      totalScore: canSeeScore ? attempt.totalScore : null,
+      passed: canSeeScore ? attempt.passed : null,
+      answers: (attempt.answers || []).map((answer: any) => ({
+        ...answer,
+        score: canReview ? answer.score : null,
+        feedback: canReview ? answer.feedback : null,
+        question: answer.question
+          ? {
+              ...answer.question,
+              explanation:
+                canReview && exam.showExplanation
+                  ? answer.question.explanation
+                  : null,
+              options: (answer.question.options || []).map((option: any) => ({
+                ...option,
+                isCorrect: canReview ? option.isCorrect : false,
+              })),
+            }
+          : answer.question,
+      })),
+    };
   }
 
   private mapQuestionForClient(question: any, hideAnswers: boolean) {
@@ -1565,5 +1629,13 @@ export class ExamsService {
 
   private sumQuestionPoints(questions: Array<{ points: number }>) {
     return questions.reduce((sum, question) => sum + (question.points || 0), 0);
+  }
+
+  private isPassed(
+    exam: { passingGrade: number; maxScore: number },
+    totalScore: number,
+  ) {
+    const maxPossibleScore = exam.maxScore > 0 ? exam.maxScore : 100;
+    return (totalScore / maxPossibleScore) * 100 >= exam.passingGrade;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -39,6 +40,7 @@ export function ExamTaking({
   onSubmit,
   onCancel,
 }: ExamTakingProps) {
+  const { data: session } = useSession();
   const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert to seconds
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -59,7 +61,7 @@ export function ExamTaking({
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              Authorization: `Bearer ${session?.accessToken ?? ""}`,
             },
           }
         );
@@ -147,7 +149,7 @@ export function ExamTaking({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
           },
           body: JSON.stringify({ answers: submissionAnswers }),
         }

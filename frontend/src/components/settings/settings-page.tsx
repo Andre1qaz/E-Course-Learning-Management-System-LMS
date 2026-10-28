@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Bell, Moon, Shield, Globe } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+const SETTINGS_STORAGE_KEY = "user-settings";
 
 interface SettingsData {
   emailNotifications: boolean;
@@ -21,83 +21,80 @@ interface SettingsData {
   language: string;
 }
 
+const defaultSettings: SettingsData = {
+  emailNotifications: true,
+  pushNotifications: true,
+  darkMode: false,
+  language: "id",
+};
+
+function readStoredSettings(): SettingsData {
+  if (typeof window === "undefined") {
+    return defaultSettings;
+  }
+
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return defaultSettings;
+    }
+    const parsed = JSON.parse(raw) as Partial<SettingsData>;
+    return { ...defaultSettings, ...parsed };
+  } catch {
+    return defaultSettings;
+  }
+}
+
 export function SettingsPage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const [settings, setSettings] = useState<SettingsData>({
-    emailNotifications: true,
-    pushNotifications: true,
-    darkMode: false,
-    language: "id",
-  });
+  const [settings, setSettings] = useState<SettingsData>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    fetchSettings();
-  }, [session]);
 
-  useEffect(() => {
-    // Sync language with language provider only on initial load
-    if (settings.language && mounted) {
-      setLanguage(settings.language as any);
-    }
-  }, [mounted]);
-
-  const fetchSettings = async () => {
+    // Settings are persisted per user in localStorage so they survive reloads
+    // without requiring a dedicated backend endpoint.
+    const storageKey = session?.user?.email
+      ? `${SETTINGS_STORAGE_KEY}:${session.user.email}`
+      : SETTINGS_STORAGE_KEY;
+    let stored: SettingsData;
     try {
-      const response = await fetch(`${API_URL}/auth/settings`, {
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setSettings(data.data);
-        // Sync theme with settings
-        if (data.data.darkMode) {
-          setTheme("dark");
-        } else {
-          setTheme("light");
-        }
-      }
-    } catch (error) {
-      // Use default settings if API fails, but sync with localStorage for language
-      const savedLanguage = typeof window !== "undefined" ? localStorage.getItem("language") : "id";
-      setSettings({
-        emailNotifications: true,
-        pushNotifications: true,
-        darkMode: false,
-        language: savedLanguage || "id",
-      });
-    } finally {
-      setLoading(false);
+      const raw = localStorage.getItem(storageKey);
+      stored = raw
+        ? { ...defaultSettings, ...(JSON.parse(raw) as Partial<SettingsData>) }
+        : readStoredSettings();
+    } catch {
+      stored = readStoredSettings();
     }
-  };
+
+    // The language provider is the source of truth for the active language.
+    setSettings(stored);
+    setLoading(false);
+  }, [session?.user?.email]);
+
+  // Keep the select in sync if the language is changed elsewhere (e.g. navbar).
+  useEffect(() => {
+    setSettings((prev) =>
+      prev.language === language ? prev : { ...prev, language },
+    );
+  }, [language]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/auth/settings`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-        body: JSON.stringify(settings),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success(t("saved"));
-      } else {
-        throw new Error(data.message);
-      }
-    } catch (error: any) {
-      toast.error(error.message || t("saveFailed"));
+      const storageKey = session?.user?.email
+        ? `${SETTINGS_STORAGE_KEY}:${session.user.email}`
+        : SETTINGS_STORAGE_KEY;
+      localStorage.setItem(storageKey, JSON.stringify(settings));
+      setLanguage(settings.language as "id" | "en");
+      toast.success(t("saved"));
+    } catch {
+      toast.error(t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -110,7 +107,7 @@ export function SettingsPage() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setSettings({ ...settings, language: newLanguage });
-    setLanguage(newLanguage as any);
+    setLanguage(newLanguage as "id" | "en");
   };
 
   if (loading || !mounted) {
