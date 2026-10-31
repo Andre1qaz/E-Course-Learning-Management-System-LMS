@@ -26,6 +26,7 @@ export class WeeksService {
       orderBy: { order: 'asc' },
       include: {
         activities: {
+          where: canSeeUnpublished ? {} : { status: 'PUBLISHED' },
           orderBy: { order: 'asc' },
         },
       },
@@ -63,11 +64,6 @@ export class WeeksService {
   async findOne(id: string, userId: string, userRole: Role) {
     const week = await this.prisma.week.findUnique({
       where: { id },
-      include: {
-        activities: {
-          orderBy: { order: 'asc' },
-        },
-      },
     });
 
     if (!week) {
@@ -77,7 +73,19 @@ export class WeeksService {
     // Check if user has access to the course
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
-    return week;
+    // Students should not see draft activities
+    const canSeeUnpublished =
+      userRole === Role.ADMIN || userRole === Role.DOSEN;
+
+    return this.prisma.week.findUnique({
+      where: { id },
+      include: {
+        activities: {
+          where: canSeeUnpublished ? {} : { status: 'PUBLISHED' },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
   }
 
   async create(
@@ -144,7 +152,7 @@ export class WeeksService {
       throw new ForbiddenException('Only Admin and Dosen can update weeks');
     }
 
-    const week = await this.findOne(validatedId, userId, userRole);
+    await this.findOne(validatedId, userId, userRole);
 
     // ✅ Update dengan data yang sudah divalidasi
     return this.prisma.week.update({
@@ -162,7 +170,7 @@ export class WeeksService {
       throw new ForbiddenException('Only Admin and Dosen can delete weeks');
     }
 
-    const week = await this.findOne(id, userId, userRole);
+    await this.findOne(id, userId, userRole);
 
     return this.prisma.week.delete({
       where: { id },
@@ -182,6 +190,23 @@ export class WeeksService {
 
     // Check if user has access to the course
     await this.checkCourseAccess(courseId, userId, userRole);
+
+    // Ensure every week actually belongs to this course before reordering
+    const weekIds = weekOrders.map((week) => week.id);
+    const existingWeeks = await this.prisma.week.findMany({
+      where: { id: { in: weekIds } },
+      select: { id: true, courseId: true },
+    });
+
+    if (existingWeeks.length !== weekIds.length) {
+      throw new NotFoundException('One or more weeks were not found');
+    }
+
+    if (existingWeeks.some((week) => week.courseId !== courseId)) {
+      throw new BadRequestException(
+        'All weeks must belong to the specified course',
+      );
+    }
 
     // Update orders in a transaction
     return this.prisma.$transaction(

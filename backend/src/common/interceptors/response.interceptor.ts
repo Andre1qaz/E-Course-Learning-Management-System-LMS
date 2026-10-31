@@ -23,9 +23,24 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           data &&
           typeof data === 'object' &&
           'success' in data &&
-          'message' in data
+          typeof (data as { success: unknown }).success === 'boolean'
         ) {
-          return data as ApiResponse<T>;
+          // Services already return an API envelope. Normalise it instead of
+          // nesting it inside a second envelope (which made `data.data`
+          // double-wrapped for clients that legitimately omit `message`).
+          const envelope = data as {
+            success: boolean;
+            data?: unknown;
+            message?: unknown;
+          };
+
+          return {
+            ...(data as Record<string, unknown>),
+            success: envelope.success,
+            data: envelope.data ?? null,
+            message:
+              typeof envelope.message === 'string' ? envelope.message : 'OK',
+          } as ApiResponse<T>;
         }
         return {
           success: true,

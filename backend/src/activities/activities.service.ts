@@ -166,7 +166,11 @@ export class ActivitiesService {
       data: updateData,
     });
 
-    await this.calendarService.createEventFromActivity(updatedActivity.id);
+    try {
+      await this.calendarService.createEventFromActivity(updatedActivity.id);
+    } catch {
+      // Activity is already updated; calendar sync must not block edits.
+    }
 
     if (
       dto.status === 'PUBLISHED' &&
@@ -276,6 +280,23 @@ export class ActivitiesService {
 
     await this.checkCourseAccess(week.courseId, userId, userRole);
 
+    // Ensure every activity belongs to this week before reordering
+    const activityIds = activityOrders.map((activity) => activity.id);
+    const existingActivities = await this.prisma.activity.findMany({
+      where: { id: { in: activityIds } },
+      select: { id: true, weekId: true },
+    });
+
+    if (existingActivities.length !== activityIds.length) {
+      throw new NotFoundException('One or more activities were not found');
+    }
+
+    if (existingActivities.some((item) => item.weekId !== weekId)) {
+      throw new BadRequestException(
+        'All activities must belong to the specified week',
+      );
+    }
+
     // Update orders in a transaction
     return this.prisma.$transaction(
       activityOrders.map(({ id, order }) =>
@@ -305,6 +326,10 @@ export class ActivitiesService {
       where: { id: { in: activityIds } },
       include: { week: { include: { course: true } } },
     });
+
+    if (activities.length !== activityIds.length) {
+      throw new NotFoundException('One or more activities were not found');
+    }
 
     for (const activity of activities) {
       await this.checkCourseAccess(activity.week.courseId, userId, userRole);

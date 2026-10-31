@@ -66,6 +66,12 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
       } else if (coursesData.data && coursesData.data.length > 0) {
         setSelectedCourseId(coursesData.data[0].id);
       }
+
+      const threadIdFromUrl = searchParams.get('threadId');
+      if (threadIdFromUrl) {
+        setSelectedThreadId(threadIdFromUrl);
+        setView('detail');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat courses");
     }
@@ -104,6 +110,19 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
   useEffect(() => {
     fetchCourses();
   }, [token]);
+
+  // Deep link from notifications: ?courseId=...&threadId=...
+  useEffect(() => {
+    const courseIdFromUrl = searchParams.get('courseId');
+    const threadIdFromUrl = searchParams.get('threadId');
+    if (courseIdFromUrl) {
+      setSelectedCourseId(courseIdFromUrl);
+    }
+    if (threadIdFromUrl) {
+      setSelectedThreadId(threadIdFromUrl);
+      setView('detail');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedCourseId) {

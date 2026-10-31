@@ -116,6 +116,37 @@ export class ForumService {
   }
 
   /**
+   * Build a role-aware deep link to a forum thread. The forum UI has one
+   * route per role and no dedicated thread route, so the thread is selected
+   * through query parameters.
+   */
+  private async getForumLink(
+    userId: string,
+    courseId: string,
+    threadId?: string,
+    replyId?: string,
+  ): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    const segment =
+      user?.role === Role.DOSEN
+        ? 'dosen'
+        : user?.role === Role.ADMIN
+          ? 'admin'
+          : 'mahasiswa';
+
+    const params = new URLSearchParams();
+    params.set('courseId', courseId);
+    if (threadId) params.set('threadId', threadId);
+    if (replyId) params.set('replyId', replyId);
+
+    return `/${segment}/forum?${params.toString()}`;
+  }
+
+  /**
    * Create notification for forum activity
    */
   private async createNotification(
@@ -185,9 +216,7 @@ export class ForumService {
         NotificationType.FORUM_REPLY,
         'You were mentioned in a forum discussion',
         `${author?.name} mentioned you in a discussion`,
-        threadId
-          ? `/forum/thread/${threadId}`
-          : `/forum/thread/${threadId}#reply-${replyId}`,
+        await this.getForumLink(mentionedUserId, courseId, threadId, replyId),
       );
     }
   }
@@ -464,7 +493,7 @@ export class ForumService {
         NotificationType.FORUM_REPLY,
         'New forum discussion',
         `${data.title} - ${data.content.substring(0, 100)}...`,
-        `/forum/thread/${thread.id}`,
+        await this.getForumLink(student.userId, courseId, thread.id),
       );
     }
 
@@ -827,7 +856,12 @@ export class ForumService {
       NotificationType.FORUM_REPLY,
       'Your answer was marked as best',
       'Your reply was marked as the best answer in a forum discussion',
-      `/forum/thread/${threadId}`,
+      await this.getForumLink(
+        reply.authorId,
+        thread.courseId,
+        threadId,
+        replyId,
+      ),
     );
 
     return {
@@ -1018,7 +1052,12 @@ export class ForumService {
         NotificationType.FORUM_REPLY,
         'New reply to your discussion',
         `${data.content.substring(0, 100)}...`,
-        `/forum/thread/${threadId}`,
+        await this.getForumLink(
+          thread.authorId,
+          thread.courseId,
+          threadId,
+          reply.id,
+        ),
       );
     }
 

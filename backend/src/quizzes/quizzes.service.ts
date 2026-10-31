@@ -647,7 +647,7 @@ export class QuizzesService {
                   question?: {
                     options?: Array<Record<string, unknown>>;
                   } & Record<string, unknown>;
-                } & Record<string, unknown>;
+                } & Record<string, unknown>>;
               }
             ).answers;
 

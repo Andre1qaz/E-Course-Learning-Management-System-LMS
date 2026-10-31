@@ -463,10 +463,9 @@ export class AssignmentsService {
         score: dto.score,
         feedback: dto.feedback,
         rubricNotes: dto.rubricNotes,
-        status:
-          dto.score !== undefined
-            ? AssignmentSubmissionStatus.GRADED
-            : AssignmentSubmissionStatus.SUBMITTED,
+        ...(dto.score !== undefined
+          ? { status: AssignmentSubmissionStatus.GRADED }
+          : {}),
       },
       include: {
         student: {

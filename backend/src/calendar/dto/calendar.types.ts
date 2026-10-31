@@ -8,9 +8,9 @@ import {
 export interface CalendarEventWhere {
   isPublished?: boolean;
   OR?: Array<{
-    courseId?: { in: string[] };
+    courseId?: { in: string[] } | null;
     targetAudience?: EventTargetAudience;
-    userId?: string;
+    userId?: string | null;
   }>;
   courseId?: string;
   category?: EventCategory;

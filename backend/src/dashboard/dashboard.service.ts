@@ -205,16 +205,20 @@ export class DashboardService {
       grades,
       unreadNotifications,
       courseProgressList,
+      upcomingEvents,
+      recentAnnouncements,
     ] = await Promise.all([
       this.prisma.enrollment.count({ where: { userId: validatedUserId } }),
-      this.prisma.assignmentSubmission.count({
+      this.prisma.assignment.count({
         where: {
-          studentId: validatedUserId,
-          assignment: {
-            courseId: { in: courseIds },
-            deadline: { gte: new Date() },
+          courseId: { in: courseIds },
+          deadline: { gte: new Date() },
+          submissions: {
+            none: {
+              studentId: validatedUserId,
+              status: { in: ['SUBMITTED', 'LATE', 'GRADED'] },
+            },
           },
-          status: { in: ['NOT_SUBMITTED'] },
         },
       }),
       this.prisma.grade.findMany({
@@ -234,6 +238,49 @@ export class DashboardService {
         },
       }),
       this.courseProgressService.getStudentAllCoursesProgress(validatedUserId),
+      this.prisma.calendarEvent.findMany({
+        where: {
+          isPublished: true,
+          startDate: { gte: new Date() },
+          OR: [
+            { courseId: { in: courseIds } },
+            // Only owner-less global events, not other users' personal notes
+            { userId: null, targetAudience: 'ALL_STUDENTS' },
+            { userId: validatedUserId },
+          ],
+        },
+        orderBy: { startDate: 'asc' },
+        take: 5,
+        include: {
+          course: {
+            select: { id: true, name: true, code: true },
+          },
+        },
+      }),
+      this.prisma.announcement.findMany({
+        where: {
+          isPublished: true,
+          OR: [{ courseId: { in: courseIds } }, { courseId: null }],
+          AND: [
+            {
+              OR: [
+                { validUntil: null },
+                { validUntil: { gte: new Date() } },
+              ],
+            },
+          ],
+        },
+        orderBy: { publishedAt: 'desc' },
+        take: 5,
+        include: {
+          course: {
+            select: { id: true, name: true, code: true },
+          },
+          author: {
+            select: { id: true, name: true },
+          },
+        },
+      }),
     ]);
 
     // Calculate average grade
@@ -260,8 +307,8 @@ export class DashboardService {
       data: {
         totalCourses,
         incompleteAssignments,
-        upcomingEvents: [],
-        recentAnnouncements: [],
+        upcomingEvents,
+        recentAnnouncements,
         averageGrade,
         averageProgress,
         unreadNotifications,

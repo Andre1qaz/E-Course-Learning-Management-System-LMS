@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { NotificationType } from '@prisma/client';
+import { NotificationsService } from './notifications.service';
 
 // Check if Redis is configured
 const hasRedisConfig = !!(
@@ -23,6 +24,7 @@ export class NotificationsQueueService {
   private readonly hasRedis: boolean;
 
   constructor(
+    private readonly notificationsService: NotificationsService,
     @Optional() @InjectQueue('notifications') private notificationsQueue?: Queue,
   ) {
     this.hasRedis = !!this.notificationsQueue && !forceDisableRedis;
@@ -42,7 +44,18 @@ export class NotificationsQueueService {
     link?: string;
   }) {
     if (!this.hasRedis || forceDisableRedis) {
-      this.logger.warn(`Redis not available or disabled - skipping queue for notification to user ${data.userId}`);
+      // No queue available: create the notification immediately (also pushes
+      // it over WebSocket) so users still receive in-app notifications.
+      try {
+        await this.notificationsService.createNotification(data);
+        this.logger.log(
+          `Created notification directly for user ${data.userId} (queue disabled)`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to create fallback notification: ${(error as Error).message}`,
+        );
+      }
       return null;
     }
 
@@ -83,7 +96,22 @@ export class NotificationsQueueService {
     link?: string;
   }) {
     if (!this.hasRedis || forceDisableRedis) {
-      this.logger.warn(`Redis not available or disabled - skipping bulk notification queue for ${data.userIds.length} users`);
+      // No queue available: create notifications immediately (queue-less
+      // environments still get in-app notifications).
+      if (data.userIds.length === 0) {
+        return null;
+      }
+
+      try {
+        await this.notificationsService.createBulkNotifications(data);
+        this.logger.log(
+          `Created ${data.userIds.length} notifications directly (queue disabled)`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to create fallback bulk notifications: ${(error as Error).message}`,
+        );
+      }
       return null;
     }
 

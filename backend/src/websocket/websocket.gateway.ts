@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 interface AuthenticatedSocket extends Socket {
   userId?: string;
   userRole?: string;
+  userName?: string;
 }
 
 @WSGateway({
@@ -69,6 +70,7 @@ export class RealtimeGateway
 
       client.userId = user.id;
       client.userRole = user.role;
+      client.userName = user.name;
 
       // Add user to online users
       this.addOnlineUser(user.id, client.id);
@@ -165,6 +167,33 @@ export class RealtimeGateway
     }
   }
 
+  /**
+   * Room membership must be authorized: a client may only join course rooms
+   * for courses they are enrolled in, teaching, or (for admins) any course.
+   */
+  private async canAccessCourse(
+    client: AuthenticatedSocket,
+    courseId: string,
+  ): Promise<boolean> {
+    if (!client.userId) return false;
+    if (client.userRole === 'ADMIN') return true;
+
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { instructorId: true },
+    });
+    if (!course) return false;
+    if (course.instructorId === client.userId) return true;
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId: client.userId, courseId },
+      },
+      select: { id: true },
+    });
+    return !!enrollment;
+  }
+
   // Notification methods
   sendNotificationToUser(userId: string, notification: any) {
     this.server.to(`user:${userId}`).emit('notification:new', notification);
@@ -245,6 +274,11 @@ export class RealtimeGateway
     @MessageBody() data: { courseId: string },
   ) {
     if (client.userId && data.courseId) {
+      if (!(await this.canAccessCourse(client, data.courseId))) {
+        client.emit('error', { message: 'You do not have access to this course' });
+        return;
+      }
+
       await client.join(`course:${data.courseId}`);
       this.logger.log(`User ${client.userId} joined course ${data.courseId}`);
 
@@ -291,12 +325,12 @@ export class RealtimeGateway
         where: { id: data.threadId },
         select: { courseId: true },
       });
-      if (thread) {
+      if (thread && (await this.canAccessCourse(client, thread.courseId))) {
         this.broadcastTyping(
           thread.courseId,
           data.threadId,
           client.userId,
-          client.userId,
+          client.userName ?? client.userId,
         );
       }
     }
@@ -312,7 +346,7 @@ export class RealtimeGateway
         where: { id: data.threadId },
         select: { courseId: true },
       });
-      if (thread) {
+      if (thread && (await this.canAccessCourse(client, thread.courseId))) {
         this.server.to(`course:${thread.courseId}`).emit('forum:typing_stop', {
           threadId: data.threadId,
           userId: client.userId,
@@ -327,6 +361,15 @@ export class RealtimeGateway
     @MessageBody() data: { examId: string },
   ) {
     if (client.userId && data.examId) {
+      const exam = await this.prisma.exam.findUnique({
+        where: { id: data.examId },
+        select: { courseId: true },
+      });
+      if (!exam || !(await this.canAccessCourse(client, exam.courseId))) {
+        client.emit('error', { message: 'You do not have access to this exam' });
+        return;
+      }
+
       await client.join(`exam:${data.examId}`);
       this.logger.log(`User ${client.userId} joined exam ${data.examId}`);
     }
@@ -344,11 +387,19 @@ export class RealtimeGateway
   }
 
   @SubscribeMessage('exam:heartbeat')
-  handleExamHeartbeat(
+  async handleExamHeartbeat(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { examId: string; remainingTime: number },
   ) {
     if (client.userId && data.examId) {
+      const exam = await this.prisma.exam.findUnique({
+        where: { id: data.examId },
+        select: { courseId: true },
+      });
+      if (!exam || !(await this.canAccessCourse(client, exam.courseId))) {
+        return;
+      }
+
       // Broadcast only to other users taking the same exam
       this.server.to(`exam:${data.examId}`).emit('exam:heartbeat', {
         examId: data.examId,

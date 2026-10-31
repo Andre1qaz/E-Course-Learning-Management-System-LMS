@@ -51,7 +51,10 @@ export class CalendarService {
         isPublished: true,
         OR: [
           { courseId: { in: courseIds } },
-          { targetAudience: EventTargetAudience.ALL_STUDENTS },
+          // Global events are published by admins (no owner). Personal notes
+          // also default to ALL_STUDENTS, so require userId: null to avoid
+          // leaking other users' private notes.
+          { userId: null, targetAudience: EventTargetAudience.ALL_STUDENTS },
           { userId },
         ],
       };
@@ -324,7 +327,7 @@ export class CalendarService {
         type: NotificationType.EVENT_CREATED,
         title: 'Event Baru Ditambahkan',
         message: `Event "${event.title}" telah dijadwalkan pada ${event.startDate.toLocaleDateString('id-ID')}`,
-        link: `/calendar`,
+        link: '/mahasiswa/calendar',
       });
     }
 
@@ -374,8 +377,8 @@ export class CalendarService {
 
     // Check permission
     if (event.userId) {
-      // Personal note - only owner can update
-      if (event.userId !== userId) {
+      // Personal note - only owner (or an admin) can update
+      if (event.userId !== userId && userRole !== Role.ADMIN) {
         throw new ForbiddenException(
           'You can only update your own personal notes',
         );
@@ -455,7 +458,7 @@ export class CalendarService {
         type: NotificationType.SCHEDULE_CHANGED,
         title: 'Perubahan Jadwal Event',
         message: `Jadwal event "${updatedEvent.title}" telah diubah menjadi ${updatedEvent.startDate.toLocaleDateString('id-ID')}`,
-        link: `/calendar`,
+        link: '/mahasiswa/calendar',
       });
     }
 
@@ -482,8 +485,8 @@ export class CalendarService {
 
     // Check permission
     if (event.userId) {
-      // Personal note - only owner can delete
-      if (event.userId !== userId) {
+      // Personal note - only owner (or an admin) can delete
+      if (event.userId !== userId && userRole !== Role.ADMIN) {
         throw new ForbiddenException(
           'You can only delete your own personal notes',
         );
@@ -608,14 +611,25 @@ export class CalendarService {
     }
 
     // Check access permissions
-    if (!event.isPublished && userRole !== Role.ADMIN) {
+    const isCourseInstructor = event.course?.instructor?.id === userId;
+
+    if (!event.isPublished && userRole !== Role.ADMIN && !isCourseInstructor) {
       throw new ForbiddenException('This event is not published yet');
+    }
+
+    // Personal notes are private to their owner
+    if (
+      event.type === CalendarEventType.PERSONAL_NOTE &&
+      event.userId !== userId &&
+      userRole !== Role.ADMIN
+    ) {
+      throw new ForbiddenException('You do not have access to this event');
     }
 
     if (event.courseId) {
       const hasAccess =
         userRole === Role.ADMIN ||
-        event.course?.instructor?.id === userId ||
+        isCourseInstructor ||
         (await this.prisma.enrollment.findFirst({
           where: { userId, courseId: event.courseId },
         }));

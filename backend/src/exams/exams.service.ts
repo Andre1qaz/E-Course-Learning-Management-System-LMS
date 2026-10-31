@@ -575,22 +575,59 @@ export class ExamsService {
       },
     });
 
-    // Add options for multiple choice and true/false
+    // Add options for multiple choice and true/false. Accept both the DTO
+    // shape ({ text, isCorrect }) and the legacy string[] + correctAnswer
+    // shape sent by the question form.
+    const rawOptions = (dto.options ?? []) as unknown as Array<
+      string | { text?: string; optionText?: string; isCorrect?: boolean }
+    >;
+
     if (
-      (dto.type === QuestionType.MULTIPLE_CHOICE ||
-        dto.type === QuestionType.TRUE_FALSE) &&
-      dto.options
+      dto.type === QuestionType.MULTIPLE_CHOICE ||
+      dto.type === QuestionType.TRUE_FALSE
     ) {
-      for (let i = 0; i < dto.options.length; i++) {
+      for (let i = 0; i < rawOptions.length; i++) {
+        const option = rawOptions[i];
+        const optionText =
+          typeof option === 'string'
+            ? option
+            : (option.text ?? option.optionText ?? '');
+
+        if (!optionText || !optionText.trim()) {
+          continue;
+        }
+
+        const isCorrect =
+          typeof option === 'string'
+            ? !!dto.correctAnswer &&
+              option.trim().toLowerCase() ===
+                dto.correctAnswer.trim().toLowerCase()
+            : option.isCorrect === true;
+
         await this.prisma.questionOption.create({
           data: {
             questionId: question.id,
-            optionText: dto.options[i].text,
-            isCorrect: dto.options[i].isCorrect,
+            optionText,
+            isCorrect,
             order: i,
           },
         });
       }
+    } else if (
+      dto.type === QuestionType.SHORT_ANSWER &&
+      dto.correctAnswer &&
+      dto.correctAnswer.trim()
+    ) {
+      // Short answers keep their expected answer as a correct option so the
+      // auto-grader can find it.
+      await this.prisma.questionOption.create({
+        data: {
+          questionId: question.id,
+          optionText: dto.correctAnswer.trim(),
+          isCorrect: true,
+          order: 0,
+        },
+      });
     }
 
     return {

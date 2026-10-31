@@ -162,6 +162,7 @@ export class AnnouncementsService {
             name: true,
             code: true,
             thumbnailColor: true,
+            instructorId: true,
           },
         },
         readStatus:
@@ -360,9 +361,7 @@ export class AnnouncementsService {
           message: announcement.courseId
             ? `Pengumuman baru: "${announcement.title}" di ${announcement.course.name}`
             : `Pengumuman baru: "${announcement.title}"`,
-          link: announcement.courseId
-            ? `/courses/${announcement.courseId}`
-            : '/announcements',
+          link: `/mahasiswa/announcements/${announcement.id}`,
         });
       }
     }

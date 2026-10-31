@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '@prisma/client';
 import {
   CourseProgressResponse,
   ProgressBreakdown,
@@ -23,6 +24,8 @@ export class CourseProgressService {
   async calculateStudentProgress(
     courseId: string,
     studentId: string,
+    viewerId?: string,
+    viewerRole?: Role,
   ): Promise<CourseProgressResponse> {
     // ✅ Validate UUIDs dengan AutoValidator
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
@@ -30,6 +33,15 @@ export class CourseProgressService {
       studentId,
       'Student ID',
     );
+
+    // Verify the viewer may access this course
+    if (viewerId && viewerRole) {
+      await this.verifyCourseAccess(
+        validatedCourseId,
+        viewerId,
+        viewerRole,
+      );
+    }
 
     const [course, student] = await Promise.all([
       this.prisma.course.findUnique({
@@ -50,10 +62,10 @@ export class CourseProgressService {
     ]);
 
     if (!course || !student) {
-      throw new Error('Course or student not found');
+      throw new NotFoundException('Course or student not found');
     }
 
-    // Get all course content
+    // Get all course content (only content visible to students)
     const [modules, assignments, exams, activities] = await Promise.all([
       this.prisma.module.findMany({
         where: { courseId: validatedCourseId },
@@ -62,9 +74,14 @@ export class CourseProgressService {
       this.prisma.assignment.findMany({
         where: { courseId: validatedCourseId },
       }),
-      this.prisma.exam.findMany({ where: { courseId: validatedCourseId } }),
+      this.prisma.exam.findMany({
+        where: { courseId: validatedCourseId, isPublished: true },
+      }),
       this.prisma.activity.findMany({
-        where: { week: { courseId: validatedCourseId } },
+        where: {
+          week: { courseId: validatedCourseId },
+          status: 'PUBLISHED',
+        },
       }),
     ]);
 
@@ -149,9 +166,14 @@ export class CourseProgressService {
    */
   async getCourseStudentsProgress(
     courseId: string,
+    viewerId: string,
+    viewerRole: Role,
   ): Promise<StudentProgressListResponse> {
     // ✅ Validate courseId dengan AutoValidator
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
+    // Only the course instructor (or an admin) may see all students
+    await this.verifyCourseAccess(validatedCourseId, viewerId, viewerRole);
 
     const course = await this.prisma.course.findUnique({
       where: { id: validatedCourseId },
@@ -162,7 +184,7 @@ export class CourseProgressService {
     });
 
     if (!course) {
-      throw new Error('Course not found');
+      throw new NotFoundException('Course not found');
     }
 
     const enrollments = await this.prisma.enrollment.findMany({
@@ -207,12 +229,25 @@ export class CourseProgressService {
    */
   async getStudentAllCoursesProgress(
     studentId: string,
+    viewerId?: string,
+    viewerRole?: Role,
   ): Promise<CourseProgressResponse[]> {
     // ✅ Validate studentId dengan AutoValidator
     const validatedStudentId = AutoValidator.validateUUID(
       studentId,
       'Student ID',
     );
+
+    if (
+      viewerId &&
+      viewerRole &&
+      viewerRole !== Role.ADMIN &&
+      viewerId !== validatedStudentId
+    ) {
+      throw new ForbiddenException(
+        'You can only view your own course progress',
+      );
+    }
 
     const enrollments = await this.prisma.enrollment.findMany({
       where: { userId: validatedStudentId, role: 'STUDENT' },
@@ -235,10 +270,14 @@ export class CourseProgressService {
    */
   async recalculateProgress(
     courseId: string,
-    studentId?: string,
+    studentId: string | undefined,
+    viewerId: string,
+    viewerRole: Role,
   ): Promise<{ message: string; updated: number }> {
     // ✅ Validate courseId dengan AutoValidator
     const validatedCourseId = AutoValidator.validateUUID(courseId, 'Course ID');
+
+    await this.verifyCourseAccess(validatedCourseId, viewerId, viewerRole);
 
     if (studentId) {
       // ✅ Validate studentId dengan AutoValidator
@@ -313,6 +352,46 @@ export class CourseProgressService {
         (g: any) => g.completionPercentage === 100,
       ).length,
     };
+  }
+
+  /**
+   * Verify that a user may access a course's progress data.
+   */
+  private async verifyCourseAccess(
+    courseId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    if (userRole === Role.ADMIN) {
+      return;
+    }
+
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { instructorId: true },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    if (course.instructorId === userId) {
+      return;
+    }
+
+    if (userRole === Role.DOSEN) {
+      throw new ForbiddenException('You do not have access to this course');
+    }
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+
+    if (!enrollment) {
+      throw new ForbiddenException('You are not enrolled in this course');
+    }
   }
 
   /**

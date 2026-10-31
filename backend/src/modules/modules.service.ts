@@ -87,7 +87,7 @@ export class ModulesService {
         title: result.sanitized.title,
         description: result.sanitized.description,
         learningObjectives: result.sanitized.learningObjectives,
-        order: result.sanitized.order ?? 0,
+        order: order ?? 0,
       },
       include: {
         files: true,
@@ -95,7 +95,11 @@ export class ModulesService {
     });
 
     // Automatically create calendar event
-    await this.calendarService.createEventFromModule(module.id);
+    try {
+      await this.calendarService.createEventFromModule(module.id);
+    } catch {
+      // Module is already created; calendar sync must not block creation.
+    }
 
     // Send notifications to enrolled students via queue
     const enrollments = await this.prisma.enrollment.findMany({
@@ -109,7 +113,7 @@ export class ModulesService {
       type: 'MATERIAL_PUBLISHED',
       title: 'Materi Baru Tersedia',
       message: `Materi "${module.title}" telah ditambahkan di course "${course.name}"`,
-      link: `/mahasiswa/courses/${courseId}/modules/${module.id}`,
+      link: `/mahasiswa/courses/${courseId}`,
     });
 
     return {
@@ -426,6 +430,23 @@ export class ModulesService {
     }
 
     // Update orders in transaction
+    // Ensure every module belongs to this course before reordering
+    const moduleIds = moduleOrders.map((module) => module.id);
+    const existingModules = await this.prisma.module.findMany({
+      where: { id: { in: moduleIds } },
+      select: { id: true, courseId: true },
+    });
+
+    if (existingModules.length !== moduleIds.length) {
+      throw new NotFoundException('One or more modules were not found');
+    }
+
+    if (existingModules.some((module) => module.courseId !== courseId)) {
+      throw new BadRequestException(
+        'All modules must belong to the specified course',
+      );
+    }
+
     await this.prisma.$transaction(
       moduleOrders.map(({ id, order }) =>
         this.prisma.module.update({

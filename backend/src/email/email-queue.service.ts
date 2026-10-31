@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { EmailOptions } from './interfaces/email.interface';
+import { EmailService } from './email.service';
 
 // Check if Redis is configured
 const hasRedisConfig = !!(
@@ -19,7 +20,10 @@ export class EmailQueueService {
   private readonly logger = new Logger(EmailQueueService.name);
   private readonly hasRedis: boolean;
 
-  constructor(@Optional() @InjectQueue('email-queue') private readonly emailQueue?: Queue) {
+  constructor(
+    private readonly emailService: EmailService,
+    @Optional() @InjectQueue('email-queue') private readonly emailQueue?: Queue,
+  ) {
     this.hasRedis = !!this.emailQueue && !forceDisableRedis;
     if (!this.hasRedis) {
       this.logger.warn('Redis not configured or disabled - email queue will operate in fallback mode');
@@ -28,7 +32,14 @@ export class EmailQueueService {
 
   async addEmailJob(options: EmailOptions): Promise<void> {
     if (!this.hasRedis || forceDisableRedis) {
-      this.logger.warn(`Redis not available or disabled - skipping queue for email to ${options.to}`);
+      // No queue: send directly so transactional emails still go out.
+      try {
+        await this.emailService.sendEmail(options);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send email directly to ${options.to}: ${(error as Error).message}`,
+        );
+      }
       return;
     }
 
@@ -58,7 +69,18 @@ export class EmailQueueService {
     resetUrl: string,
   ): Promise<void> {
     if (!this.hasRedis || forceDisableRedis) {
-      this.logger.warn(`Redis not available or disabled - skipping queue for forgot password email to ${email}`);
+      try {
+        await this.emailService.sendForgotPasswordEmail(
+          email,
+          name,
+          resetToken,
+          resetUrl,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to send forgot password email directly to ${email}: ${(error as Error).message}`,
+        );
+      }
       return;
     }
 
@@ -96,7 +118,13 @@ export class EmailQueueService {
     loginUrl: string,
   ): Promise<void> {
     if (!this.hasRedis || forceDisableRedis) {
-      this.logger.warn(`Redis not available or disabled - skipping queue for welcome email to ${email}`);
+      try {
+        await this.emailService.sendWelcomeEmail(email, name, loginUrl);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send welcome email directly to ${email}: ${(error as Error).message}`,
+        );
+      }
       return;
     }
 

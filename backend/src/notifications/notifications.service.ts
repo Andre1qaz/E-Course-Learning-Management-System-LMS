@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
 import { AutoValidator } from '../common/base/validation-guide';
 import { RealtimeGateway } from '../websocket/websocket.gateway';
 
@@ -19,6 +19,26 @@ export class NotificationsService {
     private prisma: PrismaService,
     private realtimeGateway: RealtimeGateway,
   ) {}
+
+  /**
+   * Calendar UI lives under a role-specific route. Resolve the correct link so
+   * calendar notifications never point at a non-existent `/calendar` page.
+   */
+  private async getCalendarLink(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    const segment =
+      user?.role === Role.DOSEN
+        ? 'dosen'
+        : user?.role === Role.ADMIN
+          ? 'admin'
+          : 'mahasiswa';
+
+    return `/${segment}/calendar`;
+  }
 
   /**
    * Get all notifications for a user
@@ -566,7 +586,7 @@ export class NotificationsService {
       type: NotificationType.EVENT_CREATED,
       title: 'Event Baru Ditambahkan',
       message: `Event "${validatedEventTitle}" telah dijadwalkan pada ${validatedEventDate.toLocaleDateString('id-ID')}`,
-      link: '/calendar',
+      link: await this.getCalendarLink(validatedUserId),
     });
   }
 
@@ -598,7 +618,7 @@ export class NotificationsService {
       type: NotificationType.SCHEDULE_CHANGED,
       title: 'Perubahan Jadwal',
       message: `Jadwal ${validatedItemType} "${validatedItemName}" telah diubah menjadi ${validatedNewDate.toLocaleDateString('id-ID')}`,
-      link: '/calendar',
+      link: await this.getCalendarLink(validatedUserId),
     });
   }
 }

@@ -37,6 +37,8 @@ export class CourseProgressController {
       success: true,
       data: await this.courseProgressService.getStudentAllCoursesProgress(
         userId,
+        userId,
+        Role.MAHASISWA,
       ),
       message: 'Student course progress retrieved successfully',
     };
@@ -57,6 +59,8 @@ export class CourseProgressController {
       data: await this.courseProgressService.calculateStudentProgress(
         courseId,
         userId,
+        userId,
+        Role.MAHASISWA,
       ),
       message: 'Course progress retrieved successfully',
     };
@@ -70,11 +74,15 @@ export class CourseProgressController {
   @ApiParam({ name: 'courseId', description: 'Course ID' })
   async getCourseStudentsProgress(
     @Param('courseId', ParseEntityIdPipe) courseId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
   ) {
     return {
       success: true,
       data: await this.courseProgressService.getCourseStudentsProgress(
         courseId,
+        userId,
+        userRole,
       ),
       message: 'Course students progress retrieved successfully',
     };
@@ -88,12 +96,16 @@ export class CourseProgressController {
   async getStudentProgressInCourse(
     @Param('courseId', ParseEntityIdPipe) courseId: string,
     @Param('studentId', ParseEntityIdPipe) studentId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
   ) {
     return {
       success: true,
       data: await this.courseProgressService.calculateStudentProgress(
         courseId,
         studentId,
+        userId,
+        userRole,
       ),
       message: 'Student progress retrieved successfully',
     };
@@ -113,10 +125,16 @@ export class CourseProgressController {
   @Post('recalculate')
   @ApiOperation({ summary: 'Recalculate progress for a course' })
   @Roles(Role.DOSEN, Role.ADMIN)
-  async recalculateProgress(@Body() dto: RecalculateProgressDto) {
+  async recalculateProgress(
+    @Body() dto: RecalculateProgressDto,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: Role,
+  ) {
     const result = await this.courseProgressService.recalculateProgress(
       dto.courseId,
       dto.studentId,
+      userId,
+      userRole,
     );
     return {
       success: true,

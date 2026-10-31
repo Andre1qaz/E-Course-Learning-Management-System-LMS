@@ -131,6 +131,10 @@ export class GradebookService {
   ) {
     await this.checkCourseAccess(courseId, userId, role);
 
+    // Ensure a grade record exists so every branch returns the same shape.
+    // `calculateStudentGrade` upserts, so this is a no-op once computed.
+    await this.calculateStudentGrade(courseId, studentId);
+
     const grade = await this.prisma.grade.findUnique({
       where: {
         courseId_studentId: {
@@ -150,8 +154,7 @@ export class GradebookService {
     });
 
     if (!grade) {
-      // Create grade record if it doesn't exist
-      return await this.calculateStudentGrade(courseId, studentId);
+      throw new NotFoundException('Grade record not found');
     }
 
     const course = await this.prisma.course.findUnique({
@@ -492,9 +495,13 @@ export class GradebookService {
       where: { courseId },
     });
 
+    const totalStudents = await this.prisma.enrollment.count({
+      where: { courseId, role: 'STUDENT' },
+    });
+
     const passingGrade = settings?.passingGrade || 60;
 
-    const totalStudents = grades.length;
+    const gradedCount = grades.length;
     const passedStudents = grades.filter(
       (g) => g.finalScore !== null && g.finalScore >= passingGrade,
     ).length;
@@ -503,31 +510,30 @@ export class GradebookService {
     const averageScores = {
       assignment:
         grades.reduce((sum, g) => sum + (g.assignmentScore || 0), 0) /
-          totalStudents || 0,
+          gradedCount || 0,
       quiz:
-        grades.reduce((sum, g) => sum + (g.quizScore || 0), 0) /
-          totalStudents || 0,
+        grades.reduce((sum, g) => sum + (g.quizScore || 0), 0) / gradedCount ||
+        0,
       uts:
-        grades.reduce((sum, g) => sum + (g.utsScore || 0), 0) / totalStudents ||
-        0,
+        grades.reduce((sum, g) => sum + (g.utsScore || 0), 0) / gradedCount || 0,
       uas:
-        grades.reduce((sum, g) => sum + (g.uasScore || 0), 0) / totalStudents ||
-        0,
+        grades.reduce((sum, g) => sum + (g.uasScore || 0), 0) / gradedCount || 0,
       final:
-        grades.reduce((sum, g) => sum + (g.finalScore || 0), 0) /
-          totalStudents || 0,
+        grades.reduce((sum, g) => sum + (g.finalScore || 0), 0) / gradedCount ||
+        0,
     };
 
     const averageCompletion =
       grades.reduce((sum, g) => sum + g.completionPercentage, 0) /
-        totalStudents || 0;
+        gradedCount || 0;
 
     return {
       success: true,
       data: {
         totalStudents,
+        gradedStudents: gradedCount,
         passedStudents,
-        failedStudents,
+        failedStudents: Math.max(failedStudents, 0),
         passRate:
           totalStudents > 0 ? (passedStudents / totalStudents) * 100 : 0,
         averageScores,

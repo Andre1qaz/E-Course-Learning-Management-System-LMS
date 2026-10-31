@@ -105,6 +105,18 @@ export class PrivateFilesService {
       folderPath?: string;
     },
   ) {
+    if (!data.fileName || typeof data.fileName !== 'string') {
+      throw new BadRequestException('Nama file wajib diisi');
+    }
+
+    if (!Number.isFinite(data.fileSize) || data.fileSize <= 0) {
+      throw new BadRequestException('Ukuran file tidak valid');
+    }
+
+    if (data.folderPath !== undefined && typeof data.folderPath !== 'string') {
+      throw new BadRequestException('Folder path tidak valid');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -307,6 +319,17 @@ export class PrivateFilesService {
   }
 
   async renameFile(userId: string, fileId: string, newFileName: string) {
+    if (!newFileName || typeof newFileName !== 'string') {
+      throw new BadRequestException('Nama file baru wajib diisi');
+    }
+
+    const trimmedName = newFileName.trim();
+    if (!trimmedName || trimmedName.length > 255) {
+      throw new BadRequestException(
+        'Nama file harus antara 1 dan 255 karakter',
+      );
+    }
+
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
     });
@@ -325,7 +348,7 @@ export class PrivateFilesService {
 
     const updatedFile = await this.prisma.privateFile.update({
       where: { id: fileId },
-      data: { fileName: newFileName },
+      data: { fileName: trimmedName },
     });
 
     return {
@@ -336,6 +359,10 @@ export class PrivateFilesService {
   }
 
   async moveFile(userId: string, fileId: string, newFolderPath: string) {
+    if (!newFolderPath || typeof newFolderPath !== 'string') {
+      throw new BadRequestException('Folder tujuan wajib diisi');
+    }
+
     const file = await this.prisma.privateFile.findUnique({
       where: { id: fileId },
     });
@@ -348,9 +375,55 @@ export class PrivateFilesService {
       throw new ForbiddenException('You can only move your own files');
     }
 
+    const targetPath = this.normalizeFolderPath(newFolderPath);
+
+    // A folder cannot be moved into itself or one of its descendants.
+    if (
+      this.isFolderRecord(file) &&
+      (targetPath === file.folderPath ||
+        targetPath.startsWith(`${file.folderPath}/`))
+    ) {
+      throw new BadRequestException(
+        'Folder tidak dapat dipindahkan ke dalam dirinya sendiri',
+      );
+    }
+
+    if (this.isFolderRecord(file)) {
+      // Move the folder record and every descendant so the tree stays intact.
+      const descendants = await this.prisma.privateFile.findMany({
+        where: {
+          userId,
+          folderPath: { startsWith: `${file.folderPath}/` },
+        },
+      });
+
+      await this.prisma.$transaction([
+        this.prisma.privateFile.update({
+          where: { id: fileId },
+          data: { folderPath: targetPath },
+        }),
+        ...descendants.map((descendant) =>
+          this.prisma.privateFile.update({
+            where: { id: descendant.id },
+            data: {
+              folderPath:
+                targetPath +
+                descendant.folderPath.slice(file.folderPath.length),
+            },
+          }),
+        ),
+      ]);
+
+      return {
+        success: true,
+        data: { folderPath: targetPath },
+        message: 'Folder moved successfully',
+      };
+    }
+
     const updatedFile = await this.prisma.privateFile.update({
       where: { id: fileId },
-      data: { folderPath: this.normalizeFolderPath(newFolderPath) },
+      data: { folderPath: targetPath },
     });
 
     return {

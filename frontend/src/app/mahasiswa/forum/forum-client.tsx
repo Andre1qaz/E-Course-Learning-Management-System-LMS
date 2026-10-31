@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ForumThread, getForumThreads, getForumThread, createForumThread, updateForumThread, deleteForumThread, togglePinThread, createForumReply, updateForumReply, deleteForumReply, getCourses } from "@/lib/api";
 import { ForumThreadList } from "@/components/forum/forum-thread-list";
 import { ForumThreadDetail } from "@/components/forum/forum-thread-detail";
@@ -25,6 +26,7 @@ interface ForumClientProps {
 }
 
 export function ForumClient({ role, token, userId }: ForumClientProps) {
+  const searchParams = useSearchParams();
   const [view, setView] = useState<"list" | "detail">("list");
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -50,7 +52,10 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
           code: c.code,
         }))
       );
-      if (coursesData.data && coursesData.data.length > 0) {
+      const courseIdFromUrl = searchParams.get("courseId");
+      if (courseIdFromUrl) {
+        setSelectedCourseId(courseIdFromUrl);
+      } else if (coursesData.data && coursesData.data.length > 0) {
         setSelectedCourseId(coursesData.data[0].id);
       }
       setLoadingCourses(false);
@@ -93,6 +98,19 @@ export function ForumClient({ role, token, userId }: ForumClientProps) {
   useEffect(() => {
     fetchCourses();
   }, [token]);
+
+  // Deep link from notifications: ?courseId=...&threadId=...
+  useEffect(() => {
+    const courseIdFromUrl = searchParams.get("courseId");
+    const threadIdFromUrl = searchParams.get("threadId");
+    if (courseIdFromUrl) {
+      setSelectedCourseId(courseIdFromUrl);
+    }
+    if (threadIdFromUrl) {
+      setSelectedThreadId(threadIdFromUrl);
+      setView("detail");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedCourseId) {

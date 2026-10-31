@@ -286,17 +286,27 @@ export class QuestionBanksService {
         questionText: dto.questionText,
         points: dto.points,
         order: nextOrder,
+        explanation: dto.explanation,
       },
     });
 
-    // Add options for multiple choice
-    if (dto.type === QuestionType.MULTIPLE_CHOICE && dto.options) {
+    // Add options for multiple choice and true/false questions
+    if (
+      (dto.type === QuestionType.MULTIPLE_CHOICE ||
+        dto.type === QuestionType.TRUE_FALSE) &&
+      dto.options
+    ) {
       for (let i = 0; i < dto.options.length; i++) {
+        const option = dto.options[i];
+        if (!option.text || !option.text.trim()) {
+          continue;
+        }
+
         await this.prisma.questionOption.create({
           data: {
             questionId: question.id,
-            optionText: dto.options[i].text,
-            isCorrect: dto.options[i].isCorrect,
+            optionText: option.text,
+            isCorrect: option.isCorrect === true,
             order: i,
           },
         });
@@ -748,14 +758,22 @@ export class QuestionBanksService {
         },
       });
 
-      // Import options for multiple choice
-      if (q.type === QuestionType.MULTIPLE_CHOICE && q.options) {
+      // Import options for multiple choice and true/false
+      if (
+        (q.type === QuestionType.MULTIPLE_CHOICE ||
+          q.type === QuestionType.TRUE_FALSE) &&
+        q.options
+      ) {
         for (let i = 0; i < q.options.length; i++) {
+          if (!q.options[i].optionText || !q.options[i].optionText.trim()) {
+            continue;
+          }
+
           await this.prisma.questionOption.create({
             data: {
               questionId: question.id,
               optionText: q.options[i].optionText,
-              isCorrect: q.options[i].isCorrect,
+              isCorrect: q.options[i].isCorrect === true,
               order: i,
             },
           });
